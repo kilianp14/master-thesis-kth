@@ -1,0 +1,685 @@
+
+%%
+%% forked from https://gits-15.sys.kth.se/giampi/kthlatex kthlatex-0.2rc4 on 2020-02-13
+%% expanded upon by Gerald Q. Maguire Jr.
+%% This template has been adapted by Anders Sjögren to the University
+%% Engineering Program in Computer Science at KTH ICT. This adaptation was
+%% translation of English headings into Swedish with the addition of Swedish.
+%% Many thanks to others who have provided constructive input regarding the template.
+
+% Make it possible to conditionally depend on the TeX engine used
+\RequirePackage{ifxetex}
+\RequirePackage{ifluatex}
+\newif\ifxeorlua
+\ifxetex\xeorluatrue\fi
+\ifluatex\xeorluatrue\fi
+
+\ifxeorlua
+% The following is to ensure that the PDF uses a recent version rather than the typical PDF 1-5
+%  This same version of PDF should be set as an option for hyperef
+
+\RequirePackage{expl3}
+\RequirePackage{etoolbox}
+
+
+\ExplSyntaxOn
+%pdf_version_gset:n{2.0}
+%\pdf_version_gset:n{1.5}
+
+%% Alternatively, if you have a LaTeX newer than June 2022, you can use the following. However, then you have to remove the pdfversion from hyperef. It also breaks hyperxmp. So perhaps it is too early to try using it!
+%\DocumentMetadata
+%{
+%% testphase = phase-I, % tagging without paragraph tagging
+% testphase = phase-II % tagging with paragraph tagging and other new stuff.
+%pdfversion = 2.0 % pdfversion must be set here.
+%}
+
+% Optionally, you can set the uncompress flag to make it easier to examine the PDF
+%\pdf_uncompress: % to check the pdf
+\ExplSyntaxOff
+\else
+\RequirePackage{expl3}
+\ExplSyntaxOn
+%\pdf_version_gset:n{2.0}
+\pdf_version_gset:n{1.5}
+\ExplSyntaxOff
+\fi
+
+%% Define a pair of commands to disable and reenable specific packages - see https://tex.stackexchange.com/questions/39415/unload-a-latex-package
+\makeatletter
+\newcommand{\disablepackage}[2]{%
+  \disable@package@load{#1}{#2}%
+}
+\newcommand{\reenablepackage}[1]{%
+  \reenable@package@load{#1}%
+}
+\makeatother
+%% To avoid the warning: "Package transparent Warning: Loading aborted, because pdfTeX is not running in PDF mode."
+\ifxeorlua
+\disablepackage{transparent}{}
+\fi
+
+%% The template is designed to handle a thesis in English or Swedish
+\documentclass[
+english,                 % the language of the body of the document: english or swedish       (note this must be in lower case)
+bibtex,                  % the bibliographic processor to use: biblatex or bibtex
+%nomenclature,           % add the option nomenclature
+%digitaloutput,          % optimize for digital output (this changes the color palette)
+%includeExtraAbstracts, % uncomment to allow abstracts in languages beyond English & Swedish
+]{kththesis}
+
+% if pdflatex \usepackage[utf8]{inputenc}
+
+%% Conventions for todo notes:
+% Informational
+%% \generalExpl{Comments/directions/... in English}
+\newcommand*{\generalExpl}[1]{\todo[inline]{#1}}                
+
+% Language-specific information (currently in English or Swedish)
+\newcommand*{\engExpl}[1]{\todo[inline, backgroundcolor=kth-lightgreen40]{#1}} %% \engExpl{English descriptions about formatting}
+\newcommand*{\sweExpl}[1]{\todo[inline, backgroundcolor=kth-lightblue40]{#1}}  %% % \sweExpl{Text på svenska}
+
+% warnings
+\newcommand*{\warningExpl}[1]{\todo[inline, backgroundcolor=kth-lightred40]{#1}} %% \warningExpl{warnings}
+
+% Uncomment to hide specific comments, to hide **all** ToDos add `final` to
+% document class
+% \renewcommand\warningExpl[1]{}
+% \renewcommand\generalExpl[1]{}
+% \renewcommand\engExpl[1]{}
+% For example uncommenting the following line hides the Swedish language explanations
+% \renewcommand\sweExpl[1]{}
+
+
+% \usepackage[style=numeric,sorting=none,backend=biber]{biblatex}
+\iftoggle{biblatex}{
+    %\usepackage[language=english,bibstyle=authoryear,citestyle=authoryear, maxbibnames=99]{biblatex}
+    % Alternatively you might use another style, such as IEEE and use citestyle=numeric-comp  to put multiple citations in a single pair of square brackets
+    \usepackage[style=ieee,citestyle=numeric-comp]{biblatex}
+    \addbibresource{references.bib}
+    %\DeclareLanguageMapping{norsk}{norwegian}
+}{
+    % The line(s) below are for BibTeX
+    \bibliographystyle{bibstyle/myIEEEtran}
+    %\bibliographystyle{apalike}
+}
+
+
+% include a variety of packages that are useful
+\input{lib/includes}
+\input{lib/kthcolors}
+
+%\glsdisablehyper
+%\makeglossaries
+%\makenoidxglossaries
+%\input{lib/acronyms}                %load the acronyms file
+
+\input{lib/defines}  % load some additional definitions to make writing more consistent
+
+% The following is needed in conjunction with generating the DiVA data with abstracts and keywords using the scontents package and a modified listings environment
+%\usepackage{listings}   %  already included
+
+\makeatletter
+\let\verbatimsc\@undefined
+\let\endverbatimsc\@undefined
+\lst@AddToHook{Init}{\hyphenpenalty=50\relax}
+\makeatother
+
+
+\lstnewenvironment{verbatimsc}
+    {
+    \lstset{%
+        basicstyle=\ttfamily\tiny,
+        backgroundcolor=\color{white},
+        %basicstyle=\tiny,
+        %columns=fullflexible,
+        columns=[l]fixed,
+        language=[LaTeX]TeX,
+        %numbers=left,
+        %numberstyle=\tiny\color{gray},
+        keywordstyle=\color{red},
+        breaklines=true,                 % sets automatic line breaking
+        breakatwhitespace=true,          % sets if automatic breaks should only happen at whitespace
+        %keepspaces=false,
+        breakindent=0em,
+        %fancyvrb=true,
+        frame=none,                     % turn off any box
+        postbreak={}                    % turn off any hook arrow for continuation lines
+    }
+}{}
+
+%% Add some more keywords to bring out the structure more
+\lstdefinestyle{[LaTeX]TeX}{
+morekeywords={begin, todo, textbf, textit, texttt}
+}
+
+%% definition of new command for bytefield package
+\newcommand{\colorbitbox}[3]{%
+	\rlap{\bitbox{#2}{\color{#1}\rule{\width}{\height}}}%
+	\bitbox{#2}{#3}}
+
+
+
+
+% define a left aligned table cell that is ragged right
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}p{#1}}
+
+% Because backref is not compatible with biblatex
+\iftoggle{biblatex}{
+    \usepackage[plainpages=false]{hyperref}
+}{
+    \usepackage[
+    backref=page,
+    pagebackref=false,
+    plainpages=false,
+                            % PDF related options
+    unicode=true,           % Unicode encoded PDF strings
+    bookmarks=true,         % generate bookmarks in PDF files
+    bookmarksopen=false,    % Do not automatically open the bookmarks in the PDF reading program
+    pdfpagemode=UseNone,    % None, UseOutlines, UseThumbs, or FullScreen
+    destlabel,              % better naming of destinations
+    pdfencoding=auto,       % for unicode in 
+    ]{hyperref}
+   %% Removed use of backref package as it is incompatible with using attachfile
+}
+
+\usepackage[all]{hypcap}	%% prevents an issue related to hyperref and caption linking
+
+%% Acronyms
+% note that nonumberlist - removes the cross references to the pages where the acronym appears
+% note that super will set the descriptions text aligned
+% note that nomain - does not produce a main glossary, thus only acronyms will be in the glossary
+% note that nopostdot - will prevent there being a period at the end of each entry
+\usepackage[acronym, style=super, section=section, nonumberlist, nomain,
+nopostdot]{glossaries}
+\setlength{\glsdescwidth}{0.75\textwidth}
+\usepackage[]{glossaries-extra}
+\ifinswedish
+    %\usepackage{glossaries-swedish}
+\fi
+
+%% For use with the README_notes
+% Define a new type of glossary so that the acronyms defined in the README_notes document can be distinct from those in the thesis template
+% the tlg, tld, and dn will be the file extensions used for this glossary
+\newglossary[tlg]{readme}{tld}{tdn}{README acronyms}
+
+
+\input{lib/includes-after-hyperref}
+
+%\glsdisablehyper
+\makeglossaries
+%\makenoidxglossaries
+
+% The following bit of ugliness is because of the problems PDFLaTeX has handling a non-breaking hyphen
+% unless it is converted to UTF-8 encoding.
+% If you do not use such characters in your acronyms, this could be simplified to just include the acronyms file.
+\ifxeorlua
+\input{lib/acronyms}                %load the acronyms file
+\else
+\input{lib/acronyms-for-pdflatex}
+\fi
+
+% place holders for languages lacking .lbx files
+\input{lib/placeHolder_lbx_files}
+
+% insert the configuration information with author(s), examiner, supervisor(s), ...
+\input{custom_configuration}
+
+% read in the plain text definitions, if they exist
+\IfFileExists{custom_configuration_plaintext.tex}{\input{custom_configuration_plaintext.tex}}{}
+
+
+% Enter the English and Swedish keywords here for use in the PDF metadata _and_ for later use
+% following the respective abstract.
+% Try to put the words in the same order in both languages to facilitate matching. For example:
+% TODO:
+\EnglishKeywords{KeywordA, KeywordB, KeywordC}
+\SwedishKeywords{NyckelordA, NyckelordB, NyckelordC}
+
+%%%%% For the oral presentation
+%% Add this information once your examiner has scheduled your oral presentation
+% TODO:
+\presentationDateAndTimeISO{2022-03-15 13:00}
+\presentationLanguage{XXX}  % generally: eng or swe
+\presentationRoom{via Zoom https://kth-se.zoom.us/j/ddddddddddd}
+\presentationAddress{Isafjordsgatan 22 (Kistagången 16)}
+\presentationCity{Stockholm}
+
+% When there are multiple opponents, separate their names with '\&'
+% Opponent's information
+%\opponentsNames{A. B. Normal \& A. X. E. Normalè}
+% TODO:
+\opponentsNames{XXX}
+
+% It is possible to have a cover illustration
+%\coverIllustration{figures/image1.png}
+% if so, the author might acknowledge this or give the copyright information for it with:
+%\coverIllustrationCredit{A. B. Normal}
+
+% Once a thesis is approved by the examiner, add the TRITA number
+% The TRITA number for a thesis consists of two parts: a series (unique to each school)
+% and the number in the series, which is formatted as the year followed by a colon and
+% then a unique series number for the thesis - starting with 1 each year.
+\trita{TRITA -- XXX-EX}{2025:0000}
+
+% Put the title, author, and keyword information into the PDF meta information
+\input{lib/pdf_related_includes}
+
+
+% the custom colors and the commands are defined in defines.tex    
+\hypersetup{
+	colorlinks  = true,
+	breaklinks  = true,
+	linkcolor   = \linkscolor,
+	urlcolor    = \urlscolor,
+	citecolor   = \refscolor,
+	anchorcolor = black
+}
+
+\ifnomenclature
+% The following lines make the page numbers and equations hyperlinks in the Nomenclature list
+\renewcommand*{\pagedeclaration}[1]{\unskip, \dotfill\hyperlink{page.#1}{page\nobreakspace#1}}
+% The following does not work correctly, as the name of the cross-reference is incorrect
+%\renewcommand*{\eqdeclaration}[1]{, see equation\nobreakspace(\hyperlink{equation.#1}{#1})}
+
+% You can also change the page heading for the nomenclature
+\renewcommand{\nomname}{List of Symbols Used}
+
+% You can even add customization text before the list
+\renewcommand{\nompreamble}{The following symbols will be later used within the body of the thesis.}
+\makenomenclature
+\fi
+
+%
+% The commands below are to configure JSON listings
+% 
+% format for JSON listings
+\colorlet{punct}{red!60!black}
+\definecolor{delim}{RGB}{20,105,176}
+\definecolor{numb}{RGB}{106, 109, 32}
+\definecolor{string}{RGB}{0, 0, 0}
+
+\lstdefinelanguage{json}{
+    numbers=none,
+    numberstyle=\small,
+    frame=none,
+    rulecolor=\color{black},
+    showspaces=false,
+    showtabs=false,
+    breaklines=true,
+    postbreak=\raisebox{0ex}[0ex][0ex]{\ensuremath{\color{gray}\hookrightarrow\space}},
+    breakatwhitespace=true,
+    basicstyle=\ttfamily\small,
+    extendedchars=false,
+    upquote=true,
+    morestring=[b]",
+    stringstyle=\color{string},
+    literate=
+     *{0}{{{\color{numb}0}}}{1}
+      {1}{{{\color{numb}1}}}{1}
+      {2}{{{\color{numb}2}}}{1}
+      {3}{{{\color{numb}3}}}{1}
+      {4}{{{\color{numb}4}}}{1}
+      {5}{{{\color{numb}5}}}{1}
+      {6}{{{\color{numb}6}}}{1}
+      {7}{{{\color{numb}7}}}{1}
+      {8}{{{\color{numb}8}}}{1}
+      {9}{{{\color{numb}9}}}{1}
+      {:}{{{\color{punct}{:}}}}{1}
+      {,}{{{\color{punct}{,}}}}{1}
+      {\{}{{{\color{delim}{\{}}}}{1}
+      {\}}{{{\color{delim}{\}}}}}{1}
+      {[}{{{\color{delim}{[}}}}{1}
+      {]}{{{\color{delim}{]}}}}{1}
+      {’}{{\char13}}1,
+}
+
+\lstdefinelanguage{XML}
+{
+  basicstyle=\ttfamily\color{blue}\bfseries\small,
+  morestring=[b]",
+  morestring=[s]{>}{<},
+  morecomment=[s]{<?}{?>},
+  stringstyle=\color{black},
+  identifierstyle=\color{blue},
+  keywordstyle=\color{cyan},
+  breaklines=true,
+  postbreak=\raisebox{0ex}[0ex][0ex]{\ensuremath{\color{gray}\hookrightarrow\space}},
+  breakatwhitespace=true,
+  morekeywords={xmlns,version,type}% list your attributes here
+}
+
+% If you use both listing and lstlisting environments - the following makes them both use the same counter and the same formatting in the List of Listings
+\makeatletter
+\AtBeginDocument{\let\c@listing\c@lstlisting}
+\AtBeginDocument{\let\l@listing\l@lstlisting}
+\makeatother
+
+% Change the heading for the "List of Listings" to simply "Listings"
+\renewcommand{\lstlistlistingname}{Listings}
+
+% number each listing within the chapter
+\numberwithin{listing}{chapter}
+
+\usepackage{subfiles}
+
+% To have Creative Commons (CC) license and logos use the doclicense package
+% Note that the lowercase version of the license has to be used in the modifier
+% i.e., one of by, by-nc, by-nd, by-nc-nd, by-sa, by-nc-sa, zero.
+% For background see:
+% https://www.kb.se/samverkan-och-utveckling/oppen-tillgang-och-bibsamkonsortiet/open-access-and-bibsam-consortium/open-access/creative-commons-faq-for-researchers.html
+% https://kib.ki.se/en/publish-analyse/publish-your-article-open-access/open-licence-your-publication-cc
+\begin{comment}
+\usepackage[
+    type={CC},
+    %modifier={by-nc-nd},
+    %version={4.0},
+    modifier={by-nc},
+    imagemodifier={-eu-88x31},  % to get Euro symbol rather than Dollar sign
+    hyphenation={RaggedRight},
+    version={4.0},
+    %modifier={zero},
+    %version={1.0},
+]{doclicense}
+\end{comment}
+\listfiles
+
+\begin{document}
+%\selectlanguage{swedish}
+%
+\selectlanguage{english}
+
+%%% Set the numbering for the title page to a numbering series not in the preface or body
+\pagenumbering{alph}
+\kthcover
+\clearpage\thispagestyle{empty}\mbox{} % empty back of front cover
+\titlepage
+
+% If you do not want to have a bookinfo page, comment out the line saying \bookinfopage and add a \cleardoublepage
+% If you want a bookinfo page: you will get a copyright notice, unless you have used the doclicense package in which case you will get a Creative Commons license. To include the doclicense package, uncomment the configuration of this package above and configure it with your choice of license.
+\bookinfopage
+
+% Frontmatter includes the abstracts and table-of-contents
+\frontmatter
+\setcounter{page}{1}
+\begin{abstract}
+% The first abstract should be in the language of the thesis.
+% Abstract fungerar på svenska också.
+  \markboth{\abstractname}{}
+\begin{scontents}[store-env=lang]
+eng
+\end{scontents}
+%%% The contents of the abstract (between the begin and end of scontents) will be saved in LaTeX format
+%%% and output on the page(s) at the end of the thesis with information for DiVA facilitating the correct
+%%% entry of the meta data for your thesis.
+%%% These page(s) will be removed before the thesis is inserted into DiVA.
+\engExpl{All theses at KTH are \textbf{required} to have an abstract in both \textit{English} and \textit{Swedish}.}
+
+\engExpl{Exchange students may want to include one or more abstracts in the language(s) used in their home institutions to avoid the need to write another thesis when returning to their home institution.}
+
+\generalExpl{Keep in mind that most of your potential readers are only going to read your \texttt{title} and \texttt{abstract}. This is why the abstract must give them enough information so that they can decide if this document is relevant to them or not. Otherwise, the likely default choice is to ignore the rest of your document.\\
+An abstract should stand on its own, \ie no citations, cross-references to the body of the document, acronyms must be spelled out, \ldots .\\Write this early and revise as necessary. This will help keep you focused on what you are trying to do.}
+
+\begin{scontents}[store-env=abstracts,print-env=true]
+\generalExpl{Enter your abstract here!}
+An abstract is (typically) about 250 and 350 words (1/2 A4-page) with the following components:
+% key parts of the abstract
+\begin{itemize}
+  \item What is the topic area? (optional) Introduces the subject area for the project.
+  \item Short problem statement
+  \item Why was this problem worth a Bachelor's/Master’s thesis project? (\ie, why is the problem both significant and of a suitable degree of difficulty for a Bachelor's/Master’s thesis project? Why has no one else solved it yet?)
+  \item How did you solve the problem? What was your method/insight?
+  \item Results/Conclusions/Consequences/Impact: What are your key results/\linebreak[4]conclusions? What will others do based on your results? What can be done now that you have finished - that could not be done before your thesis project was completed?
+\end{itemize}
+
+\end{scontents}
+\engExpl{The following are some notes about what can be included (in terms of LaTeX) in your abstract.}
+Choice of typeface with \textbackslash textit, \textbackslash textbf, and \textbackslash texttt:  \textit{x}, \textbf{x}, and \texttt{x}.
+
+Text superscripts and subscripts with \textbackslash textsubscript and \textbackslash textsuperscript: A\textsubscript{x} and A\textsuperscript{x}.
+
+Some symbols that you might find useful are available, such as: \textbackslash textregistered, \textbackslash texttrademark, and \textbackslash textcopyright. For example, 
+the copyright symbol: \textbackslash textcopyright Maguire 2022 results in \textcopyright Maguire 2022. Additionally, here are some examples of text superscripts (which can be combined with some symbols): \textbackslash textsuperscript\{99m\}Tc, A\textbackslash textsuperscript\{*\}, A\textbackslash textsuperscript\{\textbackslash textregistered\}, and A\textbackslash texttrademark resulting in \textsuperscript{99m}Tc, A\textsuperscript{*}, A\textsuperscript{\textregistered}, and A\texttrademark. Two examples of subscripts are: H\textbackslash textsubscript\{2\}O and CO\textbackslash textsubscript\{2\} which produce  H\textsubscript{2}O and CO\textsubscript{2}.
+
+You can use simple environments with begin and end: itemize and enumerate and within these use instances of \textbackslash item.
+
+The following commands can be used: \textbackslash eg, \textbackslash Eg, \textbackslash ie, \textbackslash Ie, \textbackslash etc, and \textbackslash etal: \eg, \Eg, \ie, \Ie, \etc, and \etal.
+
+The following commands for numbering with lowercase Roman numerals: \textbackslash first, \textbackslash Second, \textbackslash third, \textbackslash fourth, \textbackslash fifth, \textbackslash sixth, \textbackslash seventh, and \textbackslash eighth: \first, \Second, \third, \fourth, \fifth, \sixth, \seventh, and \eighth. Note that the second case is set with a capital 'S' to avoid conflicts with the use of second as a unit in the \texttt{siunitx} package.
+
+Equations using \textbackslash( xxxx \textbackslash) or \textbackslash[ xxxx \textbackslash] can be used in the abstract. For example: \( (C_5O_2H_8)_n \)
+or \[ \int_{a}^{b} x^2 \,dx \]
+Note that you \textbf{cannot} use an equation between dollar signs.
+
+
+Even LaTeX comments can be handled by using a backslash to quote the percent symbol, for example: \% comment.
+Note that one can include percentages, such as: 51\% or \SI{51}{\percent}.
+
+\subsection*{Keywords}
+\begin{scontents}[store-env=keywords,print-env=true]
+% If you set the EnglishKeywords earlier, you can retrieve them with:
+\InsertKeywords{english}
+% If you did not set the EnglishKeywords earlier then simply enter the keywords here:
+% comma separate keywords, such as: Canvas Learning Management System, Docker containers, Performance tuning
+\end{scontents}
+\engExpl{\textbf{Choosing good keywords can help others to locate your paper, thesis, dissertation, \ldots and related work.}}
+Choose the most specific keyword from those used in your domain, see for example: the ACM Computing Classification System ({\small \url{https://www.acm.org/publications/computing-classification-system/how-to-use})},
+the IEEE Taxonomy ({\small \url{https://www.ieee.org/publications/services/thesaurus-thank-you.html}}), PhySH (Physics Subject Headings)\linebreak[4] ({\small \url{https://physh.aps.org/}}), \ldots or keyword selection tools such as the  National Library of Medicine's Medical Subject Headings (MeSH)  ({\small \url{https://www.nlm.nih.gov/mesh/authors.html}}) or Google's Keyword Tool ({\small \url{https://keywordtool.io/}})\\
+
+\textbf{Formatting the keywords}:
+\begin{itemize}
+  \item The first letter of a keyword should be set with a capital letter and proper names should be capitalized as usual.
+  \item Spell out acronyms and abbreviations.
+  \item Avoid "stop words" - as they generally carry little or no information.
+  \item List your keywords separated by commas (``,'').
+\end{itemize}    
+Since you should have both English and Swedish keywords - you might think of ordering the keywords in corresponding order (\ie, so that the n\textsuperscript{th} word in each list correspond) - this makes it easier to mechanically find matching keywords.
+\end{abstract}
+\cleardoublepage
+\babelpolyLangStart{swedish}
+\begin{abstract}
+    \markboth{\abstractname}{}
+\begin{scontents}[store-env=lang]
+swe
+\end{scontents}
+\warningExpl{Inside the following scontents environment, you cannot use a \textbackslash include{filename} as the command rather than the file contents will end up in the for DiVA information. Additionally, you should not use a straight double quote character in the abstracts or keywords, use two single quote characters instead.}
+\sweExpl{Alla avhandlingar vid KTH \textbf{måste ha} ett abstrakt på både \textit{engelska} och \textit{svenska}.\\
+Om du skriver din avhandling på svenska ska detta göras först (och placera det som det första abstraktet) - och du bör revidera det vid behov.}
+
+\engExpl{If you are writing your thesis in English, you can leave this until the draft version that goes to your opponent for the written opposition. In this way, you can provide the English and Swedish abstract/summary information that can be used in the announcement for your oral presentation.\\If you are writing your thesis in English, then this section can be a summary targeted at a more general reader. However, if you are writing your thesis in Swedish, then the reverse is true – your abstract should be for your target audience, while an English summary can be written targeted at a more general audience.\\This means that the English abstract and Swedish sammnfattning  
+or Swedish abstract and English summary need not be literal translations of each other.}
+
+\warningExpl{Do not use the \textbackslash glspl\{\} command in an abstract that is not in English, as my programs do not know how to generate plurals in other languages. Instead, you will need to spell these terms out or give the proper plural form. In fact, it is a good idea not to use the glossary commands at all in an abstract/summary in a language other than the language used in the \texttt{acronyms.tex file} - since the glossary package does \textbf{not} support use of more than one language.}
+
+\engExpl{The abstract in the language used for the thesis should be the first abstract, while the Summary/Sammanfattning in the other language can follow}
+\begin{scontents}[store-env=abstracts,print-env=true]
+\generalExpl{Enter your Swedish abstract or summary here!}
+
+\end{scontents}
+\subsection*{Nyckelord}
+\begin{scontents}[store-env=keywords,print-env=true]
+% SwedishKeywords were set earlier, hence we can use alternative 2
+\InsertKeywords{swedish}
+\end{scontents}
+\sweExpl{Nyckelord som beskriver innehållet i uppsatsen eller rapporten}
+\end{abstract}
+\cleardoublepage
+\babelpolyLangStop{swedish}
+% Note that the \cleardoublepage has to be before the 
+% \babelpolyLangStop - otherwise the running headers will not be in the correct language
+
+
+\engExpl{If you add the class option \texttt{includeExtraAbstracts} in your \texttt{docuemntclass}, then you can enable abstracts/summaries in a number of languages. Include those versions of abstracts that you need.}
+\generalExpl{If you are an exchange student, use the relevant language or languages for abstracts for your home university, as this will often avoid the need for writing another thesis for your home university.}
+\generalExpl{If you are fluent in other languages, feel free to add the abstracts in one or more of them.}
+
+\engExpl{The set of languages that can be easily included are based on those languages that were used in theses at KTH in the period 2018-2019, along with several others that have been used in theses since.}
+\warningExpl{Note that you may need to augment the set of languages used in \texttt{polyglossia} or
+\texttt{babel} (see the file \texttt{kththesis.cls}). If you add a new language, when specifying the language for the abstract, use the three-letter ISO 639-2 Code – specifically the "B" (bibliographic) variant of these codes (note that this is the same language code used in DiVA).}
+
+\cleardoublepage
+\iftoggle{includeExtraAbstracts}{
+% To include abstracts in languages other than English and Swedish:
+%  1. Ensure 'includeExtraAbstracts' is an active option in \documentclass.
+%  2. Uncomment the relevant '\input' line(s) below.
+%  3. Edit the content within the corresponding file in the 'Additional_Abstracts/' folder.
+% Include only the abstracts that you want and fill them in as appropriate
+% The template will automatically include the information that you entered
+
+% --- Include German abstract ---
+%\input{Additional_Abstracts/abstract_german}
+
+}{} %% End the iiftoggle{includeExtraAbstracts}
+
+\section*{Acknowledgments}
+\markboth{Acknowledgments}{}
+\sweExpl{Författarnas tack}
+
+\engExpl{It is nice to acknowledge the people that have helped you. It is
+  also necessary to acknowledge any special permissions that you have gotten –
+  for example, getting permission from the copyright owner to reproduce a
+  figure. In this case, you should acknowledge them and this permission here
+  and in the figure’s caption. \\
+  Note: If you do \textbf{not} have the copyright owner’s permission, then you \textbf{cannot} use any copyrighted figures/tables/\ldots . Unless stated otherwise all figures/tables/\ldots are generally copyrighted.
+}
+\sweExpl{I detta kapitel kan du ev nämna något om
+  din bakgrund om det påverkar rapporten på något sätt. Har du t ex inte
+  möjlighet att skriva perfekt svenska för att du är nyanländ till landet kan
+  det vara på sin plats att nämna detta här. OBS, detta får dock inte vara en
+  ursäkt för att lämna in en rapport med undermåligt språk, undermålig grammatik och
+  stavning (t ex får fel som en automatisk stavningskontroll och
+  grammatikkontroll kan upptäcka inte förekomma)\\
+En dualism som måste hanteras i hela rapporten och projektet
+}
+
+\engExpl{To ensure academic transparency, you must report whether and how generative AI has been used in your examinable work.  This includes any new content, including, but not limited text, images, tables, or code.}
+\sweExpl{För att säkerställa akademisk transparens måste du rapportera om och hur generativ AI har använts i ditt examinerbara arbete. Detta inkluderar allt nytt innehåll, inklusive, men inte begränsat till, text, bilder, tabeller eller kod.}
+
+I would like to thank xxxx for having yyyy. Or in the case of two authors:\\
+We would like to thank xxxx for having yyyy.
+
+\acknowlegmentssignature
+
+\fancypagestyle{plain}{}
+\renewcommand{\chaptermark}[1]{ \markboth{#1}{}} 
+\tableofcontents
+  \markboth{\contentsname}{}
+
+\cleardoublepage
+\listoffigures
+
+\cleardoublepage
+
+\listoftables
+\cleardoublepage
+\lstlistoflistings\engExpl{If you have listings in your thesis. If not, then remove this preface page.}
+\cleardoublepage
+% Align the text expansion of the glossary entries
+\newglossarystyle{mylong}{%
+  \setglossarystyle{long}%
+  \renewenvironment{theglossary}%
+     {\begin{longtable}[l]{@{}p{\dimexpr 2cm-\tabcolsep}p{0.8\hsize}}}% <-- change the value here
+     {\end{longtable}}%
+ }
+%\glsaddall
+%\printglossaries[type=\acronymtype, title={List of acronyms}]
+\printglossary[style=mylong, type=\acronymtype, title={List of acronyms and abbreviations}]
+%\printglossary[type=\acronymtype, title={List of acronyms and abbreviations}]
+
+%\printnoidxglossary[style=mylong, title={List of acronyms and abbreviations}]
+\engExpl{The list of acronyms and abbreviations should be in alphabetical order based on the spelling of the acronym or abbreviation.
+}
+
+% if the nomenclature option was specified, then include the nomenclature page(s)
+\ifnomenclature
+    \cleardoublepage
+    % Output the nomenclature list
+    \printnomenclature
+\fi
+
+%% The following label is essential to know the page number of the last page of the preface
+%% It is used to compute the data for the "For DIVA" pages
+\label{pg:lastPageofPreface}
+% Mainmatter is where the actual contents of the thesis goes
+\mainmatter
+\glsresetall
+\renewcommand{\chaptermark}[1]{\markboth{#1}{}}
+\selectlanguage{english}
+
+\chapter{Introduction}
+\label{ch:introduction}
+\input{chapters/Introduction}
+
+\cleardoublepage
+\chapter{Background}
+\label{ch:background}
+\input{chapters/Background}
+
+\cleardoublepage
+\chapter{Method or Methods}
+\label{ch:methods}
+\input{chapters/Method}
+
+\cleardoublepage
+\chapter{What you did}\engExpl{Choose your own chapter title to describe this}
+\label{ch:whatYouDid}
+\input{chapters/Implementation}
+
+\cleardoublepage
+\chapter{Results and Analysis}
+\label{ch:resultsAndAnalysis}
+\input{chapters/Analysis}
+
+\cleardoublepage
+\chapter{Discussion}
+\label{ch:discussion}
+\input{chapters/Discussion}
+
+\cleardoublepage
+\chapter{Conclusions and Future work}
+\label{ch:conclusionsAndFutureWork}
+\input{chapters/Conclusion}
+
+
+\cleardoublepage
+\appendix
+\renewcommand{\chaptermark}[1]{\markboth{Appendix \thechapter\relax:\thinspace\relax#1}{}}
+\input{chapters/Appendix}
+
+%% The following label is necessary for computing the last page number of the body of the report to include in the "For DIVA" information
+\label{pg:lastPageofMainmatter}
+
+\cleardoublepage
+\clearpage\thispagestyle{empty}\mbox{} % empty page with backcover on the other side
+\kthbackcover
+\fancyhead{}  % Do not use header on this extra page or pages
+\section*{€€€€ For DIVA €€€€}
+\lstset{numbers=none} %% remove any list line numbering
+\divainfo{pg:lastPageofPreface}{pg:lastPageofMainmatter}
+
+% If there is an acronyms.tex file,
+% add it to the end of the For DIVA information
+% so that it can be used with the abstracts
+% Note that the option "nolol" stops it from being listed in the List of Listings
+
+% The following bit of ugliness is because of the problems PDFLaTeX has handling a non-breaking hyphen
+% unless it is converted to UTF-8 encoding.
+% If you do not use such characters in your acronyms, this could be simplified.
+\ifxeorlua
+\IfFileExists{lib/acronyms.tex}{
+\section*{acronyms.tex}
+\lstinputlisting[language={[LaTeX]TeX}, nolol, basicstyle=\ttfamily\color{black},
+commentstyle=\color{black}, backgroundcolor=\color{white}]{lib/acronyms.tex}
+}
+{}
+\else
+\IfFileExists{lib/acronyms-for-pdflatex.tex}{
+\section*{acronyms.tex}
+\lstinputlisting[language={[LaTeX]TeX}, nolol, basicstyle=\ttfamily\color{black},
+commentstyle=\color{black}, backgroundcolor=\color{white}]{lib/acronyms-for-pdflatex.tex}
+}
+{}
+\fi
+
+
+\end{document}
