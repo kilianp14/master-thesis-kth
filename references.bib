@@ -215,19 +215,51 @@ month = apr
 }
 
 @inproceedings{Park-Curp-2019,
-author = {Park, Seo Jin and Ousterhout, John},
-title = {Exploiting commutativity for practical fast replication},
+author = {Seo Jin Park and John Ousterhout},
+title = {Exploiting Commutativity For Practical Fast Replication},
+booktitle = {16th USENIX Symposium on Networked Systems Design and Implementation (NSDI 19)},
 year = {2019},
-isbn = {9781931971492},
+isbn = {978-1-931971-49-2},
+address = {Boston, MA},
+pages = {47--64},
+url = {https://www.usenix.org/conference/nsdi19/presentation/park},
 publisher = {USENIX Association},
-address = {USA},
-abstract = {Traditional approaches to replication require client requests to be ordered before making them durable by copying them to replicas. As a result, clients must wait for two round-trip times (RTTs) before updates complete. In this paper, we show that this entanglement of ordering and durability is unnecessary for strong consistency. The Consistent Unordered Replication Protocol (CURP) allows clients to replicate requests that have not yet been ordered, as long as they are commutative. This strategy allows most operations to complete in 1 RTT (the same as an unreplicated system). We implemented CURP in the Redis and RAMCloud storage systems. In RAMCloud, CURP improved write latency by ∼2x (14 µs → 7.1 µs) and write throughput by 4x. Compared to unreplicated RAMCloud, CURP's latency overhead for 3-way replication is just 1 µs (6.1 µs vs 7.1 µs). CURP transformed a non-durable Redis cache into a consistent and durable storage system with only a small performance overhead.},
-booktitle = {Proceedings of the 16th USENIX Conference on Networked Systems Design and Implementation},
-pages = {47–64},
-numpages = {18},
-location = {Boston, MA, USA},
-series = {NSDI'19},
-url = {https://arxiv.org/abs/1710.09921}
+month = feb
+}
+
+@article{Geng-NezhaConsensus-2022,
+author = {Geng, Jinkun and Sivaraman, Anirudh and Prabhakar, Balaji and Rosenblum, Mendel},
+title = {Nezha: Deployable and High-Performance Consensus Using Synchronized Clocks},
+year = {2022},
+issue_date = {December 2022},
+publisher = {VLDB Endowment},
+volume = {16},
+number = {4},
+issn = {2150-8097},
+url = {https://doi.org/10.14778/3574245.3574250},
+doi = {10.14778/3574245.3574250},
+abstract = {This paper presents a high-performance consensus protocol, Nezha, which can be deployed by cloud tenants without support from cloud providers. Nezha bridges the gap between protocols such as Multi-Paxos and Raft, which can be readily deployed, and protocols such as NOPaxos and Speculative Paxos, that provide better performance, but require access to technologies such as programmable switches and in-network prioritization, which cloud tenants do not have.Nezha uses a new multicast primitive called deadline-ordered multicast (DOM). DOM uses high-accuracy software clock synchronization to synchronize sender and receiver clocks. Senders tag messages with deadlines in synchronized time; receivers process messages in deadline order, on or after their deadline.We compare Nezha with Multi-Paxos, Fast Paxos, Raft, (optimized) NOPaxos, and 2 recent protocols, Domino and TOQ-EPaxos, that use synchronized clocks. In throughput, Nezha outperforms all baselines by a median of 5.4X (range: 1.9--20.9X). In latency, Nezha outperforms five baselines by a median of 2.3X (range: 1.3--4.0X), with one exception: it sacrifices 33\% of latency compared with our optimized NOPaxos in one test. We also prototype two applications, a key-value store and a fair-access stock exchange, on top of Nezha to show that Nezha only modestly reduces their performance relative to an unreplicated system.},
+journal = {Proc. VLDB Endow.},
+month = dec,
+pages = {629–642},
+numpages = {14}
+}
+
+@inproceedings{Moraru-Epaxos-2013,
+author = {Moraru, Iulian and Andersen, David G. and Kaminsky, Michael},
+title = {There is more consensus in Egalitarian parliaments},
+year = {2013},
+isbn = {9781450323888},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/2517349.2517350},
+doi = {10.1145/2517349.2517350},
+abstract = {This paper describes the design and implementation of Egalitarian Paxos (EPaxos), a new distributed consensus algorithm based on Paxos. EPaxos achieves three goals: (1) optimal commit latency in the wide-area when tolerating one and two failures, under realistic conditions; (2) uniform load balancing across all replicas (thus achieving high throughput); and (3) graceful performance degradation when replicas are slow or crash.Egalitarian Paxos is to our knowledge the first protocol to achieve the previously stated goals efficiently---that is, requiring only a simple majority of replicas to be non-faulty, using a number of messages linear in the number of replicas to choose a command, and committing commands after just one communication round (one round trip) in the common case or after at most two rounds in any case. We prove Egalitarian Paxos's properties theoretically and demonstrate its advantages empirically through an implementation running on Amazon EC2.},
+booktitle = {Proceedings of the Twenty-Fourth ACM Symposium on Operating Systems Principles},
+pages = {358–372},
+numpages = {15},
+location = {Farminton, Pennsylvania},
+series = {SOSP '13}
 }
 
 @INPROCEEDINGS{Dobre-HybridPaxos-2010,
@@ -282,6 +314,102 @@ author = {Anastasios N. Angelopoulos and Stephen Bates}
       url={https://arxiv.org/abs/2208.02814}, 
 }
 
+@inproceedings{Gibbs-AdaptiveConformalInference-2021,
+ author = {Gibbs, Isaac and Candes, Emmanuel},
+ booktitle = {Advances in Neural Information Processing Systems},
+ editor = {M. Ranzato and A. Beygelzimer and Y. Dauphin and P.S. Liang and J. Wortman Vaughan},
+ pages = {1660--1672},
+ publisher = {Curran Associates, Inc.},
+ title = {Adaptive Conformal Inference Under Distribution Shift},
+ url = {https://proceedings.neurips.cc/paper_files/paper/2021/file/0d441de75945e5acbc865406fc9a2559-Paper.pdf},
+ volume = {34},
+ year = {2021}
+}
+
+@article{Zhou-ConformalPredictionDataPerspective-2025,
+author = {Zhou, Xiaofan and Chen, Baiting and Gui, Yu and Cheng, Lu},
+title = {Conformal Prediction: A Data Perspective},
+year = {2025},
+issue_date = {January 2026},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {58},
+number = {2},
+issn = {0360-0300},
+url = {https://doi.org/10.1145/3736575},
+doi = {10.1145/3736575},
+abstract = {Conformal prediction (CP), a distribution-free uncertainty quantification (UQ) framework, reliably provides valid predictive inference for black-box models. CP constructs prediction sets or intervals that contain the true output with a specified probability. However, modern data science’s diverse modalities, along with increasing data and model complexity, challenge traditional CP methods. These developments have spurred novel approaches to address evolving scenarios. This survey reviews the foundational concepts of CP and recent advancements from a data-centric perspective, including applications to structured, unstructured, and dynamic data. We also discuss the challenges and opportunities CP faces in large-scale data and models.},
+journal = {ACM Comput. Surv.},
+month = sep,
+articleno = {49},
+numpages = {37},
+keywords = {Natural language processing, Computer vision, Time series}
+}
+
+@article{Li-DistributionBasedPlanSelectionDBET-2023,
+author = {Li, Yifan and Yu, Xiaohui and Koudas, Nick and Lin, Shu and Sun, Calvin and Chen, Chong},
+title = {dbET: Execution Time Distribution-based Plan Selection},
+year = {2023},
+issue_date = {May 2023},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {1},
+number = {1},
+url = {https://doi.org/10.1145/3588711},
+doi = {10.1145/3588711},
+abstract = {While selecting the execution plan for a given query based on a single estimated cost is a generally-adopted strategy, it is usually error-prone and fails to comprehensively profile the plan performance. In this work, we complement existing plan selection methods by proposing a new approach named ET, which produces execution time distributions for query plans utilizing conformal predictions. We develop dbET, a framework that integrates ET into an existing DBMS, requiring no modification to the DBMS and only incurring minor overhead to query processing. Based on the execution time distribution, we design several intuitive yet fundamental query execution objectives and devise the corresponding plan selection strategies. Our experiments on several widely-adopted benchmarks showcase that our design significantly improves the capability of DBMSs in achieving the designated objectives.},
+journal = {Proc. ACM Manag. Data},
+month = may,
+articleno = {31},
+numpages = {26},
+keywords = {conformal prediction, cost estimation, query planning}
+}
+
+@article{Fischer-ConsensusAsynchronousSystem-1985,
+author = {Fischer, Michael J. and Lynch, Nancy A. and Paterson, Michael S.},
+title = {Impossibility of distributed consensus with one faulty process},
+year = {1985},
+issue_date = {April 1985},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {32},
+number = {2},
+issn = {0004-5411},
+url = {https://doi.org/10.1145/3149.214121},
+doi = {10.1145/3149.214121},
+abstract = {The consensus problem involves an asynchronous system of processes, some of which may be unreliable. The problem is for the reliable processes to agree on a binary value. In this paper, it is shown that every protocol for this problem has the possibility of nontermination, even with only one faulty process. By way of contrast, solutions are known for the synchronous case, the “Byzantine Generals” problem.},
+journal = {J. ACM},
+month = apr,
+pages = {374–382},
+numpages = {9}
+}
+
+@book{Cachin-ReliableDistributedProgramming-2011,
+  title     = {Introduction to Reliable and Secure Distributed Programming},
+  author    = {Cachin, Christian and Guerraoui, Rachid and Rodrigues, Luís},
+  edition   = {2},
+  year      = {2011},
+  publisher = {Springer},
+  address   = {Berlin, Heidelberg},
+  isbn      = {978-3-642-15260-3},
+  doi       = {10.1007/978-3-642-15260-3},
+  url       = {https://doi.org/10.1007/978-3-642-15260-3},
+  pages     = {XIX, 367}
+}
+
+@inproceedings {Ongaro-Raft-2014,
+author = {Diego Ongaro and John Ousterhout},
+title = {In Search of an Understandable Consensus Algorithm},
+booktitle = {2014 USENIX Annual Technical Conference (USENIX ATC 14)},
+year = {2014},
+isbn = {978-1-931971-10-2},
+address = {Philadelphia, PA},
+pages = {305--319},
+url = {https://www.usenix.org/conference/atc14/technical-sessions/presentation/ongaro},
+publisher = {USENIX Association},
+month = jun
+}
+
 @inproceedings{Ng-OmniPaxos-2023,
 author = {Ng, Harald and Haridi, Seif and Carbone, Paris},
 title = {Omni-Paxos: Breaking the Barriers of Partial Connectivity},
@@ -323,4 +451,22 @@ series = {EuroSys '23}
   volume    = {3443},
   publisher = {CEUR-WS.org},
   url       = {https://ceur-ws.org/Vol-3443/ESWC_2023_DMKG_paper_6223.pdf}
+}
+
+@article{Horchidan-ConANN-2025,
+author = {Horchidan, Sonia and Zeiher, Fabian and Bostr\"{o}m, Henrik and Carbone, Paris},
+title = {ConANN: Conformal Approximate Nearest Neighbor Search},
+year = {2026},
+issue_date = {September 2025},
+publisher = {VLDB Endowment},
+volume = {19},
+number = {1},
+issn = {2150-8097},
+url = {https://doi.org/10.14778/3772181.3772184},
+doi = {10.14778/3772181.3772184},
+abstract = {Approximate Nearest Neighbor (ANN) search is widely used in applications such as recommendation systems, search engines, and natural language processing. Indexing techniques like the Inverted File (IVF) offer efficiency at the cost of accuracy, yet lack formal mechanisms to quantify or control approximation error. Existing approaches that attempt to provide such guarantees typically rely on restrictive assumptions about underlying data distributions, which limits their generalizability. We introduce ConANN, the first framework to provide formal, distribution-free error guarantees for IVF-based ANN search by leveraging recent advances in Conformal Risk Control. Empirical evaluation across five standard benchmarks demonstrates that ConANN: (1) tightly controls approximation error, achieving a worst-case False Negative Rate deviation within 0.03 percentage points of the target; (2) provides formal guarantees without requiring expansion of the search space, and in some cases even reduces the number of probed clusters; (3) dynamically adapts the cluster probes required per query; and (4) incurs negligible overheads when compared to existing state-of-the-art baselines. ConANN is integrated into the FAISS vector search library, facilitating adoption in real-world ANN systems.},
+journal = {Proc. VLDB Endow.},
+month = jan,
+pages = {29–42},
+numpages = {14}
 }
