@@ -176,8 +176,8 @@ Standard uniform consensus only deals with a single decision, but a replicated l
         % Arrow styles
         arrow/.style={-{Latex[length=2.5mm]}, thick},
         prepare/.style={arrow, draw=red!80!black},
-        accept1/.style={arrow, draw=green!100!black},
-        accept2/.style={arrow, draw=green!70!black},
+        accept1/.style={arrow, draw=green!60!black},
+        accept2/.style={arrow, draw=green!100!black},
         accept3/.style={arrow, draw=green!40!black},
         % Helper styles
         phaseLine/.style={dashed, thick, draw=black!60},
@@ -186,14 +186,14 @@ Standard uniform consensus only deals with a single decision, but a replicated l
     ]
 
     % --- PROCESS TIMELINES ---
-    \foreach \i in {1, 2, 3, 4} {
+    \foreach \i in {1, 2, 3, 4, 5} {
         \node[process] (p\i) at (0.5, {-\i*1.2}) {P\i};
         \draw[timeline] (p\i.east) -- (12, {-\i*1.2});
     }
     \node[orange, yshift=0.2cm] at (p1.north) {\large\faCrown}; 
 
     % --- VERTICAL PHASE SEPARATOR ---
-    \draw[phaseLine] (3.0, -0.0) -- (3.0, -5.6);
+    \draw[phaseLine] (3.0, -0.0) -- (3.0, -6.8);
 
     % --- PREPARE ---
     \node[phaseLabel, red!80!black] at (2.0, -0.3) {Prepare};
@@ -217,9 +217,9 @@ Standard uniform consensus only deals with a single decision, but a replicated l
     \draw[accept1] (4.0, -2.4) -- (8.5, -1.2);
     \draw[accept1] (4.0, -3.6) -- (5.0, -1.2);
 
-    \draw[phaseLine] (8.5, -1.2) -- (8.5, -5.0);
-    \node[bottomLabel] at (8.5, -5.2) {Value 1};
-    \node[bottomLabel] at (8.5, -5.6) {Chosen};
+    \draw[phaseLine] (8.5, -1.2) -- (8.5, -6.2);
+    \node[bottomLabel] at (8.5, -6.4) {Value 1};
+    \node[bottomLabel] at (8.5, -6.8) {Chosen};
     % --- ACCEPT 2 ---
     % P1 self loop
     \draw[accept2] (4.5, -1.2) .. controls (4.9, -0.6) and (5.1, -0.6) .. (5.5, -1.2);
@@ -230,9 +230,9 @@ Standard uniform consensus only deals with a single decision, but a replicated l
     \draw[accept2] (6.5, -2.4) -- (10.0, -1.2);
     \draw[accept2] (5.5, -3.6) -- (6.5, -1.2);
     
-    \draw[phaseLine] (10.0, -1.2) -- (10.0, -5.0);
-    \node[bottomLabel] at (10.0, -5.2) {Value 2};
-    \node[bottomLabel] at (10.0, -5.6) {Chosen};
+    \draw[phaseLine] (10.0, -1.2) -- (10.0, -6.2);
+    \node[bottomLabel] at (10.0, -6.4) {Value 2};
+    \node[bottomLabel] at (10.0, -6.8) {Chosen};
     % --- ACCEPT 3 ---
     % P1 self loop
     \draw[accept3] (7.0, -1.2) .. controls (7.4, -0.6) and (7.6, -0.6) .. (8.0, -1.2);
@@ -243,9 +243,9 @@ Standard uniform consensus only deals with a single decision, but a replicated l
     \draw[accept3] (8.0, -2.4) -- (10.5, -1.2);
     \draw[accept3] (8.0, -3.6) -- (11.5, -1.2);
     
-    \draw[phaseLine] (11.5, -1.2) -- (11.5, -5.0);
-    \node[bottomLabel] at (11.5, -5.2) {Value 3};
-    \node[bottomLabel] at (11.5, -5.6) {Chosen};
+    \draw[phaseLine] (11.5, -1.2) -- (11.5, -6.2);
+    \node[bottomLabel] at (11.5, -6.4) {Value 3};
+    \node[bottomLabel] at (11.5, -6.8) {Chosen};
     \end{tikzpicture}
     \caption{Example execution of leader-based Sequence Paxos with four servers.}
     \label{fig:leader_based_sequence_paxos}
@@ -263,8 +263,8 @@ Standard uniform consensus only deals with a single decision, but a replicated l
         % Arrow styles
         arrow/.style={-{Latex[length=2.5mm]}, thick},
         prepare/.style={arrow, draw=red!80!black},
-        accept1/.style={arrow, draw=green!100!black},
-        accept2/.style={arrow, draw=green!70!black},
+        accept1/.style={arrow, draw=green!60!black},
+        accept2/.style={arrow, draw=green!100!black},
         accept3/.style={arrow, draw=green!40!black},
         % Helper styles
         phaseLine/.style={dashed, thick, draw=black!60},
@@ -298,15 +298,14 @@ Standard uniform consensus only deals with a single decision, but a replicated l
     \node[phaseLabel, green!60!black] at (7.5, -0.3) {Accept (Pipelined)};
     
     % --- ACCEPT 1 ---
-    % P3 self loop
-    \draw[accept1] (3.0, -3.6) .. controls (3.4, -3.0) and (3.6, -3.0) .. (4.0, -3.6);
+    % P1 self loop
+    \draw[accept1] (4.0, -1.2) .. controls (4.4, -0.6) and (4.6, -0.6) .. (5.0, -1.2);
     % Messages to P1, P2 and P4
     \draw[accept1] (3.0, -3.6) -- (4.0, -1.2);
-    \draw[accept1] (3.0, -3.6) -- (4.0, -2.4);
+    \draw[accept1] (3.0, -3.6) -- (4.5, -2.4);
     \draw[accept1] (3.0, -3.6) -- (4.0, -4.8);
     % Responses to leader P1
-    \draw[accept1] (4.0, -2.4) -- (5.0, -1.2);
-    \draw[accept1] (4.0, -3.6) -- (5.0, -1.2);
+    \draw[accept1] (4.5, -2.4) -- (5.5, -1.2);
     \draw[accept1] (4.0, -4.8) -- (6.0, -1.2);
 
     \draw[phaseLine] (6.0, -1.2) -- (6.0, -6.2);
@@ -317,29 +316,28 @@ Standard uniform consensus only deals with a single decision, but a replicated l
     % P1 self loop
     \draw[accept2] (5.5, -1.2) .. controls (5.9, -0.6) and (6.1, -0.6) .. (6.5, -1.2);
     % Messages to P2, P3 and P4
-    \draw[accept2] (5.5, -1.2) -- (7.5, -2.4);
+    \draw[accept2] (5.5, -1.2) -- (8.0, -2.4);
     \draw[accept2] (5.5, -1.2) -- (6.5, -3.6);
     \draw[accept2] (5.5, -1.2) -- (6.5, -4.8);
     % Responses to leader P1
-    \draw[accept2] (7.5, -2.4) -- (9.0, -1.2);
+    \draw[accept2] (8.0, -2.4) -- (9.5, -1.2);
     \draw[accept2] (6.5, -3.6) -- (7.5, -1.2);
     \draw[accept2] (6.5, -4.8) -- (7.5, -1.2);
     
-    \draw[phaseLine] (9.0, -1.2) -- (9.0, -6.2);
-    \node[bottomLabel] at (9.0, -6.4) {Value 2};
-    \node[bottomLabel] at (9.0, -6.8) {Chosen};
+    \draw[phaseLine] (9.5, -1.2) -- (9.5, -6.2);
+    \node[bottomLabel] at (9.5, -6.4) {Value 2};
+    \node[bottomLabel] at (9.5, -6.8) {Chosen};
     
     % --- ACCEPT 3 ---
-    % P4 self loop
-    \draw[accept3] (7.5, -4.8) .. controls (7.9, -4.2) and (8.1, -4.2) .. (8.5, -4.8);
+    % P1 self loop
+    \draw[accept3] (9.0, -1.2) .. controls (9.4, -0.6) and (9.6, -0.6) .. (10.0, -1.2);
     % Messages to P1, P2 and P3
-    \draw[accept3] (7.5, -4.8) -- (8.5, -1.2);
-    \draw[accept3] (7.5, -4.8) -- (8.5, -2.4);
-    \draw[accept3] (7.5, -4.8) -- (8.5, -3.6);
+    \draw[accept3] (8.0, -4.8) -- (9.0, -1.2);
+    \draw[accept3] (8.0, -4.8) -- (9.0, -2.4);
+    \draw[accept3] (8.0, -4.8) -- (9.0, -3.6);
     % Responses to leader P1
-    \draw[accept3] (8.5, -2.4) -- (10.5, -1.2);
-    \draw[accept3] (8.5, -3.6) -- (11.5, -1.2);
-    \draw[accept3] (8.5, -4.8) -- (9.5, -1.2);
+    \draw[accept3] (9.0, -2.4) -- (11.0, -1.2);
+    \draw[accept3] (9.0, -3.6) -- (11.5, -1.2);
     
     \draw[phaseLine] (11.5, -1.2) -- (11.5, -6.2);
     \node[bottomLabel] at (11.5, -6.4) {Value 3};
@@ -347,6 +345,98 @@ Standard uniform consensus only deals with a single decision, but a replicated l
     \end{tikzpicture}
     \caption{Example execution of leader-based Sequence Paxos with five servers using the fast path.}
     \label{fig:leader_based_sequence_paxos_fast_path}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \begin{tikzpicture}[
+        node distance=1.5cm and 2.5cm,
+        every node/.style={font=\small},
+        % Process styles
+        process/.style={draw, diamond, inner sep=2pt, font=\bfseries\normalsize, minimum size=1.0cm, thick, fill=white},
+        timeline/.style={thick, draw=black!90},
+        % Arrow styles
+        arrow/.style={-{Latex[length=2.5mm]}, thick},
+        accept1/.style={arrow, draw=green!60!black},
+        accept2/.style={arrow, draw=green!100!black},
+        accept3/.style={arrow, draw=green!40!black},
+        % Helper styles
+        phaseLine/.style={dashed, thick, draw=black!60},
+        phaseLabel/.style={font=\bfseries\itshape},
+        bottomLabel/.style={font=\small}
+    ]
+
+    % --- PROCESS TIMELINES ---
+    \foreach \i in {1, 2, 3, 4, 5} {
+        \node[process] (p\i) at (0.5, {-\i*1.2}) {P\i};
+        \draw[timeline] (p\i.east) -- (12, {-\i*1.2});
+    }
+    \node[orange, yshift=0.2cm] at (p1.north) {\large\faCrown}; 
+    
+    % --- ACCEPT 1 ---
+    % P1 self loop
+    \draw[accept1] (2.0, -1.2) .. controls (2.4, -0.6) and (2.6, -0.6) .. (3.0, -1.2);
+    % Messages to P1, P2, P4 and P5
+    \draw[accept1] (1.0, -3.6) -- (2.0, -1.2);
+    \draw[accept1] (1.0, -3.6) -- (2.0, -2.4);
+    \draw[accept1] (1.0, -3.6) -- (2.0, -4.8);
+    \draw[accept1] (1.0, -3.6) -- (2.0, -6.0);
+    % Responses to leader P1
+    \draw[accept1] (2.0, -2.4) -- (3.0, -1.2);
+    \draw[accept1] (2.0, -4.8) -- (3.0, -1.2);
+    \draw[accept1] (2.0, -6.0) -- (4.0, -1.2);
+
+    \draw[phaseLine] (3.0, -1.2) -- (3.0, -6.2);
+    \node[bottomLabel] at (3.0, -6.4) {Value 1};
+    \node[bottomLabel] at (3.0, -6.8) {Chosen};
+
+    % --- COLLISION ---
+    % P1 self loop
+    \draw[accept2] (5.5, -1.2) .. controls (5.9, -0.6) and (6.1, -0.6) .. (6.5, -1.2);
+    % Messages to P1, P3, P4
+    \draw[accept2] (4.5, -2.4) -- (5.5, -1.2);
+    \draw[accept2] (4.5, -2.4) -- (5.5, -3.6);
+    \draw[accept2] (4.5, -2.4) -- (6.0, -4.8);
+    % Responses to leader P1
+    \draw[accept2] (5.5, -3.6) -- (6.5, -1.2);
+    
+    % Messages to P1, P2, P3, P5
+    \draw[accept3] (5.5, -4.8) -- (7.0, -1.2);
+    \draw[accept3] (5.5, -4.8) -- (7.0, -2.4);
+    \draw[accept3] (5.5, -4.8) -- (6.5, -3.6);
+    \draw[accept3] (5.5, -4.8) -- (6.5, -6.0);
+    % Responses to leader P1
+    \draw[accept3] (6.5, -6.0) -- (8.0, -1.2);
+
+    \draw[phaseLine] (8.0, -0.0) -- (8.0, -6.2);
+    \node[bottomLabel] at (8.0, -6.4) {Collision};
+    \node[bottomLabel] at (8.0, -6.8) {Detected};
+    
+    \node[phaseLabel, green!60!black] at (5.5, -0.3) {Fast Path};
+
+    % --- RECOVERY ---
+    % P1 self loop
+    \draw[accept2] (8.0, -1.2) .. controls (8.4, -0.6) and (8.6, -0.6) .. (9.0, -1.2);
+    % Messages to P2, P3, P4
+    \draw[accept2] (8.0, -1.2) -- (9.0, -2.4);
+    \draw[accept2] (8.0, -1.2) -- (9.0, -3.6);
+    \draw[accept2] (8.0, -1.2) -- (9.0, -4.8);
+    \draw[accept2] (8.0, -1.2) -- (9.0, -6.0);
+    % Responses back to P1
+    \draw[accept2] (9.0, -2.4) -- (10.0, -1.2);
+    \draw[accept2] (9.0, -3.6) -- (10.0, -1.2);
+    \draw[accept2] (9.0, -4.8) -- (11.0, -1.2); 
+    \draw[accept2] (9.0, -6.0) -- (11.5, -1.2); 
+
+    \draw[phaseLine] (10.0, -1.2) -- (10.0, -6.2);
+    \node[bottomLabel] at (10.0, -6.4) {Value 2};
+    \node[bottomLabel] at (10.0, -6.8) {Chosen};
+    
+    \node[phaseLabel, green!60!black] at (10.0, -0.3) {Slow Path};
+    
+    \end{tikzpicture}
+    \caption{Example execution of leader-based Sequence Paxos with five servers and a collision of proposals.}
+    \label{fig:leader_based_sequence_paxos_fast_path_collision}
 \end{figure}
 
 \section{Conformal Methods}
