@@ -1,0 +1,67 @@
+\begin{tikzpicture}[
+    node distance=1.5cm and 2.5cm,
+    every node/.style={font=\small},
+    % Process styles
+    process/.style={draw, diamond, inner sep=2pt, font=\bfseries\normalsize, minimum size=1.2cm, thick, fill=white},
+    timeline/.style={thick, draw=black!90},
+    % Arrow styles
+    arrow/.style={-{Latex[length=2.5mm]}, thick},
+    prepare/.style={arrow, draw=red!80!black},
+    accept/.style={arrow, draw=green!60!black},
+    learn/.style={arrow, draw=blue!70!black},
+    % Helper styles
+    phaseLine/.style={dashed, thick, draw=black!60},
+    phaseLabel/.style={font=\bfseries\itshape},
+    bottomLabel/.style={font=\small}
+]
+
+% --- PROCESS TIMELINES ---
+\foreach \i in {1, 2, 3} {
+    \node[process] (p\i) at (0.6, {-\i*1.8}) {P\i};
+    \draw[timeline] (p\i.east) -- (12, {-\i*1.8});
+}
+
+% --- VERTICAL PHASE SEPARATORS ---
+\draw[phaseLine] (4.8, -1.0) -- (4.8, -6.6);
+\draw[phaseLine] (8.4, -1.0) -- (8.4, -6.6);
+
+% --- PHASE 1: PREPARE ---
+\node[phaseLabel, red!80!black] at (3.0, -0.75) {Prepare Phase};
+
+% P1 self loop
+\draw[prepare] (1.2, -1.8) .. controls (1.8, -1.1) and (2.4, -1.1) .. (3.0, -1.8);
+% Messages to P2 and P3
+\draw[prepare] (1.2, -1.8) -- (3.0, -3.6);
+\draw[prepare] (1.2, -1.8) -- (3.0, -5.4);
+% Responses back to P1
+\draw[prepare] (3.0, -3.6) -- (4.8, -1.8);
+\draw[prepare] (3.0, -5.4) -- (7.5, -1.8);
+
+\node[bottomLabel] at (3.0, -6.2) {Prepare $|$ Promise};
+
+% --- PHASE 2: ACCEPT ---
+\node[phaseLabel, green!60!black] at (6.6, -0.75) {Accept Phase};
+
+% P1 self loop
+\draw[accept] (4.8, -1.8) .. controls (5.4, -1.1) and (6.0, -1.1) .. (6.6, -1.8);
+% Messages to P2 and P3
+\draw[accept] (4.8, -1.8) -- (6.6, -3.6);
+\draw[accept] (4.8, -1.8) -- (6.6, -5.4);
+% Responses back to P1
+\draw[accept] (6.6, -3.6) -- (8.4, -1.8);
+\draw[accept] (6.6, -5.4) -- (11.1, -1.8);
+
+\node[bottomLabel] at (6.6, -6.2) {Accept $|$ Accepted};
+
+% --- PHASE 3: LEARN ---
+\node[phaseLabel, blue!70!black] at (10.2, -0.75) {Learn Phase};
+
+% P1 self loop
+\draw[learn] (8.4, -1.8) .. controls (9.0, -1.1) and (9.6, -1.1) .. (10.2, -1.8);
+% Messages to P2 and P3
+\draw[learn] (8.4, -1.8) -- (10.2, -3.6);
+\draw[learn] (8.4, -1.8) -- (10.2, -5.4);
+
+\node[bottomLabel] at (10.2, -6.2) {Decide};
+
+\end{tikzpicture}

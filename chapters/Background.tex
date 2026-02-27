@@ -4,7 +4,7 @@
 This chapter provides basic background information about xxx. Additionally, this chapter describes xxx. The chapter also describes related work xxxx.
 
 \section{\glsfmtfull{SMR}}
-A common way to provide fault tolerance and thereby improve availability for a service is to operate multiple servers that maintain an identical state. These replicas can serve as backups, shadowing a primary node, ready to take over during a failure, or be, potentially globally, distributed to all handle requests from local clients. Many services, like databases, require a strict notion of consistency, leading to nodes having to coordinate their actions to prevent state divergence in both of these cases.
+A common way to provide fault tolerance and thereby improve availability for a service is to operate multiple servers that maintain an identical state. These replicas can serve as backups, shadowing a primary node, ready to take over during a failure, or be potentially globally distributed to handle requests from local clients. Many services, like databases, require a strict notion of consistency, leading to nodes having to coordinate their actions to prevent state divergence in both of these cases.
 
 One approach is to decide on the execution of the same sequence of deterministic operations across all nodes. This is referred to as \gls{SMR} \cite{Schneider-ReplicatedStateMachines-1990}. The Raft protocol \cite{Ongaro-Raft-2014} popularized the concept of a replicated log as the central abstraction for developers of such replicated services. It is specifically designed around managing a linear, append-only log, which stores all \gls{SMR} operations for the application. Because this log is identical across all replicas, executing the operations in the order determined by it ensures that every node arrives at the same final state.
 
@@ -12,53 +12,7 @@ The underlying challenge addressed by Raft and similar protocols is uniform sequ
 
 \begin{figure}[t]
     \centering
-    \begin{tikzpicture}[
-        node distance=1.0cm and 2.0cm,
-        every node/.style={font=\small},
-        component/.style={ rectangle, rounded corners=3pt, draw=black!70, thick, minimum width=4.8cm, minimum height=0.95cm, align=center },
-        rsm/.style={component, fill=blue!25},
-        log/.style={component, fill=orange!30},
-        cons/.style={component, fill=green!25},
-        client/.style={ rectangle, rounded corners=2pt, draw=black!80, thick, fill=white, minimum width=4cm, minimum height=0.9cm, font=\bfseries },
-        serverFrame/.style={ rectangle, rounded corners=8pt, draw=black!80, very thick, inner sep=12pt },
-        arrow/.style={ -{Latex[length=2.5mm]}, thick, draw=black!80 }
-    ]
-        % --- SERVER 1 ---
-        \node[rsm] (rsm1) {Replicated State Machine};
-        \node[log, below=of rsm1] (log1) {Replicated Log};
-        \node[cons, below=of log1] (cons1) {Uniform Sequence Consensus};
-        \node[serverFrame, fit=(rsm1) (cons1)] (frame1) {};
-        \node[anchor=north, font=\bfseries, yshift=-5pt] at (frame1.south) {Server 1};
-        
-        % --- SERVER N ---
-        \node[rsm, right=of rsm1, xshift=0.4cm] (rsmN) {Replicated State Machine};
-        \node[log, below=of rsmN] (logN) {Replicated Log};
-        \node[cons, below=of logN] (consN) {Uniform Sequence Consensus};
-        \node[serverFrame, fit=(rsmN) (consN)] (frameN) {};
-        \node[anchor=north, font=\bfseries, yshift=-5pt] at (frameN.south) {Server n};
-        % --- CENTRAL ELLIPSIS --- 
-        \node at ($(frame1.east)!0.5!(frameN.west)$) (dots) {\large\bfseries \dots};
-        % --- CLIENTS ---
-        \node[client, above=1.0cm of rsm1, xshift=-6pt, yshift=6pt] (cl1b) {};
-        \node[client, above=1.0cm of rsm1, xshift=-3pt, yshift=3pt] (cl1c) {};
-        \node[client, above=1.0cm of rsm1] (cl1) {Clients};
-        \node[client, above=1.0cm of rsmN, xshift=-6pt, yshift=6pt] (clNb) {};
-        \node[client, above=1.0cm of rsmN, xshift=-3pt, yshift=3pt] (clNc) {};
-        \node[client, above=1.0cm of rsmN] (clN) {Clients};
-        % --- ARROWS ---
-        \foreach \i in {1, N} {
-            % Vertical bidirectional flows
-            \draw[-{Latex[length=2.5mm]}] ([xshift=-15pt]rsm\i.south) -- ([xshift=-15pt]log\i.north);
-            \draw[-{Latex[length=2.5mm]}] ([xshift=15pt]log\i.north) -- ([xshift=15pt]rsm\i.south);
-            \draw[-{Latex[length=2.5mm]}] ([xshift=-15pt]log\i.south) -- ([xshift=-15pt]cons\i.north);
-            \draw[-{Latex[length=2.5mm]}] ([xshift=15pt]cons\i.north) -- ([xshift=15pt]log\i.south);
-        }
-        % Client Communication
-        \draw[{Latex[length=2.5mm]}-{Latex[length=2.5mm]}] (cl1.south) -- (rsm1.north);
-        \draw[{Latex[length=2.5mm]}-{Latex[length=2.5mm]}] (clN.south) -- (rsmN.north);
-        % Inter-Server Consensus
-        \draw[{Latex[length=2.5mm]}-{Latex[length=2.5mm]}] (cons1.east) -- (consN.west); 
-    \end{tikzpicture}
+    \input{figures/state_machine_replication_tikz}
     \caption{Architecture of a \gls{SMR} service using a replicated log abstraction.}
     \label{fig:state_machine_replication}
 \end{figure}
@@ -86,170 +40,37 @@ Standard uniform consensus only deals with a single decision, but a replicated l
   \item[] \textit{Termination:} If a value is proposed infinitely often by a correct process, then every correct process eventually decides on a sequence containing this value.
 \end{enumerate}
 
-
 \todo{Polish and conclude}
 
 \subsection{Leader-Based Sequence Paxos}
-\begin{figure}[h]
+Paxos describes a family of algorithms that provide the guarantees of uniform (sequence) consensus. Its simplest form, often referred to as Basic Paxos or Single-Value Paxos, was originally introduced by Leslie Lamport \cite{Lamport-Paxos-2001} and solves uniform consensus in partially synchronous systems. It ensures that even if multiple processes propose different values simultaneously, the system converges on a single decision that satisfies the validity, integrity, and agreement properties defined in Section \ref{sect:uniform_sequence_consensus}. Before addressing the complexities of maintaining a continuous, ordered log, it makes sense to introduce this underlying mechanism for reaching agreement on a single value.
+
+Paxos decomposes the consensus process into three distinct phases. In the \textit{prepare phase}, a process acting as a \textit{proposer} attempts to claim the right to propose a value. It selects a unique, monotonically increasing proposal number $n$ and broadcasts a \textit{prepare} message containing $n$. Upon receiving this, an \textit{acceptor} returns a \textit{promise} to the proposer, committing that it will not accept any values from proposers that initiated a round with a lower proposal number than $n$. Crucially, if the acceptor has already accepted a value from a previous round, it includes that value and its associated proposal number in its response to ensure the proposer respects any existing progress.
+
+Once a proposer has secured promises from a majority (\textit{quorum}) of acceptors, it proceeds to the \textit{accept phase}, where it tries to make the acceptors lock in its proposal. The proposer sends an \textit{accept} message to the promised acceptors, containing the proposal number $n$ and a value $v$ to be accepted. If no values were reported in the promises, the proposer is free to use its own proposed value. Otherwise, it must use the one from the promise with the highest proposal number. An acceptor acknowledges this by sending an \textit{accepted} message, provided it has not already promised to a higher proposal number than $n$ previously.
+
+After a quorum of acceptors has accepted the same value, it is considered \textit{chosen}, which means that no other process will ever decide on a different value for this instance. From this point, any participant that notices the value being chosen can notify the processes interested in the result (\textit{learners}). This is often done by the original proposer by broadcasting a \textit{decide} message to the learners. An example execution of a Paxos instance is displayed in Figure \ref{fig:paxos} with a total of three acceptors, who simultaneously act as proposers and learners.
+
+\begin{figure}[t]
     \centering
-    \begin{tikzpicture}[
-        node distance=1.5cm and 2.5cm,
-        every node/.style={font=\small},
-        % Process styles
-        process/.style={draw, diamond, inner sep=2pt, font=\bfseries\normalsize, minimum size=1.2cm, thick, fill=white},
-        timeline/.style={thick, draw=black!90},
-        % Arrow styles
-        arrow/.style={-{Latex[length=2.5mm]}, thick},
-        prepare/.style={arrow, draw=red!80!black},
-        accept/.style={arrow, draw=green!60!black},
-        learn/.style={arrow, draw=blue!70!black},
-        % Helper styles
-        phaseLine/.style={dashed, thick, draw=black!60},
-        phaseLabel/.style={font=\bfseries\itshape},
-        bottomLabel/.style={font=\small}
-    ]
-
-    % --- PROCESS TIMELINES ---
-    \foreach \i in {1, 2, 3} {
-        \node[process] (p\i) at (0.6, {-\i*1.8}) {P\i};
-        \draw[timeline] (p\i.east) -- (12, {-\i*1.8});
-    }
-
-    % --- VERTICAL PHASE SEPARATORS ---
-    \draw[phaseLine] (4.8, -1.0) -- (4.8, -6.6);
-    \draw[phaseLine] (8.4, -1.0) -- (8.4, -6.6);
-
-    % --- PHASE 1: PREPARE ---
-    \node[phaseLabel, red!80!black] at (3.0, -0.75) {Prepare Phase};
-    
-    % P1 self loop
-    \draw[prepare] (1.2, -1.8) .. controls (1.8, -1.1) and (2.4, -1.1) .. (3.0, -1.8);
-    % Messages to P2 and P3
-    \draw[prepare] (1.2, -1.8) -- (3.0, -3.6);
-    \draw[prepare] (1.2, -1.8) -- (3.0, -5.4);
-    % Responses back to P1
-    \draw[prepare] (3.0, -3.6) -- (4.8, -1.8);
-    \draw[prepare] (3.0, -5.4) -- (7.5, -1.8);
-
-    \node[bottomLabel] at (3.0, -6.2) {Prepare $|$ Promise};
-
-    % --- PHASE 2: ACCEPT ---
-    \node[phaseLabel, green!60!black] at (6.6, -0.75) {Accept Phase};
-    
-    % P1 self loop
-    \draw[accept] (4.8, -1.8) .. controls (5.4, -1.1) and (6.0, -1.1) .. (6.6, -1.8);
-    % Messages to P2 and P3
-    \draw[accept] (4.8, -1.8) -- (6.6, -3.6);
-    \draw[accept] (4.8, -1.8) -- (6.6, -5.4);
-    % Responses back to P1
-    \draw[accept] (6.6, -3.6) -- (8.4, -1.8);
-    \draw[accept] (6.6, -5.4) -- (11.1, -1.8);
-
-    \node[bottomLabel] at (6.6, -6.2) {Accept $|$ Accepted};
-
-    % --- PHASE 3: LEARN ---
-    \node[phaseLabel, blue!70!black] at (10.2, -0.75) {Learn Phase};
-    
-    % P1 self loop
-    \draw[learn] (8.4, -1.8) .. controls (9.0, -1.1) and (9.6, -1.1) .. (10.2, -1.8);
-    % Messages to P2 and P3
-    \draw[learn] (8.4, -1.8) -- (10.2, -3.6);
-    \draw[learn] (8.4, -1.8) -- (10.2, -5.4);
-
-    \node[bottomLabel] at (10.2, -6.2) {Decide};
-
-    \end{tikzpicture}
+    \input{figures/paxos_tikz}
     \caption{Example execution of Paxos with three servers.}
     \label{fig:paxos}
 \end{figure}
 
+To satisfy the termination property of uniform consensus, Lamport describes that a leader election mechanism can be used to elect a single distinguished proposer, who will eventually be the only process allowed to propose a value \cite{Lamport-Paxos-2001}. This principle directly leads to \textit{leader-based sequence paxos}, which is an extension of Paxos that handles an ordered sequence of values and provides the guarantees of uniform sequence consensus (see Section \ref{sect:uniform_sequence_consensus}.
+
+The core insight of this optimization is that if the leader remains stable, the prepare phase can be performed once for a whole series of log entries, rather than once per entry. This allows the system to effectively pipeline values through the accept phase using the elected leader as the distinguished proposer \cite{Lamport-Paxos-2001, Ng-OmniPaxos-2023, Haridi-LeaderBasedSequencePaxos-2020}. Even though the requirements for becoming a leader can vary based on different algorithms, leading to prepare phases possibly being extended by log syncing mechanisms, this main idea stays the same across all implementations of uniform sequence consensus. Figure \ref{fig:leader_based_sequence_paxos} displays a common execution of a leader-based sequence paxos algorithm.
 
 
-\begin{figure}[h]
+\begin{figure}[t]
     \centering
-    \begin{tikzpicture}[
-        node distance=1.5cm and 2.5cm,
-        every node/.style={font=\small},
-        % Process styles
-        process/.style={draw, diamond, inner sep=2pt, font=\bfseries\normalsize, minimum size=1.0cm, thick, fill=white},
-        timeline/.style={thick, draw=black!90},
-        % Arrow styles
-        arrow/.style={-{Latex[length=2.5mm]}, thick},
-        prepare/.style={arrow, draw=red!80!black},
-        accept1/.style={arrow, draw=green!60!black},
-        accept2/.style={arrow, draw=green!100!black},
-        accept3/.style={arrow, draw=green!40!black},
-        % Helper styles
-        phaseLine/.style={dashed, thick, draw=black!60},
-        phaseLabel/.style={font=\bfseries\itshape},
-        bottomLabel/.style={font=\small}
-    ]
-
-    % --- PROCESS TIMELINES ---
-    \foreach \i in {1, 2, 3, 4, 5} {
-        \node[process] (p\i) at (0.5, {-\i*1.2}) {P\i};
-        \draw[timeline] (p\i.east) -- (12, {-\i*1.2});
-    }
-    \node[orange, yshift=0.2cm] at (p1.north) {\large\faCrown}; 
-
-    % --- VERTICAL PHASE SEPARATOR ---
-    \draw[phaseLine] (3.0, -0.0) -- (3.0, -6.8);
-
-    % --- PREPARE ---
-    \node[phaseLabel, red!80!black] at (2.0, -0.3) {Prepare};
-    % P1 self loop
-    \draw[prepare] (1.0, -1.2) .. controls (1.4, -0.6) and (1.6, -0.6) .. (2.0, -1.2);
-    % Messages to P2 and P3
-    \draw[prepare] (1.0, -1.2) -- (2.0, -2.4);
-    \draw[prepare] (1.0, -1.2) -- (2.0, -3.6);
-    % Responses back to P1
-    \draw[prepare] (2.0, -2.4) -- (3.0, -1.2);
-    \draw[prepare] (2.0, -3.6) -- (3.0, -1.2);
-    
-    \node[phaseLabel, green!60!black] at (7.5, -0.3) {Accept (Pipelined)};
-    % --- ACCEPT 1 ---
-    % P1 self loop
-    \draw[accept1] (3.0, -1.2) .. controls (3.4, -0.6) and (3.6, -0.6) .. (4.0, -1.2);
-    % Messages to P2 and P3
-    \draw[accept1] (3.0, -1.2) -- (4.0, -2.4);
-    \draw[accept1] (3.0, -1.2) -- (4.0, -3.6);
-    % Responses back to P1
-    \draw[accept1] (4.0, -2.4) -- (8.5, -1.2);
-    \draw[accept1] (4.0, -3.6) -- (5.0, -1.2);
-
-    \draw[phaseLine] (8.5, -1.2) -- (8.5, -6.2);
-    \node[bottomLabel] at (8.5, -6.4) {Value 1};
-    \node[bottomLabel] at (8.5, -6.8) {Chosen};
-    % --- ACCEPT 2 ---
-    % P1 self loop
-    \draw[accept2] (4.5, -1.2) .. controls (4.9, -0.6) and (5.1, -0.6) .. (5.5, -1.2);
-    % Messages to P2 and P3
-    \draw[accept2] (4.5, -1.2) -- (6.5, -2.4);
-    \draw[accept2] (4.5, -1.2) -- (5.5, -3.6);
-    % Responses back to P1
-    \draw[accept2] (6.5, -2.4) -- (10.0, -1.2);
-    \draw[accept2] (5.5, -3.6) -- (6.5, -1.2);
-    
-    \draw[phaseLine] (10.0, -1.2) -- (10.0, -6.2);
-    \node[bottomLabel] at (10.0, -6.4) {Value 2};
-    \node[bottomLabel] at (10.0, -6.8) {Chosen};
-    % --- ACCEPT 3 ---
-    % P1 self loop
-    \draw[accept3] (7.0, -1.2) .. controls (7.4, -0.6) and (7.6, -0.6) .. (8.0, -1.2);
-    % Messages to P2 and P3
-    \draw[accept3] (7.0, -1.2) -- (8.0, -2.4);
-    \draw[accept3] (7.0, -1.2) -- (8.0, -3.6);
-    % Responses back to P1
-    \draw[accept3] (8.0, -2.4) -- (10.5, -1.2);
-    \draw[accept3] (8.0, -3.6) -- (11.5, -1.2);
-    
-    \draw[phaseLine] (11.5, -1.2) -- (11.5, -6.2);
-    \node[bottomLabel] at (11.5, -6.4) {Value 3};
-    \node[bottomLabel] at (11.5, -6.8) {Chosen};
-    \end{tikzpicture}
-    \caption{Example execution of leader-based Sequence Paxos with four servers.}
+    \input{figures/leader_based_sequence_paxos_tikz}
+    \caption{Example execution of leader-based Sequence Paxos with five servers. Chosen values can be broadcasted to learners similar to before.}
     \label{fig:leader_based_sequence_paxos}
 \end{figure}
+
+\todo{Polish}
 
 \subsection{Fast-Path Integration}
 \begin{figure}[h]

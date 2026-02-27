@@ -1,0 +1,47 @@
+\begin{tikzpicture}[
+    node distance=1.0cm and 2.0cm,
+    every node/.style={font=\small},
+    component/.style={ rectangle, rounded corners=3pt, draw=black!70, thick, minimum width=4.8cm, minimum height=0.95cm, align=center },
+    rsm/.style={component, fill=blue!25},
+    log/.style={component, fill=orange!30},
+    cons/.style={component, fill=green!25},
+    client/.style={ rectangle, rounded corners=2pt, draw=black!80, thick, fill=white, minimum width=4cm, minimum height=0.9cm, font=\bfseries },
+    serverFrame/.style={ rectangle, rounded corners=8pt, draw=black!80, very thick, inner sep=12pt },
+    arrow/.style={ -{Latex[length=2.5mm]}, thick, draw=black!80 }
+]
+    % --- SERVER 1 ---
+    \node[rsm] (rsm1) {Replicated State Machine};
+    \node[log, below=of rsm1] (log1) {Replicated Log};
+    \node[cons, below=of log1] (cons1) {Uniform Sequence Consensus};
+    \node[serverFrame, fit=(rsm1) (cons1)] (frame1) {};
+    \node[anchor=north, font=\bfseries, yshift=-5pt] at (frame1.south) {Server 1};
+    
+    % --- SERVER N ---
+    \node[rsm, right=of rsm1, xshift=0.4cm] (rsmN) {Replicated State Machine};
+    \node[log, below=of rsmN] (logN) {Replicated Log};
+    \node[cons, below=of logN] (consN) {Uniform Sequence Consensus};
+    \node[serverFrame, fit=(rsmN) (consN)] (frameN) {};
+    \node[anchor=north, font=\bfseries, yshift=-5pt] at (frameN.south) {Server n};
+    % --- CENTRAL ELLIPSIS --- 
+    \node at ($(frame1.east)!0.5!(frameN.west)$) (dots) {\large\bfseries \dots};
+    % --- CLIENTS ---
+    \node[client, above=1.0cm of rsm1, xshift=-6pt, yshift=6pt] (cl1b) {};
+    \node[client, above=1.0cm of rsm1, xshift=-3pt, yshift=3pt] (cl1c) {};
+    \node[client, above=1.0cm of rsm1] (cl1) {Clients};
+    \node[client, above=1.0cm of rsmN, xshift=-6pt, yshift=6pt] (clNb) {};
+    \node[client, above=1.0cm of rsmN, xshift=-3pt, yshift=3pt] (clNc) {};
+    \node[client, above=1.0cm of rsmN] (clN) {Clients};
+    % --- ARROWS ---
+    \foreach \i in {1, N} {
+        % Vertical bidirectional flows
+        \draw[-{Latex[length=2.5mm]}] ([xshift=-15pt]rsm\i.south) -- ([xshift=-15pt]log\i.north);
+        \draw[-{Latex[length=2.5mm]}] ([xshift=15pt]log\i.north) -- ([xshift=15pt]rsm\i.south);
+        \draw[-{Latex[length=2.5mm]}] ([xshift=-15pt]log\i.south) -- ([xshift=-15pt]cons\i.north);
+        \draw[-{Latex[length=2.5mm]}] ([xshift=15pt]cons\i.north) -- ([xshift=15pt]log\i.south);
+    }
+    % Client Communication
+    \draw[{Latex[length=2.5mm]}-{Latex[length=2.5mm]}] (cl1.south) -- (rsm1.north);
+    \draw[{Latex[length=2.5mm]}-{Latex[length=2.5mm]}] (clN.south) -- (rsmN.north);
+    % Inter-Server Consensus
+    \draw[{Latex[length=2.5mm]}-{Latex[length=2.5mm]}] (cons1.east) -- (consN.west); 
+\end{tikzpicture}
