@@ -1,0 +1,86 @@
+\begin{tikzpicture}[
+    node distance=1.5cm and 2.5cm,
+    every node/.style={font=\small},
+    % Process styles
+    process/.style={draw, diamond, inner sep=2pt, font=\bfseries\normalsize, minimum size=1.0cm, thick, fill=white},
+    timeline/.style={thick, draw=black!90},
+    % Arrow styles
+    arrow/.style={-{Latex[length=2.5mm]}, thick},
+    accept1/.style={arrow, draw=green!60!black},
+    accept2/.style={arrow, draw=green!100!black},
+    accept3/.style={arrow, draw=green!40!black},
+    % Helper styles
+    phaseLine/.style={dashed, thick, draw=black!60},
+    phaseLabel/.style={font=\bfseries\itshape},
+    bottomLabel/.style={font=\small}
+]
+
+% --- PROCESS TIMELINES ---
+\foreach \i in {1, 2, 3, 4, 5} {
+    \node[process] (p\i) at (0.5, {-\i*1.2}) {P\i};
+    \draw[timeline] (p\i.east) -- (12, {-\i*1.2});
+}
+\node[orange, yshift=0.2cm] at (p1.north) {\large\faCrown}; 
+
+% --- ACCEPT 1 ---
+% P1 self loop
+\draw[accept1] (2.0, -1.2) .. controls (2.4, -0.6) and (2.6, -0.6) .. (3.0, -1.2);
+% Messages to P1, P2, P4 and P5
+\draw[accept1] (1.0, -3.6) -- (2.0, -1.2);
+\draw[accept1] (1.0, -3.6) -- (2.0, -2.4);
+\draw[accept1] (1.0, -3.6) -- (2.0, -4.8);
+\draw[accept1] (1.0, -3.6) -- (2.0, -6.0);
+% Responses to leader P1
+\draw[accept1] (2.0, -2.4) -- (3.0, -1.2);
+\draw[accept1] (2.0, -4.8) -- (3.0, -1.2);
+\draw[accept1] (2.0, -6.0) -- (4.0, -1.2);
+
+\draw[phaseLine] (3.0, -1.2) -- (3.0, -6.2);
+\node[bottomLabel] at (3.0, -6.4) {Value 1};
+\node[bottomLabel] at (3.0, -6.8) {Chosen};
+
+% --- COLLISION ---
+% P1 self loop
+\draw[accept2] (5.5, -1.2) .. controls (5.9, -0.6) and (6.1, -0.6) .. (6.5, -1.2);
+% Messages to P1, P3, P4
+\draw[accept2] (4.5, -2.4) -- (5.5, -1.2);
+\draw[accept2] (4.5, -2.4) -- (5.5, -3.6);
+\draw[accept2] (4.5, -2.4) -- (6.0, -4.8);
+% Responses to leader P1
+\draw[accept2] (5.5, -3.6) -- (6.5, -1.2);
+
+% Messages to P1, P2, P3, P5
+\draw[accept3] (5.5, -4.8) -- (7.0, -1.2);
+\draw[accept3] (5.5, -4.8) -- (7.0, -2.4);
+\draw[accept3] (5.5, -4.8) -- (6.5, -3.6);
+\draw[accept3] (5.5, -4.8) -- (6.5, -6.0);
+% Responses to leader P1
+\draw[accept3] (6.5, -6.0) -- (8.0, -1.2);
+
+\draw[phaseLine] (8.0, -0.0) -- (8.0, -6.2);
+\node[bottomLabel] at (8.0, -6.4) {Collision};
+\node[bottomLabel] at (8.0, -6.8) {Detected};
+
+\node[phaseLabel, green!60!black] at (5.5, -0.3) {Fast Path};
+
+% --- RECOVERY ---
+% P1 self loop
+\draw[accept2] (8.0, -1.2) .. controls (8.4, -0.6) and (8.6, -0.6) .. (9.0, -1.2);
+% Messages to P2, P3, P4
+\draw[accept2] (8.0, -1.2) -- (9.0, -2.4);
+\draw[accept2] (8.0, -1.2) -- (9.0, -3.6);
+\draw[accept2] (8.0, -1.2) -- (9.0, -4.8);
+\draw[accept2] (8.0, -1.2) -- (9.0, -6.0);
+% Responses back to P1
+\draw[accept2] (9.0, -2.4) -- (10.0, -1.2);
+\draw[accept2] (9.0, -3.6) -- (10.0, -1.2);
+\draw[accept2] (9.0, -4.8) -- (11.0, -1.2); 
+\draw[accept2] (9.0, -6.0) -- (11.5, -1.2); 
+
+\draw[phaseLine] (10.0, -1.2) -- (10.0, -6.2);
+\node[bottomLabel] at (10.0, -6.4) {Value 2};
+\node[bottomLabel] at (10.0, -6.8) {Chosen};
+
+\node[phaseLabel, green!60!black] at (10.0, -0.3) {Slow Path};
+
+\end{tikzpicture}

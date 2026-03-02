@@ -1,0 +1,89 @@
+\begin{tikzpicture}[
+    node distance=1.5cm and 2.5cm,
+    every node/.style={font=\small},
+    % Process styles
+    process/.style={draw, diamond, inner sep=2pt, font=\bfseries\normalsize, minimum size=1.0cm, thick, fill=white},
+    timeline/.style={thick, draw=black!90},
+    % Arrow styles
+    arrow/.style={-{Latex[length=2.5mm]}, thick},
+    prepare/.style={arrow, draw=red!80!black},
+    accept1/.style={arrow, draw=green!60!black},
+    accept2/.style={arrow, draw=green!100!black},
+    accept3/.style={arrow, draw=green!40!black},
+    % Helper styles
+    phaseLine/.style={dashed, thick, draw=black!60},
+    phaseLabel/.style={font=\bfseries\itshape},
+    bottomLabel/.style={font=\small}
+]
+
+% --- PROCESS TIMELINES ---
+\foreach \i in {1, 2, 3, 4, 5} {
+    \node[process] (p\i) at (0.5, {-\i*1.2}) {P\i};
+    \draw[timeline] (p\i.east) -- (12, {-\i*1.2});
+}
+\node[orange, yshift=0.2cm] at (p1.north) {\large\faCrown}; 
+
+% --- VERTICAL PHASE SEPARATOR ---
+\draw[phaseLine] (3.0, -0.0) -- (3.0, -6.8);
+
+% --- PREPARE ---
+\node[phaseLabel, red!80!black] at (2.0, -0.3) {Prepare};
+% P1 self loop
+\draw[prepare] (1.0, -1.2) .. controls (1.4, -0.6) and (1.6, -0.6) .. (2.0, -1.2);
+% Messages to P2, P3, P4
+\draw[prepare] (1.0, -1.2) -- (2.0, -2.4);
+\draw[prepare] (1.0, -1.2) -- (2.0, -3.6);
+\draw[prepare] (1.0, -1.2) -- (2.0, -4.8);
+% Responses back to P1
+\draw[prepare] (2.0, -2.4) -- (3.0, -1.2);
+\draw[prepare] (2.0, -3.6) -- (3.0, -1.2);
+\draw[prepare] (2.0, -4.8) -- (3.0, -1.2);
+
+\node[phaseLabel, green!60!black] at (7.5, -0.3) {Accept (Pipelined)};
+
+% --- ACCEPT 1 ---
+% P1 self loop
+\draw[accept1] (4.0, -1.2) .. controls (4.4, -0.6) and (4.6, -0.6) .. (5.0, -1.2);
+% Messages to P1, P2 and P4
+\draw[accept1] (3.0, -3.6) -- (4.0, -1.2);
+\draw[accept1] (3.0, -3.6) -- (4.5, -2.4);
+\draw[accept1] (3.0, -3.6) -- (4.0, -4.8);
+% Responses to leader P1
+\draw[accept1] (4.5, -2.4) -- (5.5, -1.2);
+\draw[accept1] (4.0, -4.8) -- (6.0, -1.2);
+
+\draw[phaseLine] (6.0, -1.2) -- (6.0, -6.2);
+\node[bottomLabel] at (6.0, -6.4) {Value 1};
+\node[bottomLabel] at (6.0, -6.8) {Chosen};
+
+% --- ACCEPT 2 ---
+% P1 self loop
+\draw[accept2] (5.5, -1.2) .. controls (5.9, -0.6) and (6.1, -0.6) .. (6.5, -1.2);
+% Messages to P2, P3 and P4
+\draw[accept2] (5.5, -1.2) -- (8.0, -2.4);
+\draw[accept2] (5.5, -1.2) -- (6.5, -3.6);
+\draw[accept2] (5.5, -1.2) -- (6.5, -4.8);
+% Responses to leader P1
+\draw[accept2] (8.0, -2.4) -- (9.5, -1.2);
+\draw[accept2] (6.5, -3.6) -- (7.5, -1.2);
+\draw[accept2] (6.5, -4.8) -- (7.5, -1.2);
+
+\draw[phaseLine] (9.5, -1.2) -- (9.5, -6.2);
+\node[bottomLabel] at (9.5, -6.4) {Value 2};
+\node[bottomLabel] at (9.5, -6.8) {Chosen};
+
+% --- ACCEPT 3 ---
+% P1 self loop
+\draw[accept3] (9.0, -1.2) .. controls (9.4, -0.6) and (9.6, -0.6) .. (10.0, -1.2);
+% Messages to P1, P2 and P3
+\draw[accept3] (8.0, -4.8) -- (9.0, -1.2);
+\draw[accept3] (8.0, -4.8) -- (9.0, -2.4);
+\draw[accept3] (8.0, -4.8) -- (9.0, -3.6);
+% Responses to leader P1
+\draw[accept3] (9.0, -2.4) -- (11.0, -1.2);
+\draw[accept3] (9.0, -3.6) -- (11.5, -1.2);
+
+\draw[phaseLine] (11.5, -1.2) -- (11.5, -6.2);
+\node[bottomLabel] at (11.5, -6.4) {Value 3};
+\node[bottomLabel] at (11.5, -6.8) {Chosen};
+\end{tikzpicture}

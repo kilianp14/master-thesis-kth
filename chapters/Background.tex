@@ -40,16 +40,16 @@ Standard uniform consensus only deals with a single decision, but a replicated l
   \item[] \textit{Termination:} If a value is proposed infinitely often by a correct process, then every correct process eventually decides on a sequence containing this value.
 \end{enumerate}
 
-\todo{Polish and conclude}
+Ultimately, these properties provide the formal framework necessary to ensure that a distributed log remains a consistent single source of truth, allowing a collection of nodes to function as a unified, reliable service at the application level.
 
 \subsection{Leader-Based Sequence Paxos}
-Paxos describes a family of algorithms that provide the guarantees of uniform (sequence) consensus. Its simplest form, often referred to as Basic Paxos or Single-Value Paxos, was originally introduced by Leslie Lamport \cite{Lamport-Paxos-2001} and solves uniform consensus in partially synchronous systems. It ensures that even if multiple processes propose different values simultaneously, the system converges on a single decision that satisfies the validity, integrity, and agreement properties defined in Section \ref{sect:uniform_sequence_consensus}. Before addressing the complexities of maintaining a continuous, ordered log, it makes sense to introduce this underlying mechanism for reaching agreement on a single value.
+Paxos denotes a family of algorithms designed to provide the guarantees of uniform (sequence) consensus. Its simplest form, often referred to as Basic Paxos or Single-Value Paxos, was originally introduced by Leslie Lamport \cite{Lamport-Paxos-2001} and solves uniform consensus within a partially synchronous system. It ensures that even under concurrent proposals from multiple nodes, the system converges on a single decision that satisfies the validity, integrity, and agreement properties defined in Section \ref{sect:uniform_sequence_consensus}. Understanding this underlying mechanism is essential before addressing the complexities of maintaining a continuous, ordered log.
 
-Paxos decomposes the consensus process into three distinct phases. In the \textit{prepare phase}, a process acting as a \textit{proposer} attempts to claim the right to propose a value. It selects a unique, monotonically increasing proposal number $n$ and broadcasts a \textit{prepare} message containing $n$. Upon receiving this, an \textit{acceptor} returns a \textit{promise} to the proposer, committing that it will not accept any values from proposers that initiated a round with a lower proposal number than $n$. Crucially, if the acceptor has already accepted a value from a previous round, it includes that value and its associated proposal number in its response to ensure the proposer respects any existing progress.
+Paxos decomposes the consensus process into three distinct phases. In the \textit{prepare phase}, a process acting as a \textit{proposer} attempts to claim the right to propose a value. It selects a unique, monotonically increasing proposal number $n$ and broadcasts a \textit{prepare} message containing $n$. Upon receipt, an \textit{acceptor} returns a \textit{promise} to the proposer, committing to reject any values from proposers that initiated a round with a lower proposal number than $n$. Crucially, if the acceptor has already accepted a value from a previous round, it includes that value and its associated proposal number in its response, forcing the proposer to respect any existing progress.
 
-Once a proposer has secured promises from a majority (\textit{quorum}) of acceptors, it proceeds to the \textit{accept phase}, where it tries to make the acceptors lock in its proposal. The proposer sends an \textit{accept} message to the promised acceptors, containing the proposal number $n$ and a value $v$ to be accepted. If no values were reported in the promises, the proposer is free to use its own proposed value. Otherwise, it must use the one from the promise with the highest proposal number. An acceptor acknowledges this by sending an \textit{accepted} message, provided it has not already promised to a higher proposal number than $n$ previously.
+Once a proposer has secured promises from a majority (\textit{quorum}) of acceptors, it proceeds to the \textit{accept phase}, where it tries to make the acceptors lock in its proposal. It sends an \textit{accept} message to the promised acceptors, containing the proposal number $n$ and a value $v$ to be accepted. If the previous phase reported an existing value, the proposer must use the one with the highest proposal number; otherwise, it is free to use its own. An acceptor acknowledges this via an \textit{accepted} message, provided it has not already promised to a higher proposal number than $n$ previously.
 
-After a quorum of acceptors has accepted the same value, it is considered \textit{chosen}, which means that no other process will ever decide on a different value for this instance. From this point, any participant that notices the value being chosen can notify the processes interested in the result (\textit{learners}). This is often done by the original proposer by broadcasting a \textit{decide} message to the learners. An example execution of a Paxos instance is displayed in Figure \ref{fig:paxos} with a total of three acceptors, who simultaneously act as proposers and learners.
+As soon as a quorum of acceptors has accepted the same value, it is considered \textit{chosen}. At this stage, no other process can ever decide on a different value for this instance. Any participant that notices the value being chosen can notify the processes interested in the result (\textit{learners}). This is often done by the original proposer by broadcasting a \textit{decide} message to the learners. An example execution of a Paxos instance is displayed in Figure \ref{fig:paxos} with a total of three acceptors, who simultaneously act as proposers and learners.
 
 \begin{figure}[t]
     \centering
@@ -58,207 +58,47 @@ After a quorum of acceptors has accepted the same value, it is considered \texti
     \label{fig:paxos}
 \end{figure}
 
-To satisfy the termination property of uniform consensus, Lamport describes that a leader election mechanism can be used to elect a single distinguished proposer, who will eventually be the only process allowed to propose a value \cite{Lamport-Paxos-2001}. This principle directly leads to \textit{leader-based sequence paxos}, which is an extension of Paxos that handles an ordered sequence of values and provides the guarantees of uniform sequence consensus (see Section \ref{sect:uniform_sequence_consensus}.
+To satisfy the termination property of uniform consensus, a leader election mechanism can be used to elect a single distinguished proposer, who will eventually be the only process allowed to propose a value \cite{Lamport-Paxos-2001}. This principle leads directly to \textit{leader-based Sequence Paxos}, an extension of Paxos that handles an ordered sequence of values and provides the guarantees of uniform sequence consensus (see Section \ref{sect:uniform_sequence_consensus}.
 
-The core insight of this optimization is that if the leader remains stable, the prepare phase can be performed once for a whole series of log entries, rather than once per entry. This allows the system to effectively pipeline values through the accept phase using the elected leader as the distinguished proposer \cite{Lamport-Paxos-2001, Ng-OmniPaxos-2023, Haridi-LeaderBasedSequencePaxos-2020}. Even though the requirements for becoming a leader can vary based on different algorithms, leading to prepare phases possibly being extended by log syncing mechanisms, this main idea stays the same across all implementations of uniform sequence consensus. Figure \ref{fig:leader_based_sequence_paxos} displays a common execution of a leader-based sequence paxos algorithm.
+The primary optimization of this approach is that if the leader remains stable, the prepare phase can be performed once for a whole series of log entries, rather than once per entry. This allows the system to effectively pipeline values through the accept phase using the elected leader as the distinguished proposer \cite{Lamport-Paxos-2001, Ng-OmniPaxos-2023, Haridi-LeaderBasedSequencePaxos-2020}. While specific implementations may augment the prepare phase with log-synchronization mechanisms depending on the leader election algorithm, this main idea stays the same across all implementations of uniform sequence consensus. Figure \ref{fig:leader_based_sequence_paxos} displays a common execution of a leader-based Sequence Paxos algorithm.
 
 
 \begin{figure}[t]
     \centering
     \input{figures/leader_based_sequence_paxos_tikz}
-    \caption{Example execution of leader-based Sequence Paxos with five servers. Chosen values can be broadcasted to learners similar to before.}
+    \caption{Example execution of leader-based Sequence Paxos with five servers. Chosen values can be broadcast to learners similar to before.}
     \label{fig:leader_based_sequence_paxos}
 \end{figure}
 
-\todo{Polish}
-
 \subsection{Fast-Path Integration}
-\begin{figure}[h]
+In the leader-based Sequence Paxos algorithm described above, only the leader can propose a value to be appended to the log. Thereby, there are a total of three message delays in a setting where every process might want to propose values \cite{Junqueira-ClassicVsFastPaxos-2007}:
+\begin{enumerate}
+    \item The original proposer forwards its value to the leader to start the append operation.
+    \item The leader sends accept messages to all promised acceptors.
+    \item The acceptors answer with corresponding accepted messages either to the learners directly or to the leader, who then informs the learners when a value is chosen. 
+\end{enumerate}
+
+The main idea behind the introduction of Fast Paxos is to save one of the communication steps by allowing any of the participating processes to directly propose values to the acceptors instead of first forwarding them to the leader. This was also originally devised by Leslie Lamport \cite{Lamport-FastPaxos-2006}. In such a fast round, the acceptors now simply accept the first value they receive from any proposer and notify the leader (and possibly the learners) of their decision using an accepted message. A typical flow of messages with successful fast paths is depicted in Figure \ref{fig:leader_based_sequence_paxos_fast_path}.
+
+\begin{figure}[t]
     \centering
-    \begin{tikzpicture}[
-        node distance=1.5cm and 2.5cm,
-        every node/.style={font=\small},
-        % Process styles
-        process/.style={draw, diamond, inner sep=2pt, font=\bfseries\normalsize, minimum size=1.0cm, thick, fill=white},
-        timeline/.style={thick, draw=black!90},
-        % Arrow styles
-        arrow/.style={-{Latex[length=2.5mm]}, thick},
-        prepare/.style={arrow, draw=red!80!black},
-        accept1/.style={arrow, draw=green!60!black},
-        accept2/.style={arrow, draw=green!100!black},
-        accept3/.style={arrow, draw=green!40!black},
-        % Helper styles
-        phaseLine/.style={dashed, thick, draw=black!60},
-        phaseLabel/.style={font=\bfseries\itshape},
-        bottomLabel/.style={font=\small}
-    ]
-
-    % --- PROCESS TIMELINES ---
-    \foreach \i in {1, 2, 3, 4, 5} {
-        \node[process] (p\i) at (0.5, {-\i*1.2}) {P\i};
-        \draw[timeline] (p\i.east) -- (12, {-\i*1.2});
-    }
-    \node[orange, yshift=0.2cm] at (p1.north) {\large\faCrown}; 
-
-    % --- VERTICAL PHASE SEPARATOR ---
-    \draw[phaseLine] (3.0, -0.0) -- (3.0, -6.8);
-
-    % --- PREPARE ---
-    \node[phaseLabel, red!80!black] at (2.0, -0.3) {Prepare};
-    % P1 self loop
-    \draw[prepare] (1.0, -1.2) .. controls (1.4, -0.6) and (1.6, -0.6) .. (2.0, -1.2);
-    % Messages to P2, P3, P4
-    \draw[prepare] (1.0, -1.2) -- (2.0, -2.4);
-    \draw[prepare] (1.0, -1.2) -- (2.0, -3.6);
-    \draw[prepare] (1.0, -1.2) -- (2.0, -4.8);
-    % Responses back to P1
-    \draw[prepare] (2.0, -2.4) -- (3.0, -1.2);
-    \draw[prepare] (2.0, -3.6) -- (3.0, -1.2);
-    \draw[prepare] (2.0, -4.8) -- (3.0, -1.2);
-    
-    \node[phaseLabel, green!60!black] at (7.5, -0.3) {Accept (Pipelined)};
-    
-    % --- ACCEPT 1 ---
-    % P1 self loop
-    \draw[accept1] (4.0, -1.2) .. controls (4.4, -0.6) and (4.6, -0.6) .. (5.0, -1.2);
-    % Messages to P1, P2 and P4
-    \draw[accept1] (3.0, -3.6) -- (4.0, -1.2);
-    \draw[accept1] (3.0, -3.6) -- (4.5, -2.4);
-    \draw[accept1] (3.0, -3.6) -- (4.0, -4.8);
-    % Responses to leader P1
-    \draw[accept1] (4.5, -2.4) -- (5.5, -1.2);
-    \draw[accept1] (4.0, -4.8) -- (6.0, -1.2);
-
-    \draw[phaseLine] (6.0, -1.2) -- (6.0, -6.2);
-    \node[bottomLabel] at (6.0, -6.4) {Value 1};
-    \node[bottomLabel] at (6.0, -6.8) {Chosen};
-    
-    % --- ACCEPT 2 ---
-    % P1 self loop
-    \draw[accept2] (5.5, -1.2) .. controls (5.9, -0.6) and (6.1, -0.6) .. (6.5, -1.2);
-    % Messages to P2, P3 and P4
-    \draw[accept2] (5.5, -1.2) -- (8.0, -2.4);
-    \draw[accept2] (5.5, -1.2) -- (6.5, -3.6);
-    \draw[accept2] (5.5, -1.2) -- (6.5, -4.8);
-    % Responses to leader P1
-    \draw[accept2] (8.0, -2.4) -- (9.5, -1.2);
-    \draw[accept2] (6.5, -3.6) -- (7.5, -1.2);
-    \draw[accept2] (6.5, -4.8) -- (7.5, -1.2);
-    
-    \draw[phaseLine] (9.5, -1.2) -- (9.5, -6.2);
-    \node[bottomLabel] at (9.5, -6.4) {Value 2};
-    \node[bottomLabel] at (9.5, -6.8) {Chosen};
-    
-    % --- ACCEPT 3 ---
-    % P1 self loop
-    \draw[accept3] (9.0, -1.2) .. controls (9.4, -0.6) and (9.6, -0.6) .. (10.0, -1.2);
-    % Messages to P1, P2 and P3
-    \draw[accept3] (8.0, -4.8) -- (9.0, -1.2);
-    \draw[accept3] (8.0, -4.8) -- (9.0, -2.4);
-    \draw[accept3] (8.0, -4.8) -- (9.0, -3.6);
-    % Responses to leader P1
-    \draw[accept3] (9.0, -2.4) -- (11.0, -1.2);
-    \draw[accept3] (9.0, -3.6) -- (11.5, -1.2);
-    
-    \draw[phaseLine] (11.5, -1.2) -- (11.5, -6.2);
-    \node[bottomLabel] at (11.5, -6.4) {Value 3};
-    \node[bottomLabel] at (11.5, -6.8) {Chosen};
-    \end{tikzpicture}
+    \input{figures/leader_based_sequence_paxos_fast_path_tikz}
     \caption{Example execution of leader-based Sequence Paxos with five servers using the fast path.}
     \label{fig:leader_based_sequence_paxos_fast_path}
 \end{figure}
 
-\begin{figure}[h]
+Compared to the original algorithm discussed earlier, a simple majority quorum is not sufficient anymore to consider a value chosen when using the fast path. To guarantee safety, a quorum for a fast round (\textit{fast quorum}) must intersect with any majority of nodes in at least half of the nodes included in the majority \cite{Zhao-FastPaxos-2015}. In practice, the size of a fast quorum must be at least $\lceil \frac{3n}{4} \rceil$ for a system of $n$ acceptors. This also means that the fast-path algorithm can tolerate fewer failures in a round compared to the earlier design. 
+
+Additionally, it is obvious that the fast path is optimistic. A collision can occur when multiple proposers send different values simultaneously, such that no single value achieves the fast quorum threshold. The leader can detect such a collision and initiate a regular Paxos round using the most accepted value, as seen in Figure \ref{fig:leader_based_sequence_paxos_fast_path_collision}. This \textit{slow path} requires two additional communication steps, which means that a fast round with a collision is even slower than a round following the original algorithm.
+
+\begin{figure}[t]
     \centering
-    \begin{tikzpicture}[
-        node distance=1.5cm and 2.5cm,
-        every node/.style={font=\small},
-        % Process styles
-        process/.style={draw, diamond, inner sep=2pt, font=\bfseries\normalsize, minimum size=1.0cm, thick, fill=white},
-        timeline/.style={thick, draw=black!90},
-        % Arrow styles
-        arrow/.style={-{Latex[length=2.5mm]}, thick},
-        accept1/.style={arrow, draw=green!60!black},
-        accept2/.style={arrow, draw=green!100!black},
-        accept3/.style={arrow, draw=green!40!black},
-        % Helper styles
-        phaseLine/.style={dashed, thick, draw=black!60},
-        phaseLabel/.style={font=\bfseries\itshape},
-        bottomLabel/.style={font=\small}
-    ]
-
-    % --- PROCESS TIMELINES ---
-    \foreach \i in {1, 2, 3, 4, 5} {
-        \node[process] (p\i) at (0.5, {-\i*1.2}) {P\i};
-        \draw[timeline] (p\i.east) -- (12, {-\i*1.2});
-    }
-    \node[orange, yshift=0.2cm] at (p1.north) {\large\faCrown}; 
-    
-    % --- ACCEPT 1 ---
-    % P1 self loop
-    \draw[accept1] (2.0, -1.2) .. controls (2.4, -0.6) and (2.6, -0.6) .. (3.0, -1.2);
-    % Messages to P1, P2, P4 and P5
-    \draw[accept1] (1.0, -3.6) -- (2.0, -1.2);
-    \draw[accept1] (1.0, -3.6) -- (2.0, -2.4);
-    \draw[accept1] (1.0, -3.6) -- (2.0, -4.8);
-    \draw[accept1] (1.0, -3.6) -- (2.0, -6.0);
-    % Responses to leader P1
-    \draw[accept1] (2.0, -2.4) -- (3.0, -1.2);
-    \draw[accept1] (2.0, -4.8) -- (3.0, -1.2);
-    \draw[accept1] (2.0, -6.0) -- (4.0, -1.2);
-
-    \draw[phaseLine] (3.0, -1.2) -- (3.0, -6.2);
-    \node[bottomLabel] at (3.0, -6.4) {Value 1};
-    \node[bottomLabel] at (3.0, -6.8) {Chosen};
-
-    % --- COLLISION ---
-    % P1 self loop
-    \draw[accept2] (5.5, -1.2) .. controls (5.9, -0.6) and (6.1, -0.6) .. (6.5, -1.2);
-    % Messages to P1, P3, P4
-    \draw[accept2] (4.5, -2.4) -- (5.5, -1.2);
-    \draw[accept2] (4.5, -2.4) -- (5.5, -3.6);
-    \draw[accept2] (4.5, -2.4) -- (6.0, -4.8);
-    % Responses to leader P1
-    \draw[accept2] (5.5, -3.6) -- (6.5, -1.2);
-    
-    % Messages to P1, P2, P3, P5
-    \draw[accept3] (5.5, -4.8) -- (7.0, -1.2);
-    \draw[accept3] (5.5, -4.8) -- (7.0, -2.4);
-    \draw[accept3] (5.5, -4.8) -- (6.5, -3.6);
-    \draw[accept3] (5.5, -4.8) -- (6.5, -6.0);
-    % Responses to leader P1
-    \draw[accept3] (6.5, -6.0) -- (8.0, -1.2);
-
-    \draw[phaseLine] (8.0, -0.0) -- (8.0, -6.2);
-    \node[bottomLabel] at (8.0, -6.4) {Collision};
-    \node[bottomLabel] at (8.0, -6.8) {Detected};
-    
-    \node[phaseLabel, green!60!black] at (5.5, -0.3) {Fast Path};
-
-    % --- RECOVERY ---
-    % P1 self loop
-    \draw[accept2] (8.0, -1.2) .. controls (8.4, -0.6) and (8.6, -0.6) .. (9.0, -1.2);
-    % Messages to P2, P3, P4
-    \draw[accept2] (8.0, -1.2) -- (9.0, -2.4);
-    \draw[accept2] (8.0, -1.2) -- (9.0, -3.6);
-    \draw[accept2] (8.0, -1.2) -- (9.0, -4.8);
-    \draw[accept2] (8.0, -1.2) -- (9.0, -6.0);
-    % Responses back to P1
-    \draw[accept2] (9.0, -2.4) -- (10.0, -1.2);
-    \draw[accept2] (9.0, -3.6) -- (10.0, -1.2);
-    \draw[accept2] (9.0, -4.8) -- (11.0, -1.2); 
-    \draw[accept2] (9.0, -6.0) -- (11.5, -1.2); 
-
-    \draw[phaseLine] (10.0, -1.2) -- (10.0, -6.2);
-    \node[bottomLabel] at (10.0, -6.4) {Value 2};
-    \node[bottomLabel] at (10.0, -6.8) {Chosen};
-    
-    \node[phaseLabel, green!60!black] at (10.0, -0.3) {Slow Path};
-    
-    \end{tikzpicture}
+    \input{figures/leader_based_sequence_paxos_fast_path_collision_tikz}
     \caption{Example execution of leader-based Sequence Paxos with five servers and a collision of proposals.}
     \label{fig:leader_based_sequence_paxos_fast_path_collision}
 \end{figure}
+
+\todo{polish}
 
 \section{Conformal Methods}
 \begin{itemize}
