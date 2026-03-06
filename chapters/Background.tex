@@ -3,7 +3,7 @@
 
 This chapter provides basic background information about xxx. Additionally, this chapter describes xxx. The chapter also describes related work xxxx.
 
-\section{\glsfmtfull{SMR}}
+\section{State Machine Replication}
 A common way to provide fault tolerance and thereby improve availability for a service is to operate multiple servers that maintain an identical state. These replicas can serve as backups, shadowing a primary node, ready to take over during a failure, or be potentially globally distributed to handle requests from local clients. Many services, like databases, require a strict notion of consistency, leading to nodes having to coordinate their actions to prevent state divergence in both of these cases.
 
 One approach is to decide on the execution of the same sequence of deterministic operations across all nodes. This is referred to as \gls{SMR} \cite{Schneider-ReplicatedStateMachines-1990}. The Raft protocol \cite{Ongaro-Raft-2014} popularized the concept of a replicated log as the central abstraction for developers of such replicated services. It is specifically designed around managing a linear, append-only log, which stores all \gls{SMR} operations for the application. Because this log is identical across all replicas, executing the operations in the order determined by it ensures that every node arrives at the same final state.
@@ -58,7 +58,7 @@ As soon as a quorum of acceptors has accepted the same value, it is considered \
     \label{fig:paxos}
 \end{figure}
 
-To satisfy the termination property of uniform consensus, a leader election mechanism can be used to elect a single distinguished proposer, who will eventually be the only process allowed to propose a value \cite{Lamport-Paxos-2001}. This principle leads directly to \textit{leader-based Sequence Paxos}, an extension of Paxos that handles an ordered sequence of values and provides the guarantees of uniform sequence consensus (see Section \ref{sect:uniform_sequence_consensus}.
+To satisfy the termination property of uniform consensus, a leader election mechanism can be used to elect a single distinguished proposer, who will eventually be the only process allowed to propose a value \cite{Lamport-Paxos-2001}. This principle leads directly to \textit{leader-based Sequence Paxos}, an extension of Paxos that handles an ordered sequence of values and provides the guarantees of uniform sequence consensus (see Section \ref{sect:uniform_sequence_consensus}).
 
 The primary optimization of this approach is that if the leader remains stable, the prepare phase can be performed once for a whole series of log entries, rather than once per entry. This allows the system to effectively pipeline values through the accept phase using the elected leader as the distinguished proposer \cite{Lamport-Paxos-2001, Ng-OmniPaxos-2023, Haridi-LeaderBasedSequencePaxos-2020}. While specific implementations may augment the prepare phase with log-synchronization mechanisms depending on the leader election algorithm, this main idea stays the same across all implementations of uniform sequence consensus. Figure \ref{fig:leader_based_sequence_paxos} displays a common execution of a leader-based Sequence Paxos algorithm.
 
@@ -100,16 +100,26 @@ Additionally, it is obvious that the fast path is optimistic. A collision can oc
 
 \todo{polish}
 
-\section{Conformal Methods}
+\section{Conformal Prediction}
+When deploying predictive models in high-stakes applications, understanding the uncertainty of its output is just as critical as assessing its actual accuracy on prediction tasks. This makes \gls{UQ} a critical research field in statistics and Machine Learning \cite{Zhou-ConformalPredictionDataPerspective-2025}. \gls{CP} describes a statistical framework for \gls{UQ} with the primary objective of transforming a heuristic notion of uncertainty into statistically rigorous prediction sets/intervals that are guaranteed to contain the ground truth with a user-defined probability. \gls{CP} has several desirable properties that make it suited for model deployment \cite{Shafer-ConformalPrediction-2008, Angelopoulus-ConformalPrediction-2023, Zhou-ConformalPredictionDataPerspective-2025}:
 \begin{itemize}
-    \item Framework for uncertainty qualification
-    \item About turning a heuristic notion of uncertainty into a rigorous one
-    \item Requirements: Efficiency, Model-agnostic, Distribution Free, Finite sample guarantees
-    \item \cite{Zhou-ConformalPredictionDataPerspective-2025} has a good introduction as writing guidance
+    \item \textit{model-agnostic:} No knowledge of the underlying model architecture is required when applying this method. 
+    \item \textit{distribution-free:} Valid coverage is provided under the assumption of data exchangeability. A sequence of random variables is considered exchangeable if their joint probability distribution is invariant under any permutation of this sequence. This assumption implies that the order in which data points are observed does not carry information about their underlying distribution.
+    \item \textit{efficient:} Because it functions as a lightweight wrapper, it can be applied to any existing model without the need for retraining.
+    \item \textit{informative:} It produces prediction sets/intervals that are narrow enough to provide actionable insights about the model's output.
+    \item \textit{finite-sample valid:} Coverage is guaranteed even if prediction is constructed based of a finite number of data points. 
 \end{itemize}
-\todo{Write out}
 
-\subsection{Conformal Prediction}
+The following sections introduce specific conformal methods and describe how they can be used for quantifying uncertainty in classification tasks.
+\todo{Polish}
+
+\subsection{Full Conformal Prediction}
+\label{sect:full_conformal_prediction}
+Follow \cite{Angelopoulos-ConformalPredictionTheory-2025, Zhou-ConformalPredictionDataPerspective-2025}
+
+
+\subsection{Split Conformal Prediction}
+\label{sect:split_conformal_prediction}
 For a general input $X$ and output $y$ and a calibration set $\{(X_1, y_1), ..., (X_n, y_n)\}$ of size $n$ containing labeled unseen data, the following steps should be completed:
 
 \begin{enumerate}
@@ -118,13 +128,16 @@ For a general input $X$ and output $y$ and a calibration set $\{(X_1, y_1), ...,
     \item Use this quantile to form the prediction sets for new example $X_{test}$: $\mathcal{C}(X_{test}) = \{y: s(X_{test}, y) \le \hat{q}\}$
 \end{enumerate}
 
+exchangeability ensures that the "non-conformity score" of a previously unseen test observation is equally likely to occupy any rank when compared against a set of calibration scores.
+
 Using this method, we can guarantee that the probability of the true value $Y_{test}$ being in the prediction set is not less than $1 - \alpha$ under the assumption that the test point stems from the same distribution as the points in the calibration set: $\mathbb{P}\left(Y_{test} \in \mathcal{C}(X_{test})\right) \ge 1 - \alpha$
 
 The usefulness of the prediction sets is primarily determined by the score function.
 
-\todo{Write out and separate into Full and split conformal}
+\todo{Write out, make figure for split conformal showing the equal probability that a test point lands in between two calibration points}
 
 \subsection{Conformal Risk Control}
+\label{sect:conformal_risk_control}
 
 \subsection{Adaptive Conformal Inference?}
 
