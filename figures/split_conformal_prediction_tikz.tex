@@ -1,0 +1,58 @@
+\begin{tikzpicture}[
+    every node/.style={font=\small},
+    dataPoint/.style={circle, draw=black, thick, minimum size=8pt, inner sep=0pt},
+    consistentData/.style={dataPoint, fill=green!40},
+    inconsistentData/.style={dataPoint, fill=red!40},
+    testData/.style={dataPoint, fill=blue!40},
+    arrow/.style={-{Latex[length=2.5mm]}, thin, draw=gray},
+    brace/.style={decorate, decoration={brace, amplitude=6pt}, thick, draw=black!70},
+]
+    
+    % --- Main Horizontal Line ---
+    \draw[black!70, thick] (0,0) -- (12,0);
+    
+    % --- Non-conformity Scores (Green Dots) ---
+    \node[consistentData] (cp1) at (1.5,0) {};
+    \node[consistentData] (cp2) at (2,0) {};
+    \node[consistentData] (cp3) at (3.5,0) {};
+    \node[consistentData] (cp4) at (4.2,0) {};
+    \node[consistentData] (cp5) at (5,0) {};
+    \node[consistentData] (cp6) at (6,0) {};
+    \node[consistentData] (cp7) at (6.5,0) {};
+    \node[consistentData] (cp8) at (8,0) {};
+    
+    % --- "Consistent" Label ---
+    \node at (4,-1) {\textbf{consistent}};
+    
+    % --- Threshold Line ---
+    \draw[black!70, thick, dashed] (8,2) -- (8, -0.5);
+    \node[below=0.3 of cp8, anchor=north, font=\normalsize] (qHatLabel) {$\hat{q}$};
+    
+    % --- Inconsistent Region and Data Points ---
+    \node[inconsistentData] (icp1) at (8.5,0) {};
+    \node[inconsistentData] (icp2) at (10,0) {};
+    \node at (10,-1) {\textbf{inconsistent}};
+    
+    % --- Braces ---
+    \node (p1Anchor) at (0,0) {};
+    \node[above=12pt of $(p1Anchor)!0.5!(cp1)$] {$1/(n+1)$}; 
+    \draw[brace] (p1Anchor.north) -- (cp1.north);
+    \node[above=12pt of $(cp3)!0.5!(cp4)$] {$1/(n+1)$}; 
+    \draw[brace] (cp3.north) -- (cp4.north);
+    \node[above=12pt of $(icp1)!0.5!(icp2)$] {$1/(n+1)$}; 
+    \draw[brace] (icp1.north) -- (icp2.north);
+    
+    % --- Test Score ---
+    \node[testData] (testScore) at (6, 2.0) {};
+    \node[above=3pt of testScore, font=\normalsize] {$s(X_{test}, Y_{test})$};
+    
+    % --- Midpoints ---
+    \path (p1Anchor.center) -- (cp1.center) coordinate[pos=0.5] (mid1);
+    \path (cp3.center) -- (cp4.center) coordinate[pos=0.5] (mid2);
+    \path (icp1.center) -- (icp2.center) coordinate[pos=0.5] (mid3);
+    
+    % --- Arrows ---
+    \draw[arrow] (testScore.west) -- ($(mid1)+(0,0.30)$);
+    \draw[arrow] (testScore.south) -- ($(mid2)+(0,0.30)$);
+    \draw[arrow] (testScore.east) -- ($(mid3)+(0,0.30)$);
+\end{tikzpicture}

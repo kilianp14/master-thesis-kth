@@ -101,13 +101,13 @@ Additionally, it is obvious that the fast path is optimistic. A collision can oc
 \todo{polish}
 
 \section{Conformal Prediction}
-When deploying predictive models in high-stakes applications, understanding the uncertainty of its output is just as critical as assessing its actual accuracy on prediction tasks. This makes \gls{UQ} a critical research field in statistics and Machine Learning \cite{Zhou-ConformalPredictionDataPerspective-2025}. \gls{CP} describes a statistical framework for \gls{UQ} with the primary objective of transforming a heuristic notion of uncertainty into statistically rigorous prediction sets/intervals that are guaranteed to contain the ground truth with a user-defined probability. \gls{CP} has several desirable properties that make it suited for model deployment \cite{Shafer-ConformalPrediction-2008, Angelopoulus-ConformalPrediction-2023, Zhou-ConformalPredictionDataPerspective-2025}:
+When deploying predictive models in high-stakes applications, understanding the uncertainty of its output is just as critical as assessing its actual accuracy on prediction tasks. This makes it \gls{UQ} a critical research field in statistics and machine learning. \gls{CP} describes a statistical framework for \gls{UQ} with the primary objective of transforming a heuristic notion of uncertainty into statistically rigorous prediction sets/intervals that are guaranteed to contain the ground truth with a user-defined probability. \gls{CP} has several desirable properties that make it suited for model deployment \cite{Shafer-ConformalPrediction-2008, Angelopoulus-ConformalPrediction-2023, Zhou-ConformalPredictionDataPerspective-2025}:
 \begin{itemize}
-    \item \textit{model-agnostic:} No knowledge of the underlying model architecture is required when applying this method. 
-    \item \textit{distribution-free:} Valid coverage is provided under the assumption of data exchangeability. A sequence of random variables is considered exchangeable if their joint probability distribution is invariant under any permutation of this sequence. This assumption implies that the order in which data points are observed does not carry information about their underlying distribution.
-    \item \textit{efficient:} Because it functions as a lightweight wrapper, it can be applied to any existing model without the need for retraining.
-    \item \textit{informative:} It produces prediction sets/intervals that are narrow enough to provide actionable insights about the model's output.
-    \item \textit{finite-sample valid:} Coverage is guaranteed even if prediction is constructed based of a finite number of data points. 
+    \item \textit{Model-agnostic:} No knowledge of the underlying model architecture is required when applying this method. 
+    \item \textit{Distribution-free:} Valid coverage is provided under the assumption of data exchangeability. A sequence of random variables is considered exchangeable if their joint probability distribution is invariant under any permutation of this sequence. This assumption implies that the order in which data points are observed does not carry information about their underlying distribution.
+    \item \textit{Efficient:} Because it functions as a lightweight wrapper, it can be applied to any existing model without the need for retraining.
+    \item \textit{Informative:} It produces prediction sets/intervals that are narrow enough to provide actionable insights about the model's output.
+    \item \textit{Finite-sample valid:} Coverage is guaranteed even if prediction is constructed based of a finite number of data points. 
 \end{itemize}
 
 The following sections introduce specific conformal methods and describe how they can be used for quantifying uncertainty in classification tasks.
@@ -115,24 +115,73 @@ The following sections introduce specific conformal methods and describe how the
 
 \subsection{Full Conformal Prediction}
 \label{sect:full_conformal_prediction}
-Follow \cite{Angelopoulos-ConformalPredictionTheory-2025, Zhou-ConformalPredictionDataPerspective-2025}
+Given a training set $\mathcal{D}_n \in (\mathcal{X} \times \mathcal{Y})^n$ containing features and labels $(X_1, Y_1), (X_2, Y_2), ..., (X_n, Y_n)$ and a test point $(X_{test}, Y_{test}) \in \mathcal{X} \times \mathcal{Y}$ with the test label being unobserved, the goal of conformal prediction for classification is to construct a calibration set for the test feature $\mathcal{C}(X_{test}) \subseteq \mathcal{Y}$ such that it satisfies the \textit{marginal predictive coverage} for a user-defined error rate $\alpha$ \cite{Angelopoulus-ConformalPrediction-2023, Zhou-ConformalPredictionDataPerspective-2025, Angelopoulos-ConformalPredictionTheory-2025}:
+$$\mathbb{P}(Y_{test} \in \mathcal{C}(X_{test})) \ge 1 - \alpha$$
 
+This is done based on a \textit{non-conformity score} function $s((x, y); \mathcal{D}) \in \mathbb{R}$ that measures the error of a model trained with $\mathcal{D} \in (\mathcal{X} \times \mathcal{Y})^k$ on the feature-label pair $(x,y) \in \mathcal{X} \times \mathcal{Y}$. A higher score indicates a worse agreement between $x$ and $y$ based on the training data \cite{Angelopoulus-ConformalPrediction-2023}. The function itself is user-defined and primarily determines the usefulness of the resulting prediction sets, meaning it should be based off a heuristic notion of uncertainty.
+
+The core idea of \textit{full \gls{CP}} is to compare the non-conformity scores of all hypothesized labels $y \in \mathcal{Y}$ for the given test feature $X_{test}$ with the scores of the training data. A comparably large score would hereby indicate that a particular label is inconsistent with the data, and the final prediction set $\mathcal{C}(X_{test})$ then simply contains all consistent labels. The consistency threshold is the $(1 - \alpha)$ quantile with some finite-sample correction, which satisfies the marginal predictive coverage for the error rate $\alpha$ \cite{Angelopoulos-ConformalPredictionTheory-2025}. Listing \ref{list:full_conformal_prediction} shows the detailed algorithm of full conformal prediction as adapted from Angelopoulos et al. \cite{Angelopoulos-ConformalPredictionTheory-2025}.
+
+\begin{listing}[t]
+    \begin{algorithmic}[1]
+        \renewcommand{\algorithmicrequire}{}
+        \REQUIRE
+        \noindent\begin{tabular}{@{}ll}
+            Training data: & $\mathcal{D} = \{(X_1, Y_1), \dots, (X_n, Y_n)\}\in (\mathcal{X} \times \mathcal{Y})^n$\\
+            Test feature: & $X_{test} \in \mathcal{X}$\\
+            Target error rate: & $\alpha \in [0\dots1]$\\
+            Non-conformity score: & $s: (\mathcal{X} \times \mathcal{Y}) \times (\mathcal{X} \times \mathcal{Y})^k \rightarrow \mathbb{R}$
+        \end{tabular}
+        \vspace{2mm}
+        \hrule
+        \vspace{2mm}
+        \FORALL{$y \in \mathcal{Y}$}
+            \STATE Full training set: $\mathcal{D}^y \leftarrow \mathcal{D} \cup (X_{test}, y)$
+            \STATE Conformal scores: $S_i^y \leftarrow s((X_i, Y_i); \mathcal{D}^y)$ for all $i \in \{1, \dots, n\}$
+            \STATE Conformal scores of the hypothesized test point: $S_{test}^y \leftarrow s((X_{test}, y); \mathcal{D}^y)$
+            \STATE Conformal quantile: $\hat{q}^y \leftarrow Quantile(S_1^y, \dots, S_n^y; (1 - \alpha)(1 + 1/n))$
+        \ENDFOR
+        \RETURN Prediction set: $\mathcal{C}(X_{test}) \leftarrow \{y \in \mathcal{Y} : S_{n+1}^y \le \hat{q}^y\}$
+    \end{algorithmic}
+    \caption{Full conformal prediction algorithm}
+    \label{list:full_conformal_prediction}
+\end{listing}
 
 \subsection{Split Conformal Prediction}
 \label{sect:split_conformal_prediction}
-For a general input $X$ and output $y$ and a calibration set $\{(X_1, y_1), ..., (X_n, y_n)\}$ of size $n$ containing labeled unseen data, the following steps should be completed:
 
-\begin{enumerate}
-    \item Define the score function $s(x, y) ∈ \mathbb{R}$ (larger scores encode worse agreement between $x$ and $y$)
-    \item Compute $\hat{q}$ as the $\frac{\lceil(n+1)(1−\alpha)\rceil}{n}$ quantile of the calibration scores $s_1 = s(X_1 , Y_1), ..., s_n = s(X_n , Y_n)$
-    \item Use this quantile to form the prediction sets for new example $X_{test}$: $\mathcal{C}(X_{test}) = \{y: s(X_{test}, y) \le \hat{q}\}$
-\end{enumerate}
+Full \gls{CP} as described is hugely inefficient. It requires full retraining for each possible label and a repetition of this process for every new observation. A computationally efficient variant called \textit{split \gls{CP}} instead divides the training set into data used for model fitting and data used as a calibration set for computing the non-conformity scores as a comparison \cite{Vovk-AlgorithmicLearning-2022}.
+
+\begin{figure}[t]
+    \centering
+    \input{figures/split_conformal_prediction_tikz}
+    \caption{Example execution of leader-based Sequence Paxos with five servers and a collision of proposals.}
+    \label{fig:split_conformal_prediction}
+\end{figure}
+
+\begin{listing}[t]
+    \begin{algorithmic}[1]
+        \renewcommand{\algorithmicrequire}{}
+        \REQUIRE
+        \noindent\begin{tabular}{@{}ll}
+            Model fitting data: & $\mathcal{D_{mod}} \in (\mathcal{X} \times \mathcal{Y})^m$\\
+            Calibration data: & $\mathcal{D_{cal}} = \{(X_1, Y_1), \dots, (X_n, Y_n)\}\in (\mathcal{X} \times \mathcal{Y})^n$\\
+            Test feature: & $X_{test} \in \mathcal{X}$\\
+            Target error rate: & $\alpha \in [0\dots1]$\\
+        \end{tabular}
+        \vspace{2mm}
+        \hrule
+        \vspace{2mm}
+        \STATE Construct a score function $s: \mathcal{X} \times \mathcal{Y} \rightarrow \mathbb{R}$ using $\mathcal{D}_{mod}$
+        \STATE Conformal scores of calibration set: $S_i \leftarrow s(X_i, Y_i)$, for all $i \in \{1, \dots, n\}$
+        \STATE Conformal quantile: $\hat{q} \leftarrow Quantile(S_1, \dots, S_n; (1 - \alpha)(1 + 1/n))$
+        \RETURN Prediction set: $\mathcal{C}(X_{test}) \leftarrow \{y \in \mathcal{Y}: s(X_{test}, y) \le \hat{q}\}$
+    \end{algorithmic}
+    \caption{Split conformal prediction algorithm}
+    \label{list:split_conformal_prediction}
+\end{listing}
 
 exchangeability ensures that the "non-conformity score" of a previously unseen test observation is equally likely to occupy any rank when compared against a set of calibration scores.
-
-Using this method, we can guarantee that the probability of the true value $Y_{test}$ being in the prediction set is not less than $1 - \alpha$ under the assumption that the test point stems from the same distribution as the points in the calibration set: $\mathbb{P}\left(Y_{test} \in \mathcal{C}(X_{test})\right) \ge 1 - \alpha$
-
-The usefulness of the prediction sets is primarily determined by the score function.
 
 \todo{Write out, make figure for split conformal showing the equal probability that a test point lands in between two calibration points}
 
