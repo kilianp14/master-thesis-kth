@@ -1,9 +1,10 @@
 %\generalExpl{When you do your literature study, you should have a nearly complete Chapters 1 and 2. You may also find it convenient to introduce the future work section into your report early – so that you can put things that you think about but decide not to do now into this section. Note that later you can move things between this future work section and what you have done as you may change your mind about what to do now versus what to put off to future work.}
 %\generalExpl{What does a reader (another x student -- where x is your study line) need to know to understand your report? What have others already done? (This is the “related work”.) Explain what and how prior work/prior research will be applied on or used in the degree project/work (described in this thesis). Explain why and what is not used in the degree project and give valid reasons for rejecting the work/research.}
 
-This chapter provides basic background information about xxx. Additionally, this chapter describes xxx. The chapter also describes related work xxxx.
+This chapter establishes the theoretical foundations necessary to understand the implementation and analysis parts of this thesis. Section \ref{sec:state_machine_replication} introduces the concept of replicated state machines with their underlying consensus mechanisms. A specific focus lies on the difference between fast-path algorithms and conservative approaches for maintaining a replicated log. Section \ref{sec:conformal_prediction} presents an overview of conformal methods as a statistical framework for risk mitigation before Section \ref{sec:related_work} reviews related work. Finally, Section \ref{sec:summary} summarizes the discussed concepts.
 
 \section{State Machine Replication}
+\label{sec:state_machine_replication}
 A common way to provide fault tolerance and thereby improve availability for a service is to operate multiple servers that maintain an identical state. These replicas can serve as backups, shadowing a primary node, ready to take over during a failure, or be potentially globally distributed to handle requests from local clients. Many services, like databases, require a strict notion of consistency, leading to nodes having to coordinate their actions to prevent state divergence in both of these cases.
 
 One approach is to decide on the execution of the same sequence of deterministic operations across all nodes. This is referred to as \gls{SMR} \cite{Schneider-ReplicatedStateMachines-1990}. The Raft protocol \cite{Ongaro-Raft-2014} popularized the concept of a replicated log as the central abstraction for developers of such replicated services. It is specifically designed around managing a linear, append-only log, which stores all \gls{SMR} operations for the application. Because this log is identical across all replicas, executing the operations in the order determined by it ensures that every node arrives at the same final state.
@@ -101,26 +102,29 @@ Additionally, it is obvious that the fast path is optimistic. A collision can oc
 \todo{polish}
 
 \section{Conformal Prediction}
-When deploying predictive models in high-stakes applications, understanding the uncertainty of its output is just as critical as assessing its actual accuracy on prediction tasks. This makes it \gls{UQ} a critical research field in statistics and machine learning. \gls{CP} describes a statistical framework for \gls{UQ} with the primary objective of transforming a heuristic notion of uncertainty into statistically rigorous prediction sets/intervals that are guaranteed to contain the ground truth with a user-defined probability. \gls{CP} has several desirable properties that make it suited for model deployment \cite{Shafer-ConformalPrediction-2008, Angelopoulus-ConformalPrediction-2023, Zhou-ConformalPredictionDataPerspective-2025}:
+\label{sec:conformal_prediction}
+When deploying predictive models in high-stakes applications, evaluating prediction accuracy alone is insufficient. It is equally important to quantify the uncertainty of model predictions. This makes \gls{UQ} a central research topic in statistics and \gls{ML}.
+
+Instead of producing a single-point prediction, one way to quantify predictive uncertainty is to output \textit{prediction sets} (for classification) or \textit{prediction intervals} (for regression). \gls{CP} is a statistical framework for constructing such prediction sets with formal coverage guarantees. The primary objective is to transform a heuristic notion of uncertainty from an underlying model into statistically rigorous prediction sets or intervals that contain the ground truth with a user-defined probability. \gls{CP} has several desirable properties that make it suited for model deployment \cite{Shafer-ConformalPrediction-2008, Angelopoulus-ConformalPrediction-2023, Zhou-ConformalPredictionDataPerspective-2025}:
 \begin{itemize}
-    \item \textit{Model-agnostic:} No knowledge of the underlying model architecture is required when applying this method. 
-    \item \textit{Distribution-free:} Valid coverage is provided under the assumption of data exchangeability. A sequence of random variables is considered exchangeable if their joint probability distribution is invariant under any permutation of this sequence. This assumption implies that the order in which data points are observed does not carry information about their underlying distribution.
-    \item \textit{Efficient:} Because it functions as a lightweight wrapper, it can be applied to any existing model without the need for retraining.
-    \item \textit{Informative:} It produces prediction sets/intervals that are narrow enough to provide actionable insights about the model's output.
-    \item \textit{Finite-sample valid:} Coverage is guaranteed even if prediction is constructed based of a finite number of data points. 
+    \item \textit{Model-agnostic:} It can be applied on top of any predictive model without requiring changes to the model architecture.
+    \item \textit{Distribution-free:} Valid coverage is provided under the assumption of data exchangeability. Exchangeability means the data points can be reordered without changing their joint distribution. Informally, no observation carries information through its position in the dataset.
+    \item \textit{Finite-sample valid:} Coverage is guaranteed even if prediction is constructed based on a finite number of data points.
 \end{itemize}
 
+In practice, conformal methods must satisfy additional requirements beyond theoretical validity. In particular, computational efficiency is important. Ideally, \gls{CP} should function as a lightweight wrapper around an existing model without requiring retraining. Another important consideration is the \textit{informativeness} of the result \cite{Zhou-ConformalPredictionDataPerspective-2025}. While coverage is guaranteed, the practical usefulness of conformal prediction depends on producing sets or intervals that remain small when the model is confident and expand only when uncertainty is high. They should provide actionable insights about the model's output. 
+
 The following sections introduce specific conformal methods and describe how they can be used for quantifying uncertainty in classification tasks.
-\todo{Polish}
 
 \subsection{Full Conformal Prediction}
 \label{sect:full_conformal_prediction}
-Given a training set $\mathcal{D}_n \in (\mathcal{X} \times \mathcal{Y})^n$ containing features and labels $(X_1, Y_1), (X_2, Y_2), ..., (X_n, Y_n)$ and a test point $(X_{test}, Y_{test}) \in \mathcal{X} \times \mathcal{Y}$ with the test label being unobserved, the goal of conformal prediction for classification is to construct a calibration set for the test feature $\mathcal{C}(X_{test}) \subseteq \mathcal{Y}$ such that it satisfies the \textit{marginal predictive coverage} for a user-defined error rate $\alpha$ \cite{Angelopoulus-ConformalPrediction-2023, Zhou-ConformalPredictionDataPerspective-2025, Angelopoulos-ConformalPredictionTheory-2025}:
+The central idea behind \gls{CP} for classification is to evaluate how plausible each possible label would be if it were assigned to a new test example. Rather than committing to a single prediction, the method tests every candidate label and retains those that appear consistent with seen data. The collection of all labels that pass this test forms the prediction set returned by the method. What consistent means in this context depends on the user-specified probabilistic coverage guarantee the prediction set has to fulfill.
+
+Formally, consider a training dataset consisting of feature–label pairs $(X_1, Y_1), (X_2, Y_2), ..., (X_n, Y_n)$ and a test point $(X_{test}, Y_{test}) \in \mathcal{X} \times \mathcal{Y}$ with the test label being unobserved. The aim is to construct a prediction set for the test feature $\mathcal{C}(X_{test}) \subseteq \mathcal{Y}$ such that it satisfies the \textit{marginal predictive coverage} for an error rate (or \textit{significance level}) $\alpha \in [0, 1]$ defined as follows \cite{Angelopoulus-ConformalPrediction-2023, Zhou-ConformalPredictionDataPerspective-2025, Angelopoulos-ConformalPredictionTheory-2025}:
 $$\mathbb{P}(Y_{test} \in \mathcal{C}(X_{test})) \ge 1 - \alpha$$
+In other words, the prediction set should contain the true label with probability at least $1−\alpha$ when evaluated over new data.
 
-This is done based on a \textit{non-conformity score} function $s((x, y); \mathcal{D}) \in \mathbb{R}$ that measures the error of a model trained with $\mathcal{D} \in (\mathcal{X} \times \mathcal{Y})^k$ on the feature-label pair $(x,y) \in \mathcal{X} \times \mathcal{Y}$. A higher score indicates a worse agreement between $x$ and $y$ based on the training data \cite{Angelopoulus-ConformalPrediction-2023}. The function itself is user-defined and primarily determines the usefulness of the resulting prediction sets, meaning it should be based off a heuristic notion of uncertainty.
-
-The core idea of \textit{full \gls{CP}} is to compare the non-conformity scores of all hypothesized labels $y \in \mathcal{Y}$ for the given test feature $X_{test}$ with the scores of the training data. A comparably large score would hereby indicate that a particular label is inconsistent with the data, and the final prediction set $\mathcal{C}(X_{test})$ then simply contains all consistent labels. The consistency threshold is the $(1 - \alpha)$ quantile with some finite-sample correction, which satisfies the marginal predictive coverage for the error rate $\alpha$ \cite{Angelopoulos-ConformalPredictionTheory-2025}. Listing \ref{list:full_conformal_prediction} shows the detailed algorithm of full conformal prediction as adapted from Angelopoulos et al. \cite{Angelopoulos-ConformalPredictionTheory-2025}.
+\gls{CP} quantifies the inconsistency of a labeled example by a \textit{non-conformity score} where larger values indicate that the label poorly matches the feature based on the data seen. The function itself is user-defined and describes the heuristic notion of uncertainty. The choice of function primarily determines the informativeness of the  resulting prediction sets. In \textit{full \gls{CP}}, the score function $s((x, y); \mathcal{D}) \in \mathbb{R}$ measures the error of a model trained with $\mathcal{D} \in (\mathcal{X} \times \mathcal{Y})^*$ on the feature-label pair $(x,y) \in \mathcal{X} \times \mathcal{Y}$ \cite{Angelopoulus-ConformalPrediction-2023}. For classification, a common  score function is $s((x, y); \mathcal{D}) = 1 - \hat{p}_y(x)$ where $\hat{p}_y(x)$ denotes the predicted probability of class $y$ when plugging in feature $x$ into a model trained using $\mathcal{D}$.
 
 \begin{listing}[t]
     \begin{algorithmic}[1]
@@ -129,35 +133,32 @@ The core idea of \textit{full \gls{CP}} is to compare the non-conformity scores 
         \noindent\begin{tabular}{@{}ll}
             Training data: & $\mathcal{D} = \{(X_1, Y_1), \dots, (X_n, Y_n)\}\in (\mathcal{X} \times \mathcal{Y})^n$\\
             Test feature: & $X_{test} \in \mathcal{X}$\\
-            Target error rate: & $\alpha \in [0\dots1]$\\
-            Non-conformity score: & $s: (\mathcal{X} \times \mathcal{Y}) \times (\mathcal{X} \times \mathcal{Y})^k \rightarrow \mathbb{R}$
+            Target error rate: & $\alpha \in [0,1]$\\
+            Non-conformity score: & $s: (\mathcal{X} \times \mathcal{Y}) \times (\mathcal{X} \times \mathcal{Y})^* \rightarrow \mathbb{R}$
         \end{tabular}
         \vspace{2mm}
         \hrule
         \vspace{2mm}
         \FORALL{$y \in \mathcal{Y}$}
-            \STATE Full training set: $\mathcal{D}^y \leftarrow \mathcal{D} \cup (X_{test}, y)$
+            \STATE Augmented training set: $\mathcal{D}^y \leftarrow \mathcal{D} \cup (X_{test}, y)$
             \STATE Conformal scores: $S_i^y \leftarrow s((X_i, Y_i); \mathcal{D}^y)$ for all $i \in \{1, \dots, n\}$
-            \STATE Conformal scores of the hypothesized test point: $S_{test}^y \leftarrow s((X_{test}, y); \mathcal{D}^y)$
+            \STATE Conformal scores of hypothesized test point: $S_{test}^y \leftarrow s((X_{test}, y); \mathcal{D}^y)$
             \STATE Conformal quantile: $\hat{q}^y \leftarrow Quantile(S_1^y, \dots, S_n^y; (1 - \alpha)(1 + 1/n))$
         \ENDFOR
-        \RETURN Prediction set: $\mathcal{C}(X_{test}) \leftarrow \{y \in \mathcal{Y} : S_{n+1}^y \le \hat{q}^y\}$
+        \RETURN Prediction set: $\mathcal{C}(X_{test}) \leftarrow \{y \in \mathcal{Y} : S_{test}^y \le \hat{q}^y\}$
     \end{algorithmic}
     \caption{Full conformal prediction algorithm}
     \label{list:full_conformal_prediction}
 \end{listing}
 
+The core idea of \textit{full \gls{CP}} is to systematically test every candidate label $y$ in the entire label space $\mathcal{Y}$ for its plausibility relative to the observed training data. For each candidate label, full \gls{CP} constructs a hypothetical augmented dataset by pairing the test feature $X_{test}$ with that specific candidate and treating this pair as a legitimate part of the original training set. The non-conformity score is computed for every point in this new, larger dataset, which involves a complete training cycle of the underlying model for every possible label. If the score of the hypothesized test point $(X_{test}, y)$ is higher than the $(1 - \alpha)$ quantile of the other scores, the label is deemed inconsistent. Any label that passes this consistency test is added to the final prediction set $\mathcal{C}(X_{test})$. Listing \ref{list:full_conformal_prediction} shows the detailed algorithm of full conformal prediction as adapted from Angelopoulos et al. \cite{Angelopoulos-ConformalPredictionTheory-2025}, which also includes finite-sample corrections in the quantile computation.
+
+Intuitively, when performing the test with the correct label, the test point becomes statistically indistinguishable from the training data, meaning its score is unlikely to be very high. By only rejecting labels that make the test point look like a rare anomaly compared to the rest of the group, it is ensured that the true label is retained with the exact probability specified.
+
 \subsection{Split Conformal Prediction}
 \label{sect:split_conformal_prediction}
 
-Full \gls{CP} as described is hugely inefficient. It requires full retraining for each possible label and a repetition of this process for every new observation. A computationally efficient variant called \textit{split \gls{CP}} instead divides the training set into data used for model fitting and data used as a calibration set for computing the non-conformity scores as a comparison \cite{Vovk-AlgorithmicLearning-2022}.
-
-\begin{figure}[t]
-    \centering
-    \input{figures/split_conformal_prediction_tikz}
-    \caption{Example execution of leader-based Sequence Paxos with five servers and a collision of proposals.}
-    \label{fig:split_conformal_prediction}
-\end{figure}
+Full \gls{CP} as described is hugely inefficient. It requires full retraining for each possible label and a repetition of this process for every new observation. A computationally efficient variant called \textit{split \gls{CP}} instead divides the training set into data used for model fitting  $\mathcal{D_{mod}} \in (\mathcal{X} \times \mathcal{Y})^m$ and data used as a calibration set $\mathcal{D_{cal}} \in (\mathcal{X} \times \mathcal{Y})^n$ for computing the non-conformity scores as a comparison \cite{Vovk-AlgorithmicLearning-2022}. Listing \ref{list:split_conformal_prediction} shows the updated algorithm for split \gls{CP}.
 
 \begin{listing}[t]
     \begin{algorithmic}[1]
@@ -167,7 +168,7 @@ Full \gls{CP} as described is hugely inefficient. It requires full retraining fo
             Model fitting data: & $\mathcal{D_{mod}} \in (\mathcal{X} \times \mathcal{Y})^m$\\
             Calibration data: & $\mathcal{D_{cal}} = \{(X_1, Y_1), \dots, (X_n, Y_n)\}\in (\mathcal{X} \times \mathcal{Y})^n$\\
             Test feature: & $X_{test} \in \mathcal{X}$\\
-            Target error rate: & $\alpha \in [0\dots1]$\\
+            Target error rate: & $\alpha \in [0, 1]$\\
         \end{tabular}
         \vspace{2mm}
         \hrule
@@ -181,27 +182,40 @@ Full \gls{CP} as described is hugely inefficient. It requires full retraining fo
     \label{list:split_conformal_prediction}
 \end{listing}
 
-exchangeability ensures that the "non-conformity score" of a previously unseen test observation is equally likely to occupy any rank when compared against a set of calibration scores.
+The fundamental shift in split \gls{CP} is the freezing of the underlying predictive model trained on $\mathcal{D}_{mod}$ from which a non-conformity score $s: \mathcal{X} \times \mathcal{Y} \rightarrow \mathbb{R}$ can be constructed. Compared to before, $s(x, y)$ becomes a fixed mapping that no longer changes when we evaluate on features and labels not involved in the model creation process. This decoupling is what allows split \gls{CP} to bypass the exhaustive retraining required by the full version \cite{Angelopoulos-ConformalPredictionTheory-2025}. Note that this approach also allows direct construction of such a score function using, for instance, domain-specific knowledge to capture a heuristic notion of uncertainty. 
 
-\todo{Write out, make figure for split conformal showing the equal probability that a test point lands in between two calibration points}
+The validity of split \gls{CP} relies on the assumption that the calibration data $\mathcal{D}_{cal}$ and any test point $(X_{test}, Y_{test})$ are exchangeable. If this holds and none of the data points were used for model construction, the corresponding non-conformity scores $\{S_1, \dots, S_n, S_{test}\}$ are also exchangeable. This ensures that the non-conformity score of a previously unseen test observation is equally likely to occupy any rank when compared against a set of calibration scores \cite{Angelopoulus-ConformalPrediction-2023}, as shown in Figure \ref{fig:split_conformal_prediction}. When we therefore include all possible labels $y \in \mathcal{Y}$ in the final prediction set, where the scores $s(X_{test}, y)$ end up in the $1 - \alpha$ quantile of the calibration scores, we guarantee that it contains the ground truth with a probability of $1 - \alpha$.
+
+Since the calibration set $\mathcal{D}_{cal}$ is fixed during the deployment phase, the consistency threshold $\hat{q}$ can be precomputed once. For any incoming test feature $X_{test}$, generating the prediction set $\mathcal{C}(X_{test})$ simply requires computing the non-conformity scores for every possible label (which does not require retraining) and a comparison of the resulting scores against the precomputed $\hat{q}$.
+
+\begin{figure}[t]
+    \centering
+    \input{figures/split_conformal_prediction_tikz}
+    \caption{A depiction of split conformal prediction with a calibration set. The score of a new test feature has an equal probability to fall in between any two calibration scores when the correct label $Y_{test}$ is plugged in. This actual score will be greater than the consistency threshold and therefore inconsistent with the calibration data with a probability of $\alpha$.}
+    \label{fig:split_conformal_prediction}
+\end{figure}
+\todo{include upper bound on probability}
 
 \subsection{Conformal Risk Control}
 \label{sect:conformal_risk_control}
+\begin{itemize}
+    \item Extension of Conformal Prediction
+    \item No longer simply considers miss classification
+    \item Guarantee: $\mathbb{E}(\mathcal{l}(\mathcal{C}(X_{test}), Y_{test})) \le \alpha$ for any bounded loss function $\mathcal{l}: \mathcal{Y}^* \times \mathcal{Y} \rightarrow [-\infty, B]$ that shrinks as $\mathcal{C}(X_{test})$ grows in size
+    \item $\alpha \in [-\infty, B]$ is a user-specified risk upper bound
+\end{itemize}
 
 \subsection{Adaptive Conformal Inference?}
 
-\section{Related work area}
+\section{Related Work}
+\label{sec:related_work}
 
-\subsection{Major related work 1}
+\subsection{Major related work area 1}
 
-\subsection{Major related work n}
-
-\subsection{Minor related work 1}
-
-\subsection{Minor related work n}
-
+\subsection{Major related work area n}
 
 \section{Summary}
+\label{sec:summary}
 \sweExpl{Det är trevligt om detta kapitel avslutas med en sammanfattning. Till exempel kan du inkludera en tabell som sammanfattar andras idéer och fördelar och nackdelar med varje - så som senare kan du jämföra din lösning till var och en av dessa. Detta kommer också att hjälpa dig att definiera de variabler som du kommer att använda för din utvärdering.}
 
 \engExpl{It is nice to have this chapter conclude with a summary. For example, you can include a table that summarizes other people's ideas and benefits and drawbacks with each - so as later you can compare your solution to each of them. This will also help you define the variables that you will use for your evaluation.}

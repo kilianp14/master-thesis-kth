@@ -9,7 +9,7 @@
 ]
     
     % --- Main Horizontal Line ---
-    \draw[black!70, thick] (0,0) -- (12,0);
+    \draw[arrow, black!70, thick] (0,0) -- (12,0);
     
     % --- Non-conformity Scores (Green Dots) ---
     \node[consistentData] (cp1) at (1.5,0) {};
@@ -22,7 +22,7 @@
     \node[consistentData] (cp8) at (8,0) {};
     
     % --- "Consistent" Label ---
-    \node at (4,-1) {\textbf{consistent}};
+    \node[font=\normalsize] at (4,-0.75) {\textbf{consistent}};
     
     % --- Threshold Line ---
     \draw[black!70, thick, dashed] (8,2) -- (8, -0.5);
@@ -31,7 +31,7 @@
     % --- Inconsistent Region and Data Points ---
     \node[inconsistentData] (icp1) at (8.5,0) {};
     \node[inconsistentData] (icp2) at (10,0) {};
-    \node at (10,-1) {\textbf{inconsistent}};
+    \node[font=\normalsize] at (10,-0.75) {\textbf{inconsistent}};
     
     % --- Braces ---
     \node (p1Anchor) at (0,0) {};
