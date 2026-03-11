@@ -44,13 +44,6 @@ Standard uniform consensus only deals with a single decision, but a replicated l
 Ultimately, these properties provide the formal framework necessary to ensure that a distributed log remains a consistent single source of truth, allowing a collection of nodes to function as a unified, reliable service at the application level.
 
 \subsection{Leader-Based Sequence Paxos}
-Paxos denotes a family of algorithms designed to provide the guarantees of uniform (sequence) consensus. Its simplest form, often referred to as Basic Paxos or Single-Value Paxos, was originally introduced by Leslie Lamport \cite{Lamport-Paxos-2001} and solves uniform consensus within a partially synchronous system. It ensures that even under concurrent proposals from multiple nodes, the system converges on a single decision that satisfies the validity, integrity, and agreement properties defined in Section \ref{sect:uniform_sequence_consensus}. Understanding this underlying mechanism is essential before addressing the complexities of maintaining a continuous, ordered log.
-
-Paxos decomposes the consensus process into three distinct phases. In the \textit{prepare phase}, a process acting as a \textit{proposer} attempts to claim the right to propose a value. It selects a unique, monotonically increasing proposal number $n$ and broadcasts a \textit{prepare} message containing $n$. Upon receipt, an \textit{acceptor} returns a \textit{promise} to the proposer, committing to reject any values from proposers that initiated a round with a lower proposal number than $n$. Crucially, if the acceptor has already accepted a value from a previous round, it includes that value and its associated proposal number in its response, forcing the proposer to respect any existing progress.
-
-Once a proposer has secured promises from a majority (\textit{quorum}) of acceptors, it proceeds to the \textit{accept phase}, where it tries to make the acceptors lock in its proposal. It sends an \textit{accept} message to the promised acceptors, containing the proposal number $n$ and a value $v$ to be accepted. If the previous phase reported an existing value, the proposer must use the one with the highest proposal number; otherwise, it is free to use its own. An acceptor acknowledges this via an \textit{accepted} message, provided it has not already promised to a higher proposal number than $n$ previously.
-
-As soon as a quorum of acceptors has accepted the same value, it is considered \textit{chosen}. At this stage, no other process can ever decide on a different value for this instance. Any participant that notices the value being chosen can notify the processes interested in the result (\textit{learners}). This is often done by the original proposer by broadcasting a \textit{decide} message to the learners. An example execution of a Paxos instance is displayed in Figure \ref{fig:paxos} with a total of three acceptors, who simultaneously act as proposers and learners.
 
 \begin{figure}[t]
     \centering
@@ -58,6 +51,14 @@ As soon as a quorum of acceptors has accepted the same value, it is considered \
     \caption{Example execution of Paxos with three servers.}
     \label{fig:paxos}
 \end{figure}
+
+Paxos denotes a family of algorithms designed to provide the guarantees of uniform (sequence) consensus. Its simplest form, often referred to as Basic Paxos or Single-Value Paxos, was originally introduced by Leslie Lamport \cite{Lamport-Paxos-2001} and solves uniform consensus within a partially synchronous system. It ensures that even under concurrent proposals from multiple nodes, the system converges on a single decision that satisfies the validity, integrity, and agreement properties defined in Section \ref{sect:uniform_sequence_consensus}. Understanding this underlying mechanism is essential before addressing the complexities of maintaining a continuous, ordered log.
+
+Paxos decomposes the consensus process into three distinct phases. In the \textit{prepare phase}, a process acting as a \textit{proposer} attempts to claim the right to propose a value. It selects a unique, monotonically increasing proposal number $n$ and broadcasts a \textit{prepare} message containing $n$. Upon receipt, an \textit{acceptor} returns a \textit{promise} to the proposer, committing to reject any values from proposers that initiated a round with a lower proposal number than $n$. Crucially, if the acceptor has already accepted a value from a previous round, it includes that value and its associated proposal number in its response, forcing the proposer to respect any existing progress.
+
+Once a proposer has secured promises from a majority (\textit{quorum}) of acceptors, it proceeds to the \textit{accept phase}, where it tries to make the acceptors lock in its proposal. It sends an \textit{accept} message to the promised acceptors, containing the proposal number $n$ and a value $v$ to be accepted. If the previous phase reported an existing value, the proposer must use the one with the highest proposal number; otherwise, it is free to use its own. An acceptor acknowledges this via an \textit{accepted} message, provided it has not already promised to a higher proposal number than $n$ previously.
+
+As soon as a quorum of acceptors has accepted the same value, it is considered \textit{chosen}. At this stage, no other process can ever decide on a different value for this instance. Any participant that notices the value being chosen can notify the processes interested in the result (\textit{learners}). This is often done by the original proposer by broadcasting a \textit{decide} message to the learners. An example execution of a Paxos instance is displayed in Figure \ref{fig:paxos} with a total of three acceptors, who simultaneously act as proposers and learners.
 
 To satisfy the termination property of uniform consensus, a leader election mechanism can be used to elect a single distinguished proposer, who will eventually be the only process allowed to propose a value \cite{Lamport-Paxos-2001}. This principle leads directly to \textit{leader-based Sequence Paxos}, an extension of Paxos that handles an ordered sequence of values and provides the guarantees of uniform sequence consensus (see Section \ref{sect:uniform_sequence_consensus}).
 
@@ -72,14 +73,6 @@ The primary optimization of this approach is that if the leader remains stable, 
 \end{figure}
 
 \subsection{Fast-Path Integration}
-In the leader-based Sequence Paxos algorithm described above, only the leader can propose a value to be appended to the log. Thereby, there are a total of three message delays in a setting where every process might want to propose values \cite{Junqueira-ClassicVsFastPaxos-2007}:
-\begin{enumerate}
-    \item The original proposer forwards its value to the leader to start the append operation.
-    \item The leader sends accept messages to all promised acceptors.
-    \item The acceptors answer with corresponding accepted messages either to the learners directly or to the leader, who then informs the learners when a value is chosen. 
-\end{enumerate}
-
-The main idea behind the introduction of Fast Paxos is to save one of the communication steps by allowing any of the participating processes to directly propose values to the acceptors instead of first forwarding them to the leader. This was also originally devised by Leslie Lamport \cite{Lamport-FastPaxos-2006}. In such a fast round, the acceptors now simply accept the first value they receive from any proposer and notify the leader (and possibly the learners) of their decision using an accepted message. A typical flow of messages with successful fast paths is depicted in Figure \ref{fig:leader_based_sequence_paxos_fast_path}.
 
 \begin{figure}[t]
     \centering
@@ -88,9 +81,19 @@ The main idea behind the introduction of Fast Paxos is to save one of the commun
     \label{fig:leader_based_sequence_paxos_fast_path}
 \end{figure}
 
-Compared to the original algorithm discussed earlier, a simple majority quorum is not sufficient anymore to consider a value chosen when using the fast path. To guarantee safety, a quorum for a fast round (\textit{fast quorum}) must intersect with any majority of nodes in at least half of the nodes included in the majority \cite{Zhao-FastPaxos-2015}. In practice, the size of a fast quorum must be at least $\lceil \frac{3n}{4} \rceil$ for a system of $n$ acceptors. This also means that the fast-path algorithm can tolerate fewer failures in a round compared to the earlier design. 
+In the leader-based Sequence Paxos algorithm described above, only the leader is permitted to propose values for the log. Consequently, when a non-leader process wishes to propose a value, the operation incurs a total of three message delays \cite{Junqueira-ClassicVsFastPaxos-2007}:
+\begin{enumerate}
+    \item The original proposer forwards its value to the leader to initiate the append operation.
+    \item The leader sends accept messages to all promised acceptors.
+    \item The acceptors respond with corresponding accepted messages either directly to the learners or to the leader, who subsequently informs the learners once a value is chosen. 
+\end{enumerate}
 
-Additionally, it is obvious that the fast path is optimistic. A collision can occur when multiple proposers send different values simultaneously, such that no single value achieves the fast quorum threshold. The leader can detect such a collision and initiate a regular Paxos round using the most accepted value, as seen in Figure \ref{fig:leader_based_sequence_paxos_fast_path_collision}. This \textit{slow path} requires two additional communication steps, which means that a fast round with a collision is even slower than a round following the original algorithm.
+The primary motivation for introducing Fast Paxos is to reduce this latency by one communication step, allowing any participating process to propose values directly to the acceptors instead of first forwarding them to the leader. This optimization was originally devised by Leslie Lamport \cite{Lamport-FastPaxos-2006}. In such a \textit{fast round}, acceptors simply accept the first value they receive from any proposer and notify the leader (and potentially the learners) of their decision via an \textit{accepted} message. A typical message flow for a successful fast path is depicted in Figure~\ref{fig:leader_based_sequence_paxos_fast_path}.
+
+
+Compared to the original algorithm discussed earlier, a simple majority quorum is no longer sufficient to consider a value chosen when using the fast path. To guarantee safety, a quorum for a fast round (\textit{fast quorum}) must intersect with any majority of nodes in at least half of the nodes included in the majority \cite{Zhao-FastPaxos-2015}. In practice, the size of a fast quorum must be at least $\lceil \frac{3n}{4} \rceil$ for a system of $n$ acceptors. This requirement also implies that the fast-path algorithm can tolerate fewer concurrent failures within a round compared to the standard design.
+
+Furthermore, the fast path is inherently optimistic. A collision occurs when multiple proposers submit different values simultaneously such that no single value achieves the fast quorum threshold. The leader can detect such collisions and initiate a regular Paxos round using the most frequently accepted value, as illustrated in Figure~\ref{fig:leader_based_sequence_paxos_fast_path_collision}. This \textit{slow path} recovery requires two additional communication steps, meaning that a fast round with a collision is even slower than a round following the original algorithm.
 
 \begin{figure}[t]
     \centering
@@ -98,8 +101,6 @@ Additionally, it is obvious that the fast path is optimistic. A collision can oc
     \caption{Example execution of leader-based Sequence Paxos with five servers and a collision of proposals.}
     \label{fig:leader_based_sequence_paxos_fast_path_collision}
 \end{figure}
-
-\todo{polish}
 
 \section{Conformal Prediction}
 \label{sec:conformal_prediction}
@@ -147,7 +148,7 @@ In other words, the prediction set should contain the true label with probabilit
         \ENDFOR
         \RETURN Prediction set: $\mathcal{C}(X_{test}) \leftarrow \{y \in \mathcal{Y} : S_{test}^y \le \hat{q}^y\}$
     \end{algorithmic}
-    \caption{Full conformal prediction algorithm}
+    \caption{Full conformal prediction algorithm for classification}
     \label{list:full_conformal_prediction}
 \end{listing}
 
@@ -157,7 +158,6 @@ Intuitively, when performing the test with the correct label, the test point bec
 
 \subsection{Split Conformal Prediction}
 \label{sect:split_conformal_prediction}
-
 Full \gls{CP} as described is hugely inefficient. It requires full retraining for each possible label and a repetition of this process for every new observation. A computationally efficient variant called \textit{split \gls{CP}} instead divides the training set into data used for model fitting  $\mathcal{D_{mod}} \in (\mathcal{X} \times \mathcal{Y})^m$ and data used as a calibration set $\mathcal{D_{cal}} \in (\mathcal{X} \times \mathcal{Y})^n$ for computing the non-conformity scores as a comparison \cite{Vovk-AlgorithmicLearning-2022}. Listing \ref{list:split_conformal_prediction} shows the updated algorithm for split \gls{CP}.
 
 \begin{listing}[t]
@@ -178,7 +178,7 @@ Full \gls{CP} as described is hugely inefficient. It requires full retraining fo
         \STATE Conformal quantile: $\hat{q} \leftarrow Quantile(S_1, \dots, S_n; (1 - \alpha)(1 + 1/n))$
         \RETURN Prediction set: $\mathcal{C}(X_{test}) \leftarrow \{y \in \mathcal{Y}: s(X_{test}, y) \le \hat{q}\}$
     \end{algorithmic}
-    \caption{Split conformal prediction algorithm}
+    \caption{Split conformal prediction algorithm for classification}
     \label{list:split_conformal_prediction}
 \end{listing}
 
@@ -198,12 +198,62 @@ Since the calibration set $\mathcal{D}_{cal}$ is fixed during the deployment pha
 
 \subsection{Conformal Risk Control}
 \label{sect:conformal_risk_control}
-\begin{itemize}
-    \item Extension of Conformal Prediction
-    \item No longer simply considers miss classification
-    \item Guarantee: $\mathbb{E}(\mathcal{l}(\mathcal{C}(X_{test}), Y_{test})) \le \alpha$ for any bounded loss function $\mathcal{l}: \mathcal{Y}^* \times \mathcal{Y} \rightarrow [-\infty, B]$ that shrinks as $\mathcal{C}(X_{test})$ grows in size
-    \item $\alpha \in [-\infty, B]$ is a user-specified risk upper bound
-\end{itemize}
+While classical \gls{CP} guarantees that the true label is contained in the prediction set with probability at least $1-\alpha$, this notion of coverage does not always align with the operational objectives of a deployed system. Many applications care about controlling a specific \textit{risk} associated with predictions rather than the simple probability of excluding the true label. For instance, a goal could be to limit the \gls{FNR} for a specific class or control the error rate of an out-of-distribution detector. \gls{CRC} therefore extends the conformal prediction framework to address such objectives by providing guarantees on user-defined risk measures \cite{Angelopoulus-ConformalRiskControl-2025, Angelopoulos-ConformalPredictionTheory-2025}.
+
+The central idea of \gls{CRC} for classification is again to construct a prediction set $C_\lambda(X_{test})$ for a test point $(X_{test}, Y_{test}) \in \mathcal{X} \times \mathcal{Y}$ with an unknown label while given a calibration dataset of feature-label pairs $(X_1, Y_1), (X_2, Y_2), \dots, (X_n, Y_n)$. Unlike classical \gls{CP}, which guarantees that the true label is contained in the set with a fixed probability, \gls{CRC} provides an expectation bound on a user-defined loss function $\mathcal{L}$ \cite{Angelopoulus-ConformalRiskControl-2025}. For a bounded loss $\mathcal{L}: 2^{\mathcal{Y}} \times \mathcal{Y} \rightarrow (-\infty, B]$ and a desired risk limit $\alpha \in (-\infty, B]$, \gls{CRC} ensures:
+$$\mathbb{E}(\mathcal{L}(\mathcal{C}_{\widehat\lambda}(X_{test}), Y_{test})) \le \alpha$$
+
+\begin{figure}[t]
+    \centering
+    \input{figures/conformal_risk_control_tikz}
+    \caption{Empirical risk $\hat{R}(\lambda)$ as a function of the tuning parameter $\lambda$ adapted from \cite{Angelopoulos-ConformalPredictionTheory-2025}. The selected value $\hat{\lambda}$ is the smallest parameter for which the corrected empirical risk falls below the target risk level.}
+    \label{fig:conformal_risk_control}
+\end{figure}
+
+The mechanism for achieving this guarantee is the parameter $\lambda$, which acts as a threshold for set inclusion. Instead of calculating a single quantile as in classical \gls{CP}, \gls{CRC} searches over a family of prediction rules $\mathcal{C}_\lambda(x)$. The validity of the framework relies on two properties of monotonicity \cite{Angelopoulos-ConformalPredictionTheory-2025}:
+
+\begin{enumerate}
+    \item As $\lambda$ increases, the prediction set $\mathcal{C}_\lambda(x)$ must grow or stay the same size: 
+    $$\lambda_1 \le \lambda_2 \Rightarrow \mathcal{C}_{\lambda_1}(x) \subseteq \mathcal{C}_{\lambda_2}(x)$$
+    \item Larger prediction sets must result in a lower (or equal) loss: 
+    $$\mathcal{C} \subseteq \mathcal{C}' \Rightarrow \mathcal{L}(\mathcal{C}, y) \ge \mathcal{L}(\mathcal{C}', y)$$
+\end{enumerate}
+\todo{Later put a reference here to the section where we formalize the prediction problem for fast-path gating as an example}
+
+By combining these properties, the empirical risk $\widehat{R}(\lambda)$ defined as the average loss over the calibration set becomes a monotonically decreasing function of $\lambda$:
+
+$$\widehat{R}(\lambda) = \frac{1}{n} \sum_{i=1}^n \mathcal{L}(\mathcal{C}_{\lambda}(X_i), Y_i)$$
+
+The point is to select the smallest value of $\lambda$ whose empirical risk estimate remains below the desired risk limit $\alpha$, as shown in Figure \ref{fig:conformal_risk_control}. With the inclusion of correction terms due to sampling variability in the risk estimate, this equation yields a valid selection rule for $\widehat{\lambda}$ \cite{Angelopoulus-ConformalRiskControl-2025, Angelopoulos-ConformalPredictionTheory-2025}:
+$$\widehat{\lambda} = \inf \left\{ \lambda : \frac{n}{n+1} \widehat{R}(\lambda) + \frac{B}{n+1} \leq \alpha \right\} = \inf \left\{ \lambda: \widehat{R}(\lambda) \leq \alpha - \frac{B - \alpha}{n} \right\}$$
+
+\begin{listing}[t]
+    \begin{algorithmic}[1]
+        \renewcommand{\algorithmicrequire}{}
+        \REQUIRE
+        \noindent\begin{tabular}{@{}ll}
+            Model fitting data: & $\mathcal{D_{mod}} \in (\mathcal{X} \times \mathcal{Y})^m$\\
+            Calibration data: & $\mathcal{D_{cal}} = \{(X_1, Y_1), \dots, (X_n, Y_n)\}\in (\mathcal{X} \times \mathcal{Y})^n$\\
+            Test feature: & $X_{test} \in \mathcal{X}$\\
+            Loss function: & $\mathcal{L}: 2^{\mathcal{Y}} \times \mathcal{Y} \rightarrow (-\infty, B]$ \\
+            Risk limit: & $\alpha\in(-\infty, B]$
+        \end{tabular}
+        \vspace{2mm}
+        \hrule
+        \vspace{2mm}
+        \STATE Get construction method for prediction sets $\mathcal{C}_\lambda(x)$ using $\mathcal{D}_{mod}$
+        \FORALL{$\lambda \in \Lambda$}
+            \STATE Calibration losses: $L_i^\lambda \leftarrow \mathcal{L}(\mathcal{C}_\lambda(X_i),Y_i)$ for $i=1,\dots,n$
+            \STATE Empirical risk: $\hat{R}^\lambda \leftarrow \frac{1}{n}\sum_{i=1}^{n}L_i^\lambda$
+        \ENDFOR
+        \STATE Select parameter: $\widehat{\lambda} \leftarrow \inf \left\{ \lambda : \frac{n}{n+1} \hat{R}^\lambda + \frac{B}{n+1} \leq \alpha \right\}$
+        \RETURN $\mathcal{C}_{\hat{\lambda}}(X_{test})$
+    \end{algorithmic}
+    \caption{Conformal risk control algorithm for classification}
+    \label{list:conformal_risk_control}
+\end{listing}
+
+Listing \ref{list:conformal_risk_control} formalizes the algorithm for utilizing conformal risk control in a classification setting. In a practical implementation, $\widehat{\lambda}$ can be efficiently pre-computed using a binary-search mechanism.
 
 \subsection{Adaptive Conformal Inference?}
 
