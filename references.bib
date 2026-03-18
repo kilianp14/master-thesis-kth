@@ -262,6 +262,111 @@ location = {Farminton, Pennsylvania},
 series = {SOSP '13}
 }
 
+@INPROCEEDINGS{Arun-Caesar-2017,
+  author={Arun, Balaji and Peluso, Sebastiano and Palmieri, Roberto and Losa, Giuliano and Ravindran, Binoy},
+  booktitle={2017 47th Annual IEEE/IFIP International Conference on Dependable Systems and Networks (DSN)}, 
+  title={Speeding up Consensus by Chasing Fast Decisions}, 
+  year={2017},
+  volume={},
+  number={},
+  pages={49-60},
+  keywords={Protocols;Delays;Reliability;Computer crashes;Degradation;Databases;Synchronization;Consensus;Geo-Replication;Paxos},
+  doi={10.1109/DSN.2017.35},
+  url={http://doi.org/10.1109/DSN.2017.35}}
+
+@inproceedings{Enes-Atlas-2020,
+author = {Enes, Vitor and Baquero, Carlos and Rezende, Tuanir Fran\c{c}a and Gotsman, Alexey and Perrin, Matthieu and Sutra, Pierre},
+title = {State-machine replication for planet-scale systems},
+year = {2020},
+isbn = {9781450368827},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3342195.3387543},
+doi = {10.1145/3342195.3387543},
+abstract = {Online applications now routinely replicate their data at multiple sites around the world. In this paper we present Atlas, the first state-machine replication protocol tailored for such planet-scale systems. Atlas does not rely on a distinguished leader, so clients enjoy the same quality of service independently of their geographical locations. Furthermore, client-perceived latency improves as we add sites closer to clients. To achieve this, Atlas minimizes the size of its quorums using an observation that concurrent data center failures are rare. It also processes a high percentage of accesses in a single round trip, even when these conflict. We experimentally demonstrate that Atlas consistently outperforms state-of-the-art protocols in planet-scale scenarios. In particular, Atlas is up to two times faster than Flexible Paxos with identical failure assumptions, and more than doubles the performance of Egalitarian Paxos in the YCSB benchmark.},
+booktitle = {Proceedings of the Fifteenth European Conference on Computer Systems},
+articleno = {24},
+numpages = {15},
+keywords = {geo-replication, fault tolerance, consensus},
+location = {Heraklion, Greece},
+series = {EuroSys '20}
+}
+
+@inproceedings {Burke-Gryff-2020,
+author = {Matthew Burke and Audrey Cheng and Wyatt Lloyd},
+title = {Gryff: Unifying Consensus and Shared Registers },
+booktitle = {17th USENIX Symposium on Networked Systems Design and Implementation (NSDI 20)},
+year = {2020},
+isbn = {978-1-939133-13-7},
+address = {Santa Clara, CA},
+pages = {591--617},
+url = {https://www.usenix.org/conference/nsdi20/presentation/burke},
+publisher = {USENIX Association},
+month = feb
+}
+
+@inproceedings {Tollman-BPaxos-2021,
+author = {Sarah Tollman and Seo Jin Park and John Ousterhout},
+title = {{EPaxos} Revisited},
+booktitle = {18th USENIX Symposium on Networked Systems Design and Implementation (NSDI 21)},
+year = {2021},
+isbn = {978-1-939133-21-2},
+pages = {613--632},
+url = {https://www.usenix.org/conference/nsdi21/presentation/tollman},
+publisher = {USENIX Association},
+month = apr
+}
+
+@article{Ganesan-Skyros-2023,
+author = {Ganesan, Aishwarya and Alagappan, Ramnatthan and Rebello, Anthony and Arpaci-Dusseau, Andrea C. and Arpaci-Dusseau, Remzi H.},
+title = {Exploiting Nil-external Interfaces for Fast Replicated Storage},
+year = {2022},
+issue_date = {August 2022},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {18},
+number = {3},
+issn = {1553-3077},
+url = {https://doi.org/10.1145/3542821},
+doi = {10.1145/3542821},
+abstract = {Do some storage interfaces enable higher performance than others? Can one identify and exploit such interfaces to realize high performance in storage systems? This article answers these questions in the affirmative by identifying nil-externality, a property of storage interfaces. A nil-externalizing (nilext) interface may modify state within a storage system but does not externalize its effects or system state immediately to the outside world. As a result, a storage system can apply nilext operations lazily, improving performance.In this article, we take advantage of nilext interfaces to build high-performance replicated storage. We implement Skyros, a nilext-aware replication protocol that offers high performance by deferring ordering and executing operations until their effects are externalized. We show that exploiting nil-externality offers significant benefit: For many workloads, Skyros provides higher performance than standard consensus-based replication. For example, Skyros offers 3\texttimes{} lower latency while providing the same high throughput offered by throughput-optimized Paxos.},
+journal = {ACM Trans. Storage},
+month = sep,
+articleno = {20},
+numpages = {35},
+keywords = {Fault-tolerance, replication, storage}
+}
+
+@techreport{Lamport-GeneralizedPaxos-2005,
+author = {Lamport, Leslie},
+title = {Generalized Consensus and Paxos},
+year = {2005},
+month = {March},
+abstract = {In [153], I proved lower bounds for the number of message delays required to reach consensus. I showed that the best algorithms can reach consensus in the normal case in 2 message delays. This result in turn led me to a new version of the Paxos algorithm of [122] called Fast Paxos, described in [158], that achieves this bound. However, Fast Paxos can take 3 message delays in the event of conflict, when two values are proposed concurrently. I showed in [153] that this was unavoidable in a general algorithm, so this seemed to be the last word.
+
+It then occurred to me that, in the state-machine approach (introduced in [27]), such conflicting proposals arise because two different commands are issued concurrently by two clients, and both are proposed as command number i. This conflict is necessary only if the two proposed commands do not commute. If they do, then there is no need to order them. This led me to a new kind of agreement problem that requires dynamically changing agreement on a growing partially ordered set of commands. I realized that generalizing from partially ordered sets of commands to a new mathematical structure I call a c-struct leads to a generalized consensus problem that covers both ordinary consensus and this new dynamic agreement problem. I also realized that Fast Paxos can be generalized to solve this new problem. I wrote up these results in March 2004. However, I was in the embarrassing position of having written a paper generalizing Fast Paxos without having written a paper about Fast Paxos. So, I just let the paper sit on my disk.
+
+I was invited to give a keynote address at the 2004 DSN conference, and I decided to talk about fast and generalized Paxos. Fernando Pedone came up after my talk and introduced himself. He said that he and André Schiper had already published a paper with the same generalization from the command sequences of the state-machine approach to partially ordered sets of commands, together with an algorithm that achieved the same optimal number of message delays in the absence of conflict. It turns out that their algorithm is different from the generalized Paxos algorithm. There are cases in which generalized Paxos takes only 2 message delays while their algorithm takes 3. But the difference in efficiency between the two algorithms is insignificant. The important difference is that generalized Paxos is more elegant.
+
+I've been sitting on this paper for so long because it doesn't seem right to publish a paper on a generalization of Fast Paxos before publishing something about Fast Paxos itself. Since generalized Paxos is a generalization, this paper also explains Fast Paxos. But people's minds don't work that way. They need to understand Fast Paxos before they can really understand its generalization. So, I figured I would turn this paper into the second part of a long paper or monograph whose first part explains Fast Paxos. However, in recent years I've been discovering new Paxonian results faster than I can write them up. It therefore seems silly not to release a paper that I've already written about one of those results. So, I added a brief discussion of the Pedone-Schiper result and a citation to [153] and am posting the paper here. Now that I have written the Fast Paxos paper and submitted it for publication, I may rewrite this paper as part two of that one.},
+url = {https://www.microsoft.com/en-us/research/publication/generalized-consensus-and-paxos/},
+pages = {60},
+number = {MSR-TR-2005-33},
+}
+
+@inproceedings {Ongaro-Raft-2014,
+author = {Diego Ongaro and John Ousterhout},
+title = {In Search of an Understandable Consensus Algorithm},
+booktitle = {2014 USENIX Annual Technical Conference (USENIX ATC 14)},
+year = {2014},
+isbn = {978-1-931971-10-2},
+address = {Philadelphia, PA},
+pages = {305--319},
+url = {https://www.usenix.org/conference/atc14/technical-sessions/presentation/ongaro},
+publisher = {USENIX Association},
+month = jun
+}
+
 @INPROCEEDINGS{Dobre-HybridPaxos-2010,
   author={Dobre, Dan and Majuntke, Matthias and Serafini, Marco and Suri, Neeraj},
   booktitle={2010 European Dependable Computing Conference}, 
@@ -417,17 +522,63 @@ numpages = {9}
   pages     = {XIX, 367}
 }
 
-@inproceedings {Ongaro-Raft-2014,
-author = {Diego Ongaro and John Ousterhout},
-title = {In Search of an Understandable Consensus Algorithm},
-booktitle = {2014 USENIX Annual Technical Conference (USENIX ATC 14)},
-year = {2014},
-isbn = {978-1-931971-10-2},
-address = {Philadelphia, PA},
-pages = {305--319},
-url = {https://www.usenix.org/conference/atc14/technical-sessions/presentation/ongaro},
-publisher = {USENIX Association},
-month = jun
+
+
+@misc{Howard-FlexiblePaxos-2016,
+      title={Flexible Paxos: Quorum intersection revisited}, 
+      author={Heidi Howard and Dahlia Malkhi and Alexander Spiegelman},
+      year={2016},
+      eprint={1608.06696},
+      archivePrefix={arXiv},
+      primaryClass={cs.DC},
+      url={https://arxiv.org/abs/1608.06696}, 
+}
+
+@inproceedings{Reginald-ConsensusUncertainty-2025,
+author = {Frank, Reginald and Lomeli, Octavio and Giridharan, Neil and Ponnapalli, Soujanya and Aguilera, Marcos K. and Crooks, Natacha},
+title = {Real Life Is Uncertain. Consensus Should Be Too!},
+year = {2025},
+isbn = {9798400714757},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3713082.3730374},
+doi = {10.1145/3713082.3730374},
+abstract = {Modern distributed systems rely on consensus protocols to build a fault-tolerant-core upon which they can build applications. Consensus protocols are correct under a specific failure model, where up to f machines can fail. We argue that this f -threshold failure model oversimplifies the real world and limits potential opportunities to optimize for cost or performance. We argue instead for a probabilistic failure model that captures the complex and nuanced nature of faults observed in practice. Probabilistic consensus protocols can explicitly leverage individual machine failure curves and explore side-stepping traditional bottlenecks such as majority quorum intersection, enabling systems that are more reliable, efficient, cost-effective, and sustainable.},
+booktitle = {Proceedings of the 2025 Workshop on Hot Topics in Operating Systems},
+pages = {80–87},
+numpages = {8},
+keywords = {consensus, distributed systems},
+location = {Banff, AB, Canada},
+series = {HotOS '25}
+}
+
+@article{Li-ConformalPredictionPlanSelection-2023,
+author = {Li, Yifan and Yu, Xiaohui and Koudas, Nick and Lin, Shu and Sun, Calvin and Chen, Chong},
+title = {dbET: Execution Time Distribution-based Plan Selection},
+year = {2023},
+issue_date = {May 2023},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {1},
+number = {1},
+url = {https://doi.org/10.1145/3588711},
+doi = {10.1145/3588711},
+abstract = {While selecting the execution plan for a given query based on a single estimated cost is a generally-adopted strategy, it is usually error-prone and fails to comprehensively profile the plan performance. In this work, we complement existing plan selection methods by proposing a new approach named ET, which produces execution time distributions for query plans utilizing conformal predictions. We develop dbET, a framework that integrates ET into an existing DBMS, requiring no modification to the DBMS and only incurring minor overhead to query processing. Based on the execution time distribution, we design several intuitive yet fundamental query execution objectives and devise the corresponding plan selection strategies. Our experiments on several widely-adopted benchmarks showcase that our design significantly improves the capability of DBMSs in achieving the designated objectives.},
+journal = {Proc. ACM Manag. Data},
+month = may,
+articleno = {31},
+numpages = {26},
+keywords = {conformal prediction, cost estimation, query planning}
+}
+
+@misc{Liu-ConformalPredictionQueryOptimization-2025,
+      title={Conformal Prediction for Verifiable Learned Query Optimization}, 
+      author={Hanwen Liu and Shashank Giridhara and Ibrahim Sabek},
+      year={2025},
+      eprint={2505.02284},
+      archivePrefix={arXiv},
+      primaryClass={cs.DB},
+      url={https://arxiv.org/abs/2505.02284}, 
 }
 
 @article{Haridi-LeaderBasedSequencePaxos-2020,
@@ -489,6 +640,8 @@ series = {EuroSys '23}
   publisher = {CEUR-WS.org},
   url       = {https://ceur-ws.org/Vol-3443/ESWC_2023_DMKG_paper_6223.pdf}
 }
+
+
 
 @article{Horchidan-ConANN-2025,
 author = {Horchidan, Sonia and Zeiher, Fabian and Bostr\"{o}m, Henrik and Carbone, Paris},

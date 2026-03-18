@@ -260,9 +260,32 @@ Listing \ref{list:conformal_risk_control} formalizes the algorithm for utilizing
 \section{Related Work}
 \label{sec:related_work}
 
-\subsection{Major related work area 1}
+\subsection{Modern Fast-Path Consensus Protocols}
+Although Fast Paxos can be applied to implement a replicated log, doing so limits the effectiveness of its fast path. As a result, subsequent work often treats ordering as a flexible property, applying coordination only where required to preserve correctness of the application-level state machine.
+\cite{Lamport-GeneralizedPaxos-2005}
+\cite{Moraru-Epaxos-2013}
+    \cite{Arun-Caesar-2017}
+    \cite{Burke-Gryff-2020}
+    \cite{Enes-Atlas-2020}
+    
+    \cite{Tollman-BPaxos-2021}
+    \cite{Ganesan-Skyros-2022}
+\cite{Park-Curp-2019}
+\cite{Geng-NezhaConsensus-2022}
+\cite{Ryabinin-SwiftPaxos-2024}
 
-\subsection{Major related work area n}
+Across these protocol designs, a common pattern emerges: Modern fast-path consensus protocols avoid the abstraction of a totally-ordered replicated log altogether and instead adopt partial orders and dependency tracking to minimize coordination. However, this shift comes with limitations, as log-free or partially ordered approaches are not universally applicable and may not provide the guarantees required by all applications.
+
+\subsection{The Case for Adaptive Consensus Protocols}
+\cite{Junqueira-ClassicVsFastPaxos-2007}
+\cite{Reginald-ConsensusUncertainty-2025}
+\cite{Howard-FlexiblePaxos-2016}
+
+\subsection{Conformal Methods for Data Management}
+\cite{Li-ConformalPredictionPlanSelection-2023}
+\cite{Liu-ConformalPredictionQueryOptimization-2025}
+\cite{Horchidan-ConANN-2025}
+
 
 \section{Summary}
 \label{sec:summary}
