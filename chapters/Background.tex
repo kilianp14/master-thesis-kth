@@ -260,32 +260,30 @@ Listing \ref{list:conformal_risk_control} formalizes the algorithm for utilizing
 \section{Related Work}
 \label{sec:related_work}
 
+To ground this work, we examine three intersecting areas: the design of modern fast-path consensus protocols, the discussion of adaptive mechanisms for consensus in varying conditions, and the emerging application of conformal methods for robust decision-making in data systems.
+
 \subsection{Modern Fast-Path Consensus Protocols}
 Although Fast Paxos can be applied to implement a replicated log, doing so limits the effectiveness of its fast path. As a result, subsequent work often treats ordering as a flexible property, applying coordination only where required to preserve correctness of the application-level state machine.
-\cite{Lamport-GeneralizedPaxos-2005}
-\cite{Moraru-Epaxos-2013}
-    \cite{Arun-Caesar-2017}
-    \cite{Burke-Gryff-2020}
-    \cite{Enes-Atlas-2020}
-    
-    \cite{Tollman-BPaxos-2021}
-    \cite{Ganesan-Skyros-2022}
-\cite{Park-Curp-2019}
-\cite{Geng-NezhaConsensus-2022}
-\cite{Ryabinin-SwiftPaxos-2024}
+
+Generalized Paxos \cite{Lamport-GeneralizedPaxos-2005} first formalized agreement on partially ordered command structures, enabling fast decisions when operations commute. EPaxos \cite{Moraru-Epaxos-2013} demonstrates how this idea can be realized in practice by replacing total order with dependency tracking, allowing replicas to execute independent commands without global coordination. Crucially, the changed guarantees allow these algorithms employ the earlier described fast-path with a low collision rate, as in practice, most operations are non-conflicting.
+
+A number of protocols extend this line of work, including Caesar \cite{Arun-Caesar-2017}, Atlas \cite{Enes-Atlas-2020}, BPaxos \cite{Tollman-BPaxos-2021}, Skyros \cite{Ganesan-Skyros-2023}, and Gryff \cite{Burke-Gryff-2020}, exploring alternative mechanisms for ordering, conflict detection, and system structuring while retaining an optimistic fast path with fallback under these weakened guarantees. Curp \cite{Park-Curp-2019} allows clients to reach durability for non-conflicting requests by replicating them to a set of witnesses, deferring the expensive task of ordering in case of conflicts to the background.
 
 Across these protocol designs, a common pattern emerges: Modern fast-path consensus protocols avoid the abstraction of a totally-ordered replicated log altogether and instead adopt partial orders and dependency tracking to minimize coordination. However, this shift comes with limitations, as log-free or partially ordered approaches are not universally applicable and may not provide the guarantees required by all applications.
 
-\subsection{The Case for Adaptive Consensus Protocols}
+Nezha \cite{Geng-NezhaConsensus-2022} instead attempts to make the fast path viable by forcing replicas to see requests in the same order using a deadline-ordered multicast. This reduces collisions by the means of network timing control, while retaining the stricter replicated log.
+
+\subsection{The Case for Adaptive Consensus Protocols?}
 \cite{Junqueira-ClassicVsFastPaxos-2007}
 \cite{Reginald-ConsensusUncertainty-2025}
 \cite{Howard-FlexiblePaxos-2016}
 
-\subsection{Conformal Methods for Data Management}
-\cite{Li-ConformalPredictionPlanSelection-2023}
-\cite{Liu-ConformalPredictionQueryOptimization-2025}
-\cite{Horchidan-ConANN-2025}
+\subsection{Conformal Methods for Data Systems}
+Currently, research on the application of \gls{CP} for data management is very sparse. Li et al. introduce dbET, which constructs execution time distributions for query plans of \textit{database management systems} \cite{Li-ConformalPredictionPlanSelection-2023}. They employ conformal methods to produce intervals that are guaranteed to cover the actual execution time at a predefined probability level, which can then be used for query optimization.
 
+Liu et al. utilize \gls{CP} to provide rigorous statistical guarantees and runtime verification for \textit{learned query optimizers}, addressing their potential for performance instability \cite{Liu-ConformalPredictionQueryOptimization-2025}. The authors formulate the verification as a \gls{CP} problem to derive user-controlled bounded ranges for actual query latency before execution, ensuring that plans meet performance constraints at a specified confidence level. They also discuss adaptive methods for handling distribution shift.
+
+Finally, ConANN is presented by Horchidan et al. as a framework that provides formal, distribution-free error guarantees using \gls{CRC} for \textit{approximate nearest neighbor search} within an \textit{inverted file vector index} \cite{Horchidan-ConANN-2025}. The system dynamically calibrates the number of clusters to be probed for each individual query, ensuring that the \gls{FNR} remains bounded by a user-defined threshold with high confidence.
 
 \section{Summary}
 \label{sec:summary}
