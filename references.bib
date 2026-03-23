@@ -552,6 +552,31 @@ location = {Banff, AB, Canada},
 series = {HotOS '25}
 }
 
+@INPROCEEDINGS{Shiozaki-DynamicRaftTuning-2025,
+  author={Shiozaki, Kohya and Nakamura, Junya},
+  booktitle={2025 IEEE International Parallel and Distributed Processing Symposium Workshops (IPDPSW)}, 
+  title={Dynatune: Dynamic Tuning of Raft Election Parameters Using Network Measurement}, 
+  year={2025},
+  volume={},
+  number={},
+  pages={568-577},
+  abstract={Raft is a leader-based consensus algorithm that implements State Machine Replication (SMR), which replicates the service state across multiple servers to enhance fault tolerance. In Raft, the servers play one of three roles: leader, follower, or candidate. The leader receives client requests, determines the processing order, and replicates them to the followers. When the leader fails, the service must elect a new leader to continue processing requests, during which the service experiences an out-of-service (OTS) time. The OTS time is directly influenced by election parameters, such as heartbeat interval and election timeout. However, traditional approaches, such as Raft, often struggle to effectively tune these parameters, particularly under fluctuating network conditions, leading to increased OTS time and reduced service responsiveness. To address this, we propose Dynatune, a mechanism that dynamically adjusts Raft’s election parameters based on network metrics such as round-trip time and packet loss rates measured via heartbeats. By adapting to changing network environments, Dynatune significantly reduces the leader failure detection and OTS time without altering Raft’s core mechanisms or introducing additional communication overheads. Experimental results demonstrate that Dynatune reduces the leader failure detection and OTS times by 80% and 45%, respectively, compared with Raft, while maintaining high availability even under dynamic network conditions. These findings confirm that Dynatune effectively enhances the performance and reliability of SMR services in various network scenarios.},
+  keywords={Fluctuations;Heart beat;Voting;Heuristic algorithms;Packet loss;Consensus algorithm;Throughput;Time measurement;Servers;Tuning;Raft;State Machine Replication;Consensus Algorithm;Leader Election;Network Measurement;Dynamic Tuning},
+  doi={10.1109/IPDPSW66978.2025.00091},
+  url={https://doi.org/10.1109/IPDPSW66978.2025.00091}
+  ISSN={2995-066X},
+  month={June},}
+
+@misc{Hu-AdaptiveConsensus-2025,
+      title={Crossword: Adaptive Consensus for Dynamic Data-Heavy Workloads}, 
+      author={Guanzhou Hu and Yiwei Chen and Andrea Arpaci-Dusseau and Remzi Arpaci-Dusseau},
+      year={2025},
+      eprint={2509.07157},
+      archivePrefix={arXiv},
+      primaryClass={cs.DC},
+      url={https://arxiv.org/abs/2509.07157}, 
+}
+
 @article{Li-ConformalPredictionPlanSelection-2023,
 author = {Li, Yifan and Yu, Xiaohui and Koudas, Nick and Lin, Shu and Sun, Calvin and Chen, Chong},
 title = {dbET: Execution Time Distribution-based Plan Selection},
