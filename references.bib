@@ -563,7 +563,7 @@ series = {HotOS '25}
   abstract={Raft is a leader-based consensus algorithm that implements State Machine Replication (SMR), which replicates the service state across multiple servers to enhance fault tolerance. In Raft, the servers play one of three roles: leader, follower, or candidate. The leader receives client requests, determines the processing order, and replicates them to the followers. When the leader fails, the service must elect a new leader to continue processing requests, during which the service experiences an out-of-service (OTS) time. The OTS time is directly influenced by election parameters, such as heartbeat interval and election timeout. However, traditional approaches, such as Raft, often struggle to effectively tune these parameters, particularly under fluctuating network conditions, leading to increased OTS time and reduced service responsiveness. To address this, we propose Dynatune, a mechanism that dynamically adjusts Raft’s election parameters based on network metrics such as round-trip time and packet loss rates measured via heartbeats. By adapting to changing network environments, Dynatune significantly reduces the leader failure detection and OTS time without altering Raft’s core mechanisms or introducing additional communication overheads. Experimental results demonstrate that Dynatune reduces the leader failure detection and OTS times by 80% and 45%, respectively, compared with Raft, while maintaining high availability even under dynamic network conditions. These findings confirm that Dynatune effectively enhances the performance and reliability of SMR services in various network scenarios.},
   keywords={Fluctuations;Heart beat;Voting;Heuristic algorithms;Packet loss;Consensus algorithm;Throughput;Time measurement;Servers;Tuning;Raft;State Machine Replication;Consensus Algorithm;Leader Election;Network Measurement;Dynamic Tuning},
   doi={10.1109/IPDPSW66978.2025.00091},
-  url={https://doi.org/10.1109/IPDPSW66978.2025.00091}
+  url={https://doi.org/10.1109/IPDPSW66978.2025.00091},
   ISSN={2995-066X},
   month={June},}
 
@@ -684,4 +684,14 @@ journal = {Proc. VLDB Endow.},
 month = jan,
 pages = {29–42},
 numpages = {14}
+}
+
+@inproceedings{Hakansson-ResearchMethods-2013,
+  author    = {H{\aa}kansson, Anne},
+  title     = {Portal of Research Methods and Methodologies for Research Projects and Degree Projects},
+  booktitle = {Proceedings of the International Conference on Frontiers in Education: Computer Science and Computer Engineering (FECS'13)},
+  year      = {2013},
+  pages     = {67--73},
+  publisher = {CSREA Press U.S.A.},
+  url       = {https://worldcomp-proceedings.com/proc/p2013/FEC2979.pdf}
 }

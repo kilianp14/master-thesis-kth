@@ -1,0 +1,42 @@
+%\sweExpl{[Vad gjorde du? Hur gick det till? – Välj lämplig rubrik (“Genomförande”, “Konstruktion”, ”Utveckling”  eller annat]}
+%\engExpl{What have you done? How did you do it? What design decisions did you make? How did what you did help you to meet your goals?}
+%\sweExpl{Vad du har gjort? Hur gjorde du det? Vilka designval gjorde du?Hur kom det du hjälpte dig att uppnå dina mål?}
+
+\section[Hardware/Software design …/Model/Simulation model  parameters/…]{Hardware/Software design …/Model/Simulation model \& parameters/…}
+
+
+\subsection{Some examples of coding}
+%\engExpl{This section is simply to show some example of how you can include code in your thesis - this is not a section you would have in your thesis.}
+%\sweExpl{Det här avsnittet är helt enkelt för att visa ett exempel på hur du kan inkludera kod i ditt examensarbete - det här är inte ett avsnitt du skulle ha i ditt examensarbete.}
+% \engExpl{This template uses the package \texttt{lstlistings} for many different listings. Alternatively, one could use the \texttt{minited} package together with the \texttt{listings} environment, see, for example, \href{https://www.overleaf.com/learn/latex/Code_Highlighting_with_minted}{Code Highlighting with minted}. }
+
+
+In \Cref{lst:exampleUsingMinted}, line \ref{listinline:ExcelWriter} shows the use of the \texttt{ExcelWriter} function. Line \ref{listinline:UsingToexcel} writes a panda dataframe (named \texttt{comp}) to the spreadsheet, while line \ref{listinline:closingWriter} closes the open spreadsheet.
+
+\begin{listing}[!ht]
+\begin{minted}[linenos,breaklines, escapeinside=||]{python}
+import pandas as pd
+def make_spreadsheet_of_differences(pds):
+    global school
+    publishers=set()
+    writer = pd.ExcelWriter(f'/tmp/{school}_compare_duplicates.xlsx', engine='xlsxwriter') |\label{listinline:ExcelWriter}|
+    print("starting")
+    for idx, p in enumerate(pds):
+        p0=list(p)[0]
+        p1=list(p)[1]
+        print(f"\nfor {p0} and {p1}")
+        comp, publisher1, publisher2=compare_two_records_silent(p0, p1)
+        sheet_name=f'{p0}'.split(':')[1]
+        print(f'Wrote {sheet_name=}')|\label{listinline:UsingToexcel}|
+        comp.to_excel(writer, sheet_name=sheet_name)
+        publishers.add(publisher1)
+        publishers.add(publisher2)
+    
+    # Close the Pandas Excel writer and output the Excel file.
+    writer.close()|\label{listinline:closingWriter}|
+    print(f"{publishers=}")
+    return publishers
+\end{minted}
+\caption{Example of using \texttt{minted} with python code}
+\label{lst:exampleUsingMinted}
+\end{listing}

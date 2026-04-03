@@ -158,15 +158,15 @@ Intuitively, when performing the test with the correct label, the test point bec
 
 \subsection{Split Conformal Prediction}
 \label{sect:split_conformal_prediction}
-Full \gls{CP} as described is computationally impractical. It requires full retraining for each possible label and a repetition of this process for every new observation. A computationally efficient variant called \textit{split \gls{CP}} instead divides the training set into data used for model fitting  $\mathcal{D_{mod}} \in (\mathcal{X} \times \mathcal{Y})^m$ and data used as a calibration set $\mathcal{D_{cal}} \in (\mathcal{X} \times \mathcal{Y})^n$ for computing the non-conformity scores as a comparison \cite{Vovk-AlgorithmicLearning-2022}. Listing \ref{list:split_conformal_prediction} shows the updated algorithm for split \gls{CP}.
+Full \gls{CP} as described is computationally impractical. It requires full retraining for each possible label and a repetition of this process for every new observation. A computationally efficient variant called \textit{split \gls{CP}} instead divides the training set into data used for model fitting  $\mathcal{D}_{mod} \in (\mathcal{X} \times \mathcal{Y})^m$ and data used as a calibration set $\mathcal{D}_{cal} \in (\mathcal{X} \times \mathcal{Y})^n$ for computing the non-conformity scores as a comparison \cite{Vovk-AlgorithmicLearning-2022}. Listing \ref{list:split_conformal_prediction} shows the updated algorithm for split \gls{CP}.
 
 \begin{listing}[t]
     \begin{algorithmic}[1]
         \renewcommand{\algorithmicrequire}{}
         \REQUIRE
         \noindent\begin{tabular}{@{}ll}
-            Model fitting data: & $\mathcal{D_{mod}} \in (\mathcal{X} \times \mathcal{Y})^m$\\
-            Calibration data: & $\mathcal{D_{cal}} = \{(X_1, Y_1), \dots, (X_n, Y_n)\}\in (\mathcal{X} \times \mathcal{Y})^n$\\
+            Model fitting data: & $\mathcal{D}_{mod} \in (\mathcal{X} \times \mathcal{Y})^m$\\
+            Calibration data: & $\mathcal{D}_{cal} = \{(X_1, Y_1), \dots, (X_n, Y_n)\}\in (\mathcal{X} \times \mathcal{Y})^n$\\
             Test feature: & $X_{test} \in \mathcal{X}$\\
             Target error rate: & $\alpha \in [0, 1]$\\
         \end{tabular}
@@ -200,7 +200,7 @@ Since the calibration set $\mathcal{D}_{cal}$ is fixed during the deployment pha
 \label{sect:conformal_risk_control}
 While classical \gls{CP} guarantees that the true label is contained in the prediction set with probability at least $1-\alpha$, this notion of coverage does not always align with the operational objectives of a deployed system. Many applications care about controlling a specific \textit{risk} associated with predictions rather than the simple probability of excluding the true label. For instance, a goal could be to limit the \gls{FNR} for a specific class or control the error rate of an out-of-distribution detector. \gls{CRC} therefore extends the conformal prediction framework to address such objectives by providing guarantees on user-defined risk measures \cite{Angelopoulus-ConformalRiskControl-2025, Angelopoulos-ConformalPredictionTheory-2025}.
 
-The central idea of \gls{CRC} for classification is again to construct a prediction set $C_\lambda(X_{test})$ for a test point $(X_{test}, Y_{test}) \in \mathcal{X} \times \mathcal{Y}$ with an unknown label while given a calibration dataset of feature-label pairs $(X_1, Y_1), (X_2, Y_2), \dots, (X_n, Y_n)$. Unlike classical \gls{CP}, which guarantees that the true label is contained in the set with a fixed probability, \gls{CRC} provides an expectation bound on a user-defined loss function $\mathcal{L}$ \cite{Angelopoulus-ConformalRiskControl-2025}. For a bounded loss $\mathcal{L}: 2^{\mathcal{Y}} \times \mathcal{Y} \rightarrow (-\infty, B]$ and a desired risk limit $\alpha \in (-\infty, B]$, \gls{CRC} ensures:
+The central idea of \gls{CRC} for classification is again to construct a prediction set $\mathcal{C}_\lambda(X_{test})$ for a test point $(X_{test}, Y_{test}) \in \mathcal{X} \times \mathcal{Y}$ with an unknown label while given a calibration dataset of feature-label pairs $(X_1, Y_1), (X_2, Y_2), \dots, (X_n, Y_n)$. Unlike classical \gls{CP}, which guarantees that the true label is contained in the set with a fixed probability, \gls{CRC} provides an expectation bound on a user-defined loss function $\mathcal{L}$ \cite{Angelopoulus-ConformalRiskControl-2025}. For a bounded loss $\mathcal{L}: 2^{\mathcal{Y}} \times \mathcal{Y} \rightarrow (-\infty, B]$ and a desired risk limit $\alpha \in (-\infty, B]$, \gls{CRC} ensures:
 $$\mathbb{E}(\mathcal{L}(\mathcal{C}_{\widehat\lambda}(X_{test}), Y_{test})) \le \alpha$$
 
 \begin{figure}[t]
@@ -232,8 +232,8 @@ $$\widehat{\lambda} = \inf \left\{ \lambda : \frac{n}{n+1} \widehat{R}(\lambda) 
         \renewcommand{\algorithmicrequire}{}
         \REQUIRE
         \noindent\begin{tabular}{@{}ll}
-            Model fitting data: & $\mathcal{D_{mod}} \in (\mathcal{X} \times \mathcal{Y})^m$\\
-            Calibration data: & $\mathcal{D_{cal}} = \{(X_1, Y_1), \dots, (X_n, Y_n)\}\in (\mathcal{X} \times \mathcal{Y})^n$\\
+            Model fitting data: & $\mathcal{D}_{mod} \in (\mathcal{X} \times \mathcal{Y})^m$\\
+            Calibration data: & $\mathcal{D}_{cal} = \{(X_1, Y_1), \dots, (X_n, Y_n)\}\in (\mathcal{X} \times \mathcal{Y})^n$\\
             Test feature: & $X_{test} \in \mathcal{X}$\\
             Loss function: & $\mathcal{L}: 2^{\mathcal{Y}} \times \mathcal{Y} \rightarrow (-\infty, B]$ \\
             Risk limit: & $\alpha\in(-\infty, B]$
@@ -283,7 +283,7 @@ Howard et al. \cite{Howard-FlexiblePaxos-2016} show that it is sufficient for qu
 More recent work explores adaptive behavior more directly. Reginald et al. \cite{Reginald-ConsensusUncertainty-2025} propose modeling failures probabilistically using machine-specific failure probabilities rather than a fixed failure threshold. Shiozaki et al. \cite{Shiozaki-DynamicRaftTuning-2025} explore dynamic tuning of Raft’s election parameters based on network conditions. Hu et al. \cite{Hu-AdaptiveConsensus-2025} present Crossword, an adaptive consensus protocol designed for dynamic, data-heavy workloads.
 
 \subsection{Conformal Methods for Data Systems}
-Research on the application of \gls{CP} to data management systems is very limited. Li et al. \cite{Li-ConformalPredictionPlanSelection-2023} introduce dbET, which constructs execution time distributions for query plans of database management systems. They use conformal methods to produce intervals that are guaranteed to cover the actual execution time with a predefined probability level, which can then be used for query optimization.
+Research on the application of \gls{CP} to data management systems remains very limited. Li et al. \cite{Li-ConformalPredictionPlanSelection-2023} introduce dbET, which constructs execution time distributions for query plans of database management systems. They use conformal methods to produce intervals that are guaranteed to cover the actual execution time with a predefined probability level, which can then be used for query optimization.
 
 Liu et al. \cite{Liu-ConformalPredictionQueryOptimization-2025} employ \gls{CP} to provide rigorous statistical guarantees and runtime verification for learned query optimizers, addressing their potential for performance instability. They formulate the verification as a \gls{CP} problem to derive user-controlled bounded ranges for actual query latency before execution, ensuring that plans meet performance constraints at a specified confidence level. They also discuss adaptive methods for handling distribution shift.
 
@@ -299,4 +299,4 @@ We presented the theoretical foundations for both replicated state machines and 
 
 To address this uncertainty, we introduced \gls{CP} and \gls{CRC} as statistical frameworks that provide formal guarantees. Split conformal prediction enables efficient uncertainty estimation in practical systems, while conformal risk control allows guarantees over system-level risk rather than simple prediction coverage. These methods make it possible to transform heuristic confidence estimates into decisions with formal guarantees.
 
-Finally, we highlighted the gap in prior work where adaptive mechanisms for replicated logs remain limited and conformal methods have been shown to provide formal guarantees in decision-making for data systems. This motivates the approach of this thesis: using uncertainty-aware methods to adapt the use of fast-path consensus in replicated log systems.
+Finally, we highlighted the gap in prior work where adaptive mechanisms for replicated logs remain limited while conformal methods have been shown to provide formal guarantees in decision-making for data systems. This motivates the approach of this thesis: using uncertainty-aware methods to adapt the use of fast-path consensus in replicated log systems.
