@@ -1,15 +1,15 @@
 %\generalExpl{When you do your literature study, you should have a nearly complete Chapters 1 and 2. You may also find it convenient to introduce the future work section into your report early – so that you can put things that you think about but decide not to do now into this section. Note that later you can move things between this future work section and what you have done as you may change your mind about what to do now versus what to put off to future work.}
 %\generalExpl{What does a reader (another x student -- where x is your study line) need to know to understand your report? What have others already done? (This is the “related work”.) Explain what and how prior work/prior research will be applied on or used in the degree project/work (described in this thesis). Explain why and what is not used in the degree project and give valid reasons for rejecting the work/research.}
 
-This chapter establishes the theoretical foundations necessary to understand the implementation and analysis parts of this thesis. Section \ref{sec:state_machine_replication} introduces the concept of replicated state machines with their underlying consensus mechanisms. A specific focus lies on the difference between fast-path algorithms and conservative approaches for maintaining a replicated log. Section \ref{sec:conformal_prediction} presents an overview of conformal methods as a statistical framework for risk mitigation before Section \ref{sec:related_work} reviews related work. Finally, Section \ref{sec:summary} summarizes the discussed concepts.
+This chapter establishes the theoretical foundations necessary to understand the implementation and analysis parts of this thesis. Section~\ref{sec:state_machine_replication} introduces the concept of replicated state machines with their underlying consensus mechanisms. A specific focus lies on the difference between fast-path algorithms and conservative approaches for maintaining a replicated log. Section ~\ref{sec:conformal_prediction} presents an overview of conformal methods as a statistical framework for quantifying uncertainty before Section ~\ref{sec:related_work} reviews related work. Finally, Section ~\ref{sec:summary} summarizes the discussed concepts.
 
 \section{State Machine Replication}
 \label{sec:state_machine_replication}
 A common way to provide fault tolerance and thereby improve availability for a service is to operate multiple servers that maintain an identical state. These replicas can serve as backups, shadowing a primary node, ready to take over during a failure, or be potentially globally distributed to handle requests from local clients. Many services, like databases, require a strict notion of consistency and need nodes to coordinate their actions to prevent state divergence in both of these cases.
 
-One approach is to decide on the execution of the same sequence of deterministic operations across all nodes. This is referred to as \gls{SMR} \cite{Schneider-ReplicatedStateMachines-1990}. The Raft protocol \cite{Ongaro-Raft-2014} popularized the concept of a replicated log as the central abstraction for developers of such replicated services. It is specifically designed around managing a linear, append-only log, which stores all \gls{SMR} operations for the application. Because this log is identical across all replicas, executing the operations in the order determined by it ensures that every node arrives at the same final state.
+One approach is to decide on the execution of the same sequence of deterministic operations across all nodes. This is referred to as \gls{SMR}~\cite{Schneider-ReplicatedStateMachines-1990}. The Raft protocol~\cite{Ongaro-Raft-2014} popularized the concept of a replicated log as the central abstraction for developers of such replicated services. It is specifically designed around managing a linear, append-only log, which stores all \gls{SMR} operations for the application. Because this log is identical across all replicas, executing the operations in the order determined by it ensures that every node arrives at the same final state.
 
-The underlying challenge addressed by Raft and similar protocols is uniform sequence consensus, which is detailed in Section \ref{sect:uniform_sequence_consensus}. Figure \ref{fig:state_machine_replication} illustrates how a replicated log serves as the backbone of a fault-tolerant system.
+Figure~\ref{fig:state_machine_replication} illustrates a common architecture of a fault-tolerant system, acting as a replicated state machine. External users and applications send requests to, ideally co-located, servers, which then try to append commands to a replicated log in case the requests should result in a change of state. As can be seen, the underlying challenge addressed by Raft and similar protocols is uniform sequence consensus, which provides a notion of strong consistency and is detailed in Section~\ref{sect:uniform_sequence_consensus}.
 
 \begin{figure}[t]
     \centering
@@ -23,7 +23,7 @@ The underlying challenge addressed by Raft and similar protocols is uniform sequ
 \label{sect:uniform_sequence_consensus}
 As described, the problem of agreeing on a value between coordinating processes lies at the core of fault-tolerant distributed systems. Any algorithm that relies on building a common state or synchronizing an action in an environment subject to partial failures must, in some form, solve the consensus problem.
 
-We can formalize the abstraction layer of \textit{uniform consensus} according to Cachin et al. \cite{Cachin-ReliableDistributedProgramming-2011}. In this model, every process can propose a value to the consensus layer, which eventually outputs a final decided value. An algorithm for uniform consensus must satisfy the following properties:
+We can formalize the abstraction layer of \textit{uniform consensus} according to Cachin et al.~\cite{Cachin-ReliableDistributedProgramming-2011}. In this model, processes interact with the consensus primitive through two events: \textit{proposing} a candidate value and eventually \textit{deciding} on a single output. A process triggers the consensus by proposing a value, and after a coordination phase, the abstraction issues a decision, which delivers the agreed (\textit{decided}) value back, which marks the finality of the consensus instance. An algorithm for uniform consensus must satisfy the following properties:
 \begin{enumerate}
   \item[] \textit{Validity:} Every decided value was previously proposed.
   \item[] \textit{Integrity:} No process decides more than once.
@@ -31,9 +31,9 @@ We can formalize the abstraction layer of \textit{uniform consensus} according t
   \item[] \textit{Termination:} Every correct process eventually decides some value.
 \end{enumerate}
 
-Since uniform consensus is impossible to achieve in a purely \textit{asynchronous system} with no bounds on clock drift, transmission delay, and processing time \cite{Fischer-ConsensusAsynchronousSystem-1985}, we consider networks like the Internet as \textit{partially synchronous systems} throughout this thesis. This model assumes that while delays occur, there are sufficiently long stable periods for algorithms to make progress.
+Since uniform consensus is impossible to achieve in a purely \textit{asynchronous system} with no bounds on clock drift, transmission delay, and processing time~\cite{Fischer-ConsensusAsynchronousSystem-1985}, we consider networks like the Internet as \textit{partially synchronous systems} throughout this thesis. This model assumes that while delays occur, there are sufficiently long stable periods for algorithms to make progress.
 
-Standard uniform consensus only deals with a single decision, but a replicated log requires agreement on an ordered sequence. In an extension of this model, every participating process can propose values to the consensus layer, which eventually decides on a sequence of values. The relevant properties of this \textit{Uniform Sequence Consensus} have been defined by Haridi et al. \cite{Haridi-LeaderBasedSequencePaxos-2020}:
+Standard uniform consensus only deals with a single decision, but a replicated log requires agreement on an ordered sequence. In an extension of this model, every participating process can propose values to the consensus layer, which eventually decides on a sequence of values. The relevant properties of this \textit{Uniform Sequence Consensus} have been defined by Haridi et al.~\cite{Haridi-LeaderBasedSequencePaxos-2020}:
 \begin{enumerate}
   \item[] \textit{Validity:} Every value in a sequence decided by a process was previously proposed.
   \item[] \textit{Integrity:} If a process decides a value sequence, it is a strict prefix of every future decided sequence by that server. 
@@ -52,18 +52,11 @@ Ultimately, these properties provide the formal framework necessary to ensure th
     \label{fig:paxos}
 \end{figure}
 
-Paxos denotes a family of algorithms designed to provide the guarantees of uniform (sequence) consensus. Its simplest form, often referred to as Basic Paxos or Single-Value Paxos, was originally introduced by Leslie Lamport \cite{Lamport-Paxos-2001} and solves uniform consensus within a partially synchronous system. It ensures that even under concurrent proposals from multiple nodes, the system converges on a single decision that satisfies the validity, integrity, and agreement properties defined in Section \ref{sect:uniform_sequence_consensus}. Understanding this underlying mechanism is essential before addressing the complexities of maintaining a continuous, ordered log.
+Paxos denotes a family of algorithms designed to provide the guarantees of uniform (sequence) consensus. Its simplest form, often referred to as Basic Paxos or Single-Value Paxos, was originally introduced by Leslie Lamport~\cite{Lamport-Paxos-2001} and solves uniform consensus within a partially synchronous system. It ensures that even under concurrent proposals from multiple nodes, the system converges on a single decision that satisfies the validity, integrity, and agreement properties defined in Section~\ref{sect:uniform_sequence_consensus}. Understanding this mechanism is essential before addressing the complexities of maintaining a continuous, ordered log.
 
 Paxos decomposes the consensus process into three distinct phases. In the \textit{prepare phase}, a process acting as a \textit{proposer} attempts to claim the right to propose a value. It selects a unique, monotonically increasing proposal number $n$ and broadcasts a \textit{prepare} message containing $n$. Upon receipt, an \textit{acceptor} returns a \textit{promise} to the proposer, committing to reject any values from proposers that initiated a round with a lower proposal number than $n$. Crucially, if the acceptor has already accepted a value from a previous round, it includes that value and its associated proposal number in its response, forcing the proposer to respect any existing progress.
 
 Once a proposer has secured promises from a majority (\textit{quorum}) of acceptors, it proceeds to the \textit{accept phase}, where it tries to make the acceptors lock in its proposal. It sends an \textit{accept} message to the promised acceptors, containing the proposal number $n$ and a value $v$ to be accepted. If the previous phase reported an existing value, the proposer must use the one with the highest proposal number; otherwise, it is free to use its own. An acceptor acknowledges this via an \textit{accepted} message, provided it has not already promised to a higher proposal number than $n$ previously.
-
-As soon as a quorum of acceptors has accepted the same value, it is considered \textit{chosen}. At this stage, no other process can ever decide on a different value for this instance. Any participant that notices the value being chosen can notify the processes interested in the result (\textit{learners}). This is often done by the original proposer by broadcasting a \textit{decide} message to the learners. An example execution of a Paxos instance is displayed in Figure \ref{fig:paxos} with a total of three acceptors, who simultaneously act as proposers and learners.
-
-To satisfy the termination property of uniform consensus, a leader election mechanism can be used to elect a single distinguished proposer, who will eventually be the only process allowed to propose a value \cite{Lamport-Paxos-2001}. This principle leads directly to \textit{leader-based Sequence Paxos}, an extension of Paxos that handles an ordered sequence of values and provides the guarantees of uniform sequence consensus (see Section \ref{sect:uniform_sequence_consensus}).
-
-The primary optimization of this approach is that if the leader remains stable, the prepare phase can be performed once for a whole series of log entries, rather than once per entry. This allows the system to effectively pipeline proposals through the accept phase using the elected leader as the distinguished proposer \cite{Lamport-Paxos-2001, Ng-OmniPaxos-2023, Haridi-LeaderBasedSequencePaxos-2020}. While specific implementations may augment the prepare phase with log-synchronization mechanisms depending on the leader election algorithm, this main idea stays the same across all implementations of uniform sequence consensus. Figure \ref{fig:leader_based_sequence_paxos} displays a common execution of a leader-based Sequence Paxos algorithm.
-
 
 \begin{figure}[t]
     \centering
@@ -72,28 +65,32 @@ The primary optimization of this approach is that if the leader remains stable, 
     \label{fig:leader_based_sequence_paxos}
 \end{figure}
 
+As soon as a quorum of acceptors has accepted the same value, it is considered \textit{chosen}. At this stage, no other process can ever decide on a different value for this instance. Any participant that notices the value being chosen can notify the processes interested in the result (\textit{learners}). This is often done by the original proposer by broadcasting a \textit{decide} message to the learners.
+
+An example execution trace of a Paxos instance is displayed in Figure~\ref{fig:paxos} with a total of three acceptors, who simultaneously act as learners. The process \textit{P1} wants to propose a value, and first initiates the prepare phase. After a majority quorum of acceptors (\textit{P1} and \textit{P2}) has been formed using promises, \textit{P1} has gained the right to propose. In the accept phase \textit{P1} gets a majority quorum to lock in its value (\textit{P1} and \textit{P3}), recognizes the result being chosen, and broadcasts the decided value in the learn phase.
+
+As concurrent proposers might take the right to propose from each other over and over again and thus stopping the system from making progress, a leader election can be used to elect a single distinguished proposer, who will eventually be the only process allowed to propose a value~\cite{Lamport-Paxos-2001}. With such a mechanism in place, the termination property of uniform consensus also satisfied. This principle also directly leads to \textit{leader-based Sequence Paxos}, an extension of Paxos that handles an ordered sequence of values and provides the guarantees of uniform sequence consensus (see Section ~\ref{sect:uniform_sequence_consensus}).
+
+The primary optimization here is that if the leader remains stable, the prepare phase can be performed once for a whole series of log entries, rather than once per entry. This allows the system to effectively pipeline proposals through the accept phase using the elected leader as the distinguished proposer~\cite{Lamport-Paxos-2001, Ng-OmniPaxos-2023, Haridi-LeaderBasedSequencePaxos-2020}. While specific implementations may augment the prepare phase with log-synchronization mechanisms depending on the leader election algorithm, this main idea stays the same across all implementations of uniform sequence consensus. Figure ~\ref{fig:leader_based_sequence_paxos} displays a common execution of a leader-based Sequence Paxos algorithm where \textit{P1} now acts as the leader and pipelines values to be decide in a sequence one by one. The decided values are then free to be appended to a replicated log in this sequence.
+
+
 \subsection{Fast-Path Integration}
 
 \begin{figure}[t]
     \centering
     \input{figures/leader_based_sequence_paxos_fast_path_tikz}
-    \caption{Example execution of leader-based Sequence Paxos with five servers using the fast path.}
+    \caption{Example execution of leader-based Sequence Paxos with five servers using the fast path successfully.}
     \label{fig:leader_based_sequence_paxos_fast_path}
 \end{figure}
 
-In the leader-based Sequence Paxos algorithm described above, only the leader is permitted to propose values for the log. Consequently, when a non-leader process wishes to propose a value, the operation incurs a total of three message delays \cite{Junqueira-ClassicVsFastPaxos-2007}:
+In the leader-based Sequence Paxos algorithm described above, only the leader is permitted to propose values for the log. Consequently, when a non-leader process wishes to propose a value, the operation incurs a total of three message delays~\cite{Junqueira-ClassicVsFastPaxos-2007}:
 \begin{enumerate}
     \item The original proposer forwards its value to the leader to initiate the append operation.
     \item The leader sends accept messages to all promised acceptors.
     \item The acceptors respond with corresponding accepted messages either directly to the learners or to the leader, who subsequently informs the learners once a value is chosen. 
 \end{enumerate}
 
-The primary motivation for introducing Fast Paxos is to reduce this latency by one communication step, allowing any participating process to propose values directly to the acceptors instead of first forwarding them to the leader. This optimization was originally devised by Leslie Lamport \cite{Lamport-FastPaxos-2006}. In such a \textit{fast round}, acceptors simply accept the first value they receive from any proposer and notify the leader (and potentially the learners) of their decision via an \textit{accepted} message. A typical message flow for a successful fast path is depicted in Figure~\ref{fig:leader_based_sequence_paxos_fast_path}.
-
-
-Compared to the original algorithm discussed earlier, a simple majority quorum is no longer sufficient to consider a value chosen when using the fast path. To guarantee safety, a quorum for a fast round (\textit{fast quorum}) must intersect with any majority of nodes in at least half of the nodes included in the majority \cite{Zhao-FastPaxos-2015}. In practice, the size of a fast quorum must be at least $\lceil \frac{3n}{4} \rceil$ for a system of $n$ acceptors. This requirement also implies that the fast-path algorithm can tolerate fewer concurrent failures within a round compared to the standard design.
-
-Furthermore, the fast path is inherently optimistic. A collision occurs when multiple proposers submit different values simultaneously such that no single value achieves the fast quorum threshold. The leader can detect such collisions and initiate a regular Paxos round using the most frequently accepted value, as illustrated in Figure~\ref{fig:leader_based_sequence_paxos_fast_path_collision}. This \textit{slow path} recovery requires two additional communication steps, meaning that a fast round with a collision is even slower than a round following the original algorithm.
+The primary motivation for introducing Fast Paxos is to reduce this latency by one communication step, allowing any participating process to propose values directly to the acceptors instead of first forwarding them to the leader. This optimization was originally devised by Leslie Lamport~\cite{Lamport-FastPaxos-2006}. In such a \textit{fast round}, acceptors simply accept the first value they receive from any proposer and notify the leader (and potentially the learners) of their decision via an \textit{accepted} message.
 
 \begin{figure}[t]
     \centering
@@ -102,32 +99,40 @@ Furthermore, the fast path is inherently optimistic. A collision occurs when mul
     \label{fig:leader_based_sequence_paxos_fast_path_collision}
 \end{figure}
 
+Compared to the original algorithm discussed earlier, a simple majority quorum is no longer sufficient to consider a value chosen when using the fast path. To guarantee safety, a quorum for a fast round (\textit{fast quorum}) must intersect with any majority of nodes in at least half of the nodes included in the majority~\cite{Zhao-FastPaxos-2015}. In practice, the size of a fast quorum must be at least $\lceil \frac{3n}{4} \rceil$ for a system of $n$ acceptors. This requirement also implies that the fast-path algorithm can tolerate fewer concurrent failures within a round compared to the standard design.
+
+A typical message flow for a successful fast path is depicted in Figure~\ref{fig:leader_based_sequence_paxos_fast_path}. The leader (\textit{P1}) is no longer the only one that proposes values in the sequence, but other nodes do so as well with the leader collecting the accepted messages. A value is now considered chosen once a fast quorum has accepted the same value for an index in the sequence, which is recognized by the leader.
+
+The fast path is inherently optimistic, however. A collision can occur when multiple proposers submit different values simultaneously such that no single value achieves the fast quorum threshold. The leader can detect such collisions and initiate a regular Paxos round using the most frequently accepted value. This \textit{slow path} recovery requires two additional communication steps, meaning that a fast round with a collision is even slower than a round following the original algorithm. Figure~\ref{fig:leader_based_sequence_paxos_fast_path_collision} shows such a collision case, where \textit{P2} and \textit{P4} make a concurrent proposal for the second value in the sequence. The collision is detected by the leader (\textit{P1}) when no fast quorum can be formed, resulting in \textit{P1} initiating a slow path for the second slot, where a value is chosen as soon as a majority quorum accepts the value proposed by the leader.
+
 \section{Conformal Prediction}
 \label{sec:conformal_prediction}
 When deploying predictive models in high-stakes applications, evaluating prediction accuracy alone is insufficient. It is equally important to quantify the uncertainty of model predictions. This makes \gls{UQ} a central research topic in statistics and \gls{ML}.
 
-Instead of producing a single-point prediction, one way to quantify predictive uncertainty is to output \textit{prediction sets} (for classification) or \textit{prediction intervals} (for regression). \gls{CP} is a statistical framework for constructing such prediction sets with formal coverage guarantees. The primary objective is to transform a heuristic notion of uncertainty from an underlying model into statistically rigorous prediction sets or intervals that contain the ground truth with a user-defined probability. \gls{CP} has several desirable properties that make it suited for model deployment \cite{Shafer-ConformalPrediction-2008, Angelopoulus-ConformalPrediction-2023, Zhou-ConformalPredictionDataPerspective-2025}:
+Instead of producing a single-point prediction, one way to quantify predictive uncertainty is to output \textit{prediction sets} (for classification) or \textit{prediction intervals} (for regression). \gls{CP} is a statistical framework for constructing such prediction sets or intervals with formal guarantees. The primary objective is to transform a heuristic notion of uncertainty from an underlying model into statistically rigorous prediction sets or intervals that contain the ground truth with a user-defined probability. \gls{CP} has several desirable properties that make it suited for practical applications~\cite{Shafer-ConformalPrediction-2008, Angelopoulus-ConformalPrediction-2023, Zhou-ConformalPredictionDataPerspective-2025}:
 \begin{itemize}
-    \item \textit{Model-agnostic:} It can be applied on top of any predictive model without requiring changes to the model architecture.
+    \item \textit{Model-agnostic:} It can be applied on top of any predictive model without requiring changes to the model architecture. \gls{CP} fundamentally treats the underlying model as a black box.
     \item \textit{Distribution-free:} Valid coverage is provided under the assumption of data exchangeability. Exchangeability means the data points can be reordered without changing their joint distribution. Informally, no observation carries information through its position in the dataset.
     \item \textit{Finite-sample valid:} Coverage is guaranteed even if prediction is constructed based on a finite number of data points.
 \end{itemize}
 
-In practice, conformal methods must satisfy additional requirements beyond theoretical validity. In particular, computational efficiency is important. Ideally, \gls{CP} should function as a lightweight wrapper around an existing model without requiring retraining. Another important consideration is the \textit{informativeness} of the result \cite{Zhou-ConformalPredictionDataPerspective-2025}. While coverage is guaranteed, the practical usefulness of conformal prediction depends on producing sets or intervals that remain small when the model is confident and expand only when uncertainty is high. They should provide actionable insights about the model's output. 
+In practice, conformal methods must satisfy additional requirements beyond theoretical validity. In particular, computational efficiency is important. Ideally, \gls{CP} should function as a lightweight wrapper around an existing model without requiring retraining. Another important consideration is the \textit{informativeness} of the result~\cite{Zhou-ConformalPredictionDataPerspective-2025}. While coverage is guaranteed, the practical usefulness of conformal prediction depends on producing sets or intervals that remain small when the model is confident and expand only when uncertainty is high. They should provide actionable insights about the model's output.
+
+At the core of the conformal framework is the \textit{non-conformity score}, which quantifies the inconsistency of a labeled example where larger values indicate that the label poorly matches the feature. The function itself is user-defined and describes the heuristic notion of uncertainty. The choice of function primarily determines the informativeness of the  resulting prediction sets.
 
 The following sections introduce specific conformal methods and describe how they can be used for quantifying uncertainty in classification tasks.
 
 \subsection{Full Conformal Prediction}
 \label{sect:full_conformal_prediction}
-The central idea behind \gls{CP} for classification is to evaluate how plausible each possible label would be if it were assigned to a new test example. Rather than committing to a single prediction, the method tests every candidate label and retains those that appear consistent with seen data. The collection of all labels that pass this test forms the prediction set returned by the method. What consistent means in this context depends on the user-specified probabilistic coverage guarantee the prediction set has to fulfill.
+The central idea behind Full \gls{CP} for classification is to evaluate how plausible each possible label would be if it were assigned to a new test example. Rather than committing to a single prediction, the method tests every candidate label and retains those that appear consistent with seen data. The collection of all labels that pass this test forms the prediction set returned by the method. What consistent means in this context depends on the user-specified probabilistic coverage guarantee the prediction set has to fulfill.
 
-Formally, consider a training dataset consisting of feature–label pairs $(X_1, Y_1), (X_2, Y_2), ..., (X_n, Y_n)$ and a test point $(X_{test}, Y_{test}) \in \mathcal{X} \times \mathcal{Y}$ with the test label being unobserved. The aim is to construct a prediction set for the test feature $\mathcal{C}(X_{test}) \subseteq \mathcal{Y}$ such that it satisfies the \textit{marginal predictive coverage} for an error rate (or \textit{significance level}) $\alpha \in [0, 1]$ defined as follows \cite{Angelopoulus-ConformalPrediction-2023, Zhou-ConformalPredictionDataPerspective-2025, Angelopoulos-ConformalPredictionTheory-2025}:
+Formally, consider a training dataset consisting of feature–label pairs $(X_1, Y_1), (X_2, Y_2), ..., (X_n, Y_n)$ and a test point $(X_{test}, Y_{test}) \in \mathcal{X} \times \mathcal{Y}$ with the test label being unobserved. The aim is to construct a prediction set for the test feature $\mathcal{C}(X_{test}) \subseteq \mathcal{Y}$ such that it satisfies the \textit{marginal predictive coverage} for an error rate (or \textit{significance level}) $\alpha \in [0, 1]$ defined as follows~\cite{Angelopoulus-ConformalPrediction-2023, Zhou-ConformalPredictionDataPerspective-2025, Angelopoulos-ConformalPredictionTheory-2025}:
 $$\mathbb{P}(Y_{test} \in \mathcal{C}(X_{test})) \ge 1 - \alpha$$
 In other words, the prediction set should contain the true label with probability at least $1−\alpha$ when evaluated over new data.
 
-\gls{CP} quantifies the inconsistency of a labeled example by a \textit{non-conformity score} where larger values indicate that the label poorly matches the feature based on the data seen. The function itself is user-defined and describes the heuristic notion of uncertainty. The choice of function primarily determines the informativeness of the  resulting prediction sets. In \textit{full \gls{CP}}, the score function $s((x, y); \mathcal{D}) \in \mathbb{R}$ measures the error of a model trained with $\mathcal{D} \in (\mathcal{X} \times \mathcal{Y})^*$ on the feature-label pair $(x,y) \in \mathcal{X} \times \mathcal{Y}$ \cite{Angelopoulus-ConformalPrediction-2023}. For classification, a common  score function is $s((x, y); \mathcal{D}) = 1 - \hat{p}_y(x)$ where $\hat{p}_y(x)$ denotes the predicted probability of class $y$ when plugging in feature $x$ into a model trained using $\mathcal{D}$.
+In \textit{full \gls{CP}}, the non-conformity score $s((x, y); \mathcal{D}) \in \mathbb{R}$ measures the error of a model trained with $\mathcal{D} \in (\mathcal{X} \times \mathcal{Y})^*$ on the feature-label pair $(x,y) \in \mathcal{X} \times \mathcal{Y}$~\cite{Angelopoulus-ConformalPrediction-2023}. For classification, a common  score function is $s((x, y); \mathcal{D}) = 1 - \hat{p}_y(x)$ where $\hat{p}_y(x)$ denotes the predicted probability of class $y$ when plugging in feature $x$ into a model trained using $\mathcal{D}$.
 
-\begin{listing}[t]
+\begin{algorithm}[t]
     \begin{algorithmic}[1]
         \renewcommand{\algorithmicrequire}{}
         \REQUIRE
@@ -143,24 +148,24 @@ In other words, the prediction set should contain the true label with probabilit
         \FORALL{$y \in \mathcal{Y}$}
             \STATE Augmented training set: $\mathcal{D}^y \leftarrow \mathcal{D} \cup (X_{test}, y)$
             \STATE Conformal scores: $S_i^y \leftarrow s((X_i, Y_i); \mathcal{D}^y)$ for all $i \in \{1, \dots, n\}$
-            \STATE Conformal scores of hypothesized test point: $S_{test}^y \leftarrow s((X_{test}, y); \mathcal{D}^y)$
-            \STATE Conformal quantile: $\hat{q}^y \leftarrow Quantile(S_1^y, \dots, S_n^y; (1 - \alpha)(1 + 1/n))$
+            \STATE Conformal score of hypothesized test point: $S_{test}^y \leftarrow s((X_{test}, y); \mathcal{D}^y)$
+            \STATE Conformal quantile: $\hat{q}^y \leftarrow Quantile(S_1^y, \dots, S_n^y, S_{test}^y; (1 - \alpha)(1 + 1/n))$
         \ENDFOR
         \RETURN Prediction set: $\mathcal{C}(X_{test}) \leftarrow \{y \in \mathcal{Y} : S_{test}^y \le \hat{q}^y\}$
     \end{algorithmic}
-    \caption{Full conformal prediction algorithm for classification}
-    \label{list:full_conformal_prediction}
-\end{listing}
+    \caption{Full Conformal Prediction for Classification}
+    \label{alg:full_conformal_prediction}
+\end{algorithm}
 
-The core idea of \textit{full \gls{CP}} is to systematically test every candidate label $y$ in the entire label space $\mathcal{Y}$ for its plausibility relative to the observed training data. For each candidate label, full \gls{CP} constructs a hypothetical augmented dataset by pairing the test feature $X_{test}$ with that specific candidate and treating this pair as a legitimate part of the original training set. The non-conformity score is computed for every point in this new, larger dataset, which involves a complete training cycle of the underlying model for every possible label. If the score of the hypothesized test point $(X_{test}, y)$ is higher than the $(1 - \alpha)$ quantile of the other scores, the label is deemed inconsistent. Any label that passes this consistency test is added to the final prediction set $\mathcal{C}(X_{test})$. Listing \ref{list:full_conformal_prediction} shows the detailed algorithm of full conformal prediction as adapted from Angelopoulos et al. \cite{Angelopoulos-ConformalPredictionTheory-2025}, which also includes finite-sample corrections in the quantile computation.
+The core idea of \textit{full \gls{CP}} is to systematically test every candidate label $y$ in the entire label space $\mathcal{Y}$ for its plausibility relative to the observed training data. For each candidate label, full \gls{CP} constructs a hypothetical augmented dataset by pairing the test feature $X_{test}$ with that specific candidate and treating this pair as a legitimate part of the original training set. The non-conformity score is computed for every point in this new, larger dataset, which involves a complete training cycle of the underlying model for every possible label. If the score of the hypothesized test point $(X_{test}, y)$ is higher than the $(1 - \alpha)$ quantile of the other scores, the label is deemed inconsistent. Algorithm~\ref{list:full_conformal_prediction} shows the full conformal prediction process as adapted from Angelopoulos et al. \cite{Angelopoulos-ConformalPredictionTheory-2025}, which also includes finite-sample corrections in the quantile computation.
 
 Intuitively, when performing the test with the correct label, the test point becomes statistically indistinguishable from the training data, meaning its score is unlikely to be very high. By only rejecting labels that make the test point look like a rare anomaly compared to the rest of the group, it is ensured that the true label is retained with the exact probability specified.
 
 \subsection{Split Conformal Prediction}
 \label{sect:split_conformal_prediction}
-Full \gls{CP} as described is computationally impractical. It requires full retraining for each possible label and a repetition of this process for every new observation. A computationally efficient variant called \textit{split \gls{CP}} instead divides the training set into data used for model fitting  $\mathcal{D}_{mod} \in (\mathcal{X} \times \mathcal{Y})^m$ and data used as a calibration set $\mathcal{D}_{cal} \in (\mathcal{X} \times \mathcal{Y})^n$ for computing the non-conformity scores as a comparison \cite{Vovk-AlgorithmicLearning-2022}. Listing \ref{list:split_conformal_prediction} shows the updated algorithm for split \gls{CP}.
+Full \gls{CP} as described is computationally impractical. It requires full retraining for each possible label and a repetition of this process for every new observation. A computationally efficient variant called \textit{split \gls{CP}} instead divides the training set into data used for model fitting  $\mathcal{D}_{mod} \in (\mathcal{X} \times \mathcal{Y})^m$ and data used as a calibration set $\mathcal{D}_{cal} \in (\mathcal{X} \times \mathcal{Y})^n$ for computing the non-conformity scores as a comparison~\cite{Vovk-AlgorithmicLearning-2022}. Algorithm ~\ref{alg:split_conformal_prediction} shows the updated mechanism for split \gls{CP}.
 
-\begin{listing}[t]
+\begin{algorithm}[t]
     \begin{algorithmic}[1]
         \renewcommand{\algorithmicrequire}{}
         \REQUIRE
@@ -178,13 +183,13 @@ Full \gls{CP} as described is computationally impractical. It requires full retr
         \STATE Conformal quantile: $\hat{q} \leftarrow Quantile(S_1, \dots, S_n; (1 - \alpha)(1 + 1/n))$
         \RETURN Prediction set: $\mathcal{C}(X_{test}) \leftarrow \{y \in \mathcal{Y}: s(X_{test}, y) \le \hat{q}\}$
     \end{algorithmic}
-    \caption{Split conformal prediction algorithm for classification}
-    \label{list:split_conformal_prediction}
-\end{listing}
+    \caption{Split Conformal Prediction for Classification}
+    \label{alg:split_conformal_prediction}
+\end{algorithm}
 
-The fundamental shift in split \gls{CP} is the freezing of the underlying predictive model trained on $\mathcal{D}_{mod}$ from which a non-conformity score $s: \mathcal{X} \times \mathcal{Y} \rightarrow \mathbb{R}$ can be constructed. Compared to before, $s(x, y)$ becomes a fixed mapping that no longer changes when we evaluate on features and labels not involved in the model creation process. This decoupling is what allows split \gls{CP} to bypass the exhaustive retraining required by the full version \cite{Angelopoulos-ConformalPredictionTheory-2025}. Note that this approach also allows direct construction of such a score function using, for instance, domain-specific knowledge to capture a heuristic notion of uncertainty. 
+The fundamental shift in split \gls{CP} is the freezing of the underlying predictive model trained on $\mathcal{D}_{mod}$ from which a non-conformity score $s: \mathcal{X} \times \mathcal{Y} \rightarrow \mathbb{R}$ can be constructed. Compared to the full conformal setting from before, $s(x, y)$ becomes a fixed mapping that no longer changes when we evaluate on features and labels not involved in the model creation process. This decoupling is what allows split \gls{CP} to bypass the exhaustive retraining required by the full version~\cite{Angelopoulos-ConformalPredictionTheory-2025}. Note that this approach also allows direct construction of such a score function using, for instance, domain-specific knowledge to capture a heuristic notion of uncertainty. 
 
-The validity of split \gls{CP} relies on the assumption that the calibration data $\mathcal{D}_{cal}$ and any test point $(X_{test}, Y_{test})$ are exchangeable. If this holds and none of the data points were used for model construction, the corresponding non-conformity scores $\{S_1, \dots, S_n, S_{test}\}$ are also exchangeable. This ensures that the non-conformity score of a previously unseen test observation is equally likely to occupy any rank when compared against a set of calibration scores \cite{Angelopoulus-ConformalPrediction-2023}, as shown in Figure \ref{fig:split_conformal_prediction}. When we therefore include all possible labels $y \in \mathcal{Y}$ in the final prediction set, where the scores $s(X_{test}, y)$ end up in the $1 - \alpha$ quantile of the calibration scores, we guarantee that it contains the ground truth with a probability of $1 - \alpha$.
+The validity of split \gls{CP} relies on the assumption that the calibration data $\mathcal{D}_{cal}$ and any test point $(X_{test}, Y_{test})$ are exchangeable. If this holds and none of the data points were used for model construction, the corresponding non-conformity scores $\{S_1, \dots, S_n, S_{test}\}$ are also exchangeable. This ensures that the non-conformity score of a previously unseen test observation is equally likely to occupy any rank when compared against a set of calibration scores~\cite{Angelopoulus-ConformalPrediction-2023}, as shown in Figure~\ref{fig:split_conformal_prediction}. When we therefore include all possible labels $y \in \mathcal{Y}$ in the final prediction set, where the scores $s(X_{test}, y)$ end up in the $1 - \alpha$ quantile of the calibration scores, we guarantee that it contains the ground truth with a probability of $1 - \alpha$.
 
 Since the calibration set $\mathcal{D}_{cal}$ is fixed during the deployment phase, the consistency threshold $\hat{q}$ can be precomputed once. For any incoming test feature $X_{test}$, generating the prediction set $\mathcal{C}(X_{test})$ simply requires computing the non-conformity scores for every possible label (which does not require retraining) and a comparison of the resulting scores against the precomputed $\hat{q}$.
 
@@ -194,23 +199,25 @@ Since the calibration set $\mathcal{D}_{cal}$ is fixed during the deployment pha
     \caption{A depiction of split conformal prediction with a calibration set. The score of a new test feature has an equal probability to fall in between any two calibration scores when the correct label $Y_{test}$ is plugged in. This actual score will be greater than the consistency threshold and therefore inconsistent with the calibration data with a probability of $\alpha$.}
     \label{fig:split_conformal_prediction}
 \end{figure}
-\todo{include upper bound on probability}
+
+Split \gls{CP} in the presented form also has a desirable upper bound on the coverage with a calibration set of size $n$.
+$$1 - \alpha \le \mathbb{P}(Y_{test} \in \mathcal{C}(X_{test})) \le 1 - \alpha + \frac{1}{n + 1}$$
 
 \subsection{Conformal Risk Control}
 \label{sect:conformal_risk_control}
-While classical \gls{CP} guarantees that the true label is contained in the prediction set with probability at least $1-\alpha$, this notion of coverage does not always align with the operational objectives of a deployed system. Many applications care about controlling a specific \textit{risk} associated with predictions rather than the simple probability of excluding the true label. For instance, a goal could be to limit the \gls{FNR} for a specific class or control the error rate of an out-of-distribution detector. \gls{CRC} therefore extends the conformal prediction framework to address such objectives by providing guarantees on user-defined risk measures \cite{Angelopoulus-ConformalRiskControl-2025, Angelopoulos-ConformalPredictionTheory-2025}.
+While classical \gls{CP} guarantees that the true label is contained in the prediction set with probability at least $1-\alpha$, this notion of coverage does not always align with the operational objectives of a deployed system. Many applications care about controlling a specific \textit{risk} associated with predictions rather than the simple probability of excluding the true label. For instance, a goal could be to limit the \gls{FNR} for a specific class or control the error rate of an out-of-distribution detector. \gls{CRC} therefore extends the conformal prediction framework to address such objectives by providing guarantees on user-defined risk measures~\cite{Angelopoulus-ConformalRiskControl-2025, Angelopoulos-ConformalPredictionTheory-2025}.
 
-The central idea of \gls{CRC} for classification is again to construct a prediction set $\mathcal{C}_\lambda(X_{test})$ for a test point $(X_{test}, Y_{test}) \in \mathcal{X} \times \mathcal{Y}$ with an unknown label while given a calibration dataset of feature-label pairs $(X_1, Y_1), (X_2, Y_2), \dots, (X_n, Y_n)$. Unlike classical \gls{CP}, which guarantees that the true label is contained in the set with a fixed probability, \gls{CRC} provides an expectation bound on a user-defined loss function $\mathcal{L}$ \cite{Angelopoulus-ConformalRiskControl-2025}. For a bounded loss $\mathcal{L}: 2^{\mathcal{Y}} \times \mathcal{Y} \rightarrow (-\infty, B]$ and a desired risk limit $\alpha \in (-\infty, B]$, \gls{CRC} ensures:
+The central idea of \gls{CRC} for classification is again to construct a prediction set $\mathcal{C}_\lambda(X_{test})$ for a test point $(X_{test}, Y_{test}) \in \mathcal{X} \times \mathcal{Y}$ with an unknown label while given a calibration dataset of feature-label pairs $(X_1, Y_1), (X_2, Y_2), \dots, (X_n, Y_n)$. Unlike classical \gls{CP}, which guarantees that the true label is contained in the set with a fixed probability, \gls{CRC} provides an expectation bound on a user-defined loss function $\mathcal{L}$~\cite{Angelopoulus-ConformalRiskControl-2025}. For a bounded loss $\mathcal{L}: 2^{\mathcal{Y}} \times \mathcal{Y} \rightarrow (-\infty, B]$ and a desired risk limit $\alpha \in (-\infty, B]$, \gls{CRC} ensures:
 $$\mathbb{E}(\mathcal{L}(\mathcal{C}_{\widehat\lambda}(X_{test}), Y_{test})) \le \alpha$$
 
 \begin{figure}[t]
     \centering
     \input{figures/conformal_risk_control_tikz}
-    \caption{Empirical risk $\hat{R}(\lambda)$ as a function of the tuning parameter $\lambda$ adapted from \cite{Angelopoulos-ConformalPredictionTheory-2025}. The selected value $\hat{\lambda}$ is the smallest parameter for which the corrected empirical risk falls below the target risk level.}
+    \caption{Empirical risk $\hat{R}(\lambda)$ as a function of the tuning parameter $\lambda$ adapted from~\cite{Angelopoulos-ConformalPredictionTheory-2025}. The selected value $\hat{\lambda}$ is the smallest parameter for which the empirical risk falls below the target risk level.}
     \label{fig:conformal_risk_control}
 \end{figure}
 
-The mechanism for achieving this guarantee is the parameter $\lambda$, which acts as a threshold for set inclusion. Instead of calculating a single quantile as in classical \gls{CP}, \gls{CRC} searches over a family of prediction rules $\mathcal{C}_\lambda(x)$. The validity of the framework relies on two properties of monotonicity \cite{Angelopoulos-ConformalPredictionTheory-2025}:
+The mechanism for achieving this guarantee is the parameter $\lambda$, which acts as a threshold for set inclusion. Instead of calculating a single quantile as in classical \gls{CP}, \gls{CRC} searches over a family of prediction rules $\mathcal{C}_\lambda(x)$. The validity of the framework relies on two properties of monotonicity~\cite{Angelopoulos-ConformalPredictionTheory-2025}:
 
 \begin{enumerate}
     \item As $\lambda$ increases, the prediction set $\mathcal{C}_\lambda(x)$ must grow or stay the same size: 
@@ -218,16 +225,21 @@ The mechanism for achieving this guarantee is the parameter $\lambda$, which act
     \item Larger prediction sets must result in a lower (or equal) loss: 
     $$\mathcal{C} \subseteq \mathcal{C}' \Rightarrow \mathcal{L}(\mathcal{C}, y) \ge \mathcal{L}(\mathcal{C}', y)$$
 \end{enumerate}
+
+In a classification setting, a common prediction set construction method based on $\lambda \in [0, 1]$ can look like this:
+$$\mathcal{C}_\lambda(x) = \{y : \hat{p}_y(x) \ge \lambda\}$$
+$\hat{p}_y(x)$ again denotes the probability of class $y$ when plugging in feature $x$ into some predictive model, which means that the prediction set includes all classes where this predicted probability is larger than $\lambda$.
+
 \todo{Later put a reference here to the section where we formalize the prediction problem for fast-path gating as an example}
 
 By combining these properties, the empirical risk $\widehat{R}(\lambda)$ defined as the average loss over the calibration set becomes a monotonically decreasing function of $\lambda$:
 
 $$\widehat{R}(\lambda) = \frac{1}{n} \sum_{i=1}^n \mathcal{L}(\mathcal{C}_{\lambda}(X_i), Y_i)$$
 
-The objective is to select the smallest value of $\lambda$ whose empirical risk estimate remains below the desired risk limit $\alpha$, as shown in Figure \ref{fig:conformal_risk_control}. With the inclusion of correction terms due to sampling variability in the risk estimate, this equation yields a valid selection rule for $\widehat{\lambda}$ \cite{Angelopoulus-ConformalRiskControl-2025, Angelopoulos-ConformalPredictionTheory-2025}:
+The objective is to select the smallest value of $\lambda$ whose empirical risk estimate remains below the desired risk limit $\alpha$, as shown in Figure~\ref{fig:conformal_risk_control}. With the inclusion of correction terms due to sampling variability in the risk estimate, this equation yields a valid selection rule for $\widehat{\lambda}$~\cite{Angelopoulus-ConformalRiskControl-2025, Angelopoulos-ConformalPredictionTheory-2025}:
 $$\widehat{\lambda} = \inf \left\{ \lambda : \frac{n}{n+1} \widehat{R}(\lambda) + \frac{B}{n+1} \leq \alpha \right\} = \inf \left\{ \lambda: \widehat{R}(\lambda) \leq \alpha - \frac{B - \alpha}{n} \right\}$$
 
-\begin{listing}[t]
+\begin{algorithm}[t]
     \begin{algorithmic}[1]
         \renewcommand{\algorithmicrequire}{}
         \REQUIRE
@@ -249,45 +261,45 @@ $$\widehat{\lambda} = \inf \left\{ \lambda : \frac{n}{n+1} \widehat{R}(\lambda) 
         \STATE Select parameter: $\widehat{\lambda} \leftarrow \inf \left\{ \lambda : \frac{n}{n+1} \hat{R}^\lambda + \frac{B}{n+1} \leq \alpha \right\}$
         \RETURN $\mathcal{C}_{\hat{\lambda}}(X_{test})$
     \end{algorithmic}
-    \caption{Conformal risk control algorithm for classification}
-    \label{list:conformal_risk_control}
-\end{listing}
+    \caption{Conformal Risk Control for Classification}
+    \label{alg:conformal_risk_control}
+\end{algorithm}
 
-Listing \ref{list:conformal_risk_control} formalizes the algorithm for utilizing conformal risk control in a classification setting. In a practical implementation, $\widehat{\lambda}$ can be efficiently pre-computed using a binary-search mechanism.
+Algorithm~\ref{alg:conformal_risk_control} formalizes the utilization conformal risk control in a classification setting. In a practical implementation, $\widehat{\lambda}$ can be efficiently pre-computed using a binary-search mechanism.
 
 \subsection{Adaptive Conformal Inference?}
 
 \section{Related Work}
 \label{sec:related_work}
 
-To ground this work, we examine three intersecting areas: modern fast-path consensus protocols, adaptive mechanisms for consensus under varying conditions, and the emerging use of conformal methods for robust decision-making in data systems.
+To ground this work, we examine three intersecting areas: modern fast-path consensus protocols, adaptive mechanisms for consensus under varying conditions, and the emerging use of conformal methods for data systems.
 
 \subsection{Modern Fast-Path Consensus Protocols}
 Although Fast Paxos can be used to implement a replicated log, doing so limits the effectiveness of its fast path. As a result, subsequent work often treats ordering as a flexible property and applies coordination only where required to preserve the correctness of the application-level state machine.
 
-Generalized Paxos \cite{Lamport-GeneralizedPaxos-2005} first formalized agreement on partially ordered command structures, enabling fast decisions when operations commute. EPaxos \cite{Moraru-Epaxos-2013} demonstrates how this idea can be realized in practice by replacing total order with dependency tracking, allowing replicas to execute independent commands without global coordination. Crucially, these relaxed guarantees make it possible to use the fast path with a low collision rate, since in practice most operations do not conflict.
+Generalized Paxos~\cite{Lamport-GeneralizedPaxos-2005} first formalized agreement on partially ordered command structures, enabling fast decisions when operations commute. EPaxos~\cite{Moraru-Epaxos-2013} demonstrates how this idea can be realized in practice by replacing total order with dependency tracking, allowing replicas to execute independent commands without global coordination. Crucially, these relaxed guarantees make it possible to use the fast path with a low collision rate, since in practice most operations do not conflict.
 
-Several protocols extend this line of work under the weakened conditions, including Caesar \cite{Arun-Caesar-2017}, Atlas \cite{Enes-Atlas-2020}, BPaxos \cite{Tollman-BPaxos-2021}, Skyros \cite{Ganesan-Skyros-2023}, and Gryff \cite{Burke-Gryff-2020}. These systems explore different mechanisms for ordering, conflict detection, and system structuring, while retaining an optimistic fast path with a fallback when conflicts occur. Curp \cite{Park-Curp-2019} allows clients to reach durability for non-conflicting requests by replicating them to a set of witnesses, deferring the more expensive task of ordering to the background when conflicts arise.
+Several protocols extend this line of work under the weakened conditions, including Caesar~\cite{Arun-Caesar-2017}, Atlas~\cite{Enes-Atlas-2020}, BPaxos~\cite{Tollman-BPaxos-2021}, Skyros~\cite{Ganesan-Skyros-2023}, and Gryff~\cite{Burke-Gryff-2020}. These systems explore different mechanisms for ordering, conflict detection, and system structuring, while retaining an optimistic fast path with a fallback when conflicts occur. Curp~\cite{Park-Curp-2019} allows clients to reach durability for non-conflicting requests by replicating them to a set of witnesses, deferring the more expensive task of ordering to the background when conflicts arise.
 
 Across these designs, a common pattern emerges: modern fast-path consensus protocols often avoid the abstraction of a totally ordered replicated log and instead rely on partial orders and dependency tracking to reduce coordination. However, this shift has limitations, as log-free or partially ordered approaches are not universally applicable and may not provide the guarantees required by all applications.
 
-Nezha \cite{Geng-NezhaConsensus-2022} takes a different approach by attempting to make the fast path viable while retaining a replicated log. It does so by forcing replicas to observe requests in the same order using a deadline-ordered multicast. This reduces collisions through network timing control.
+Nezha~\cite{Geng-NezhaConsensus-2022} takes a different approach by attempting to make the fast path viable while retaining a replicated log. It does so by forcing replicas to observe requests in the same order using a deadline-ordered multicast. This reduces collisions through network timing control.
 
 \subsection{Adaptive Consensus}
 While consensus protocols are typically engineered as fixed, one-size-fits-all designs, real-world deployments operate under highly variable conditions, motivating research into adaptive mechanisms that adjust protocol behavior at runtime.
 
-Junqueira et al. \cite{Junqueira-ClassicVsFastPaxos-2007} show, both analytically and through simulation, that in wide-area deployments with high variance in message latency, Fast Paxos can in fact be slower than Classic Paxos with significant probability, despite its theoretically shorter message path. This result highlights that the relative performance of consensus protocols depends strongly on network conditions, quorum sizes, and message latency variance.
+Junqueira et al.~\cite{Junqueira-ClassicVsFastPaxos-2007} show, both analytically and through simulation, that in wide-area deployments with high variance in message latency, Fast Paxos can in fact be slower than Classic Paxos with significant probability, despite its theoretically shorter message path. This result highlights that the relative performance of consensus protocols depends strongly on network conditions, quorum sizes, and message latency variance.
 
-Howard et al. \cite{Howard-FlexiblePaxos-2016} show that it is sufficient for quorums from different phases to intersect, allowing phase quorums to be chosen independently and enabling a wider range of quorum configurations. This flexibility allows systems to tune quorum sizes to trade off latency, throughput, and fault tolerance depending on deployment conditions.
+Howard et al.~\cite{Howard-FlexiblePaxos-2016} show that it is sufficient for quorums from different phases to intersect, allowing phase quorums to be chosen independently and enabling a wider range of quorum configurations. This flexibility allows systems to tune quorum sizes to trade off latency, throughput, and fault tolerance depending on deployment conditions.
 
-More recent work explores adaptive behavior more directly. Reginald et al. \cite{Reginald-ConsensusUncertainty-2025} propose modeling failures probabilistically using machine-specific failure probabilities rather than a fixed failure threshold. Shiozaki et al. \cite{Shiozaki-DynamicRaftTuning-2025} explore dynamic tuning of Raft’s election parameters based on network conditions. Hu et al. \cite{Hu-AdaptiveConsensus-2025} present Crossword, an adaptive consensus protocol designed for dynamic, data-heavy workloads.
+More recent work explores adaptive behavior more directly. Reginald et al.~\cite{Reginald-ConsensusUncertainty-2025} propose modeling failures probabilistically using machine-specific failure probabilities rather than a fixed failure threshold. Shiozaki et al.~\cite{Shiozaki-DynamicRaftTuning-2025} explore dynamic tuning of Raft’s election parameters based on network conditions. Hu et al.~\cite{Hu-AdaptiveConsensus-2025} present Crossword, an adaptive consensus protocol designed for dynamic, data-heavy workloads.
 
 \subsection{Conformal Methods for Data Systems}
-Research on the application of \gls{CP} to data management systems remains very limited. Li et al. \cite{Li-ConformalPredictionPlanSelection-2023} introduce dbET, which constructs execution time distributions for query plans of database management systems. They use conformal methods to produce intervals that are guaranteed to cover the actual execution time with a predefined probability level, which can then be used for query optimization.
+Applying the principles of \gls{CP} to data management systems has only recently begun to receive attention in research. Li et al.~\cite{Li-ConformalPredictionPlanSelection-2023} introduce dbET, which constructs execution time distributions for query plans of database management systems. They use conformal methods to produce intervals that are guaranteed to cover the actual execution time with a predefined probability level, which can then be used for query optimization.
 
-Liu et al. \cite{Liu-ConformalPredictionQueryOptimization-2025} employ \gls{CP} to provide rigorous statistical guarantees and runtime verification for learned query optimizers, addressing their potential for performance instability. They formulate the verification as a \gls{CP} problem to derive user-controlled bounded ranges for actual query latency before execution, ensuring that plans meet performance constraints at a specified confidence level. They also discuss adaptive methods for handling distribution shift.
+Liu et al.~\cite{Liu-ConformalPredictionQueryOptimization-2025} employ \gls{CP} to provide rigorous statistical guarantees and runtime verification for learned query optimizers, addressing their potential for performance instability. They formulate the verification as a \gls{CP} problem to derive user-controlled bounded ranges for actual query latency before execution, ensuring that plans meet performance constraints at a specified confidence level. They also discuss adaptive methods for handling distribution shift.
 
-Finally, Horchidan et al. \cite{Horchidan-ConANN-2025} present ConANN, a framework that provides formal, distribution-free error guarantees using \gls{CRC} for approximate nearest neighbor search in an inverted file vector index. The system dynamically calibrates the number of clusters probed for each query, ensuring that the \gls{FNR} remains below a user-defined threshold with high confidence.
+Finally, Horchidan et al.~\cite{Horchidan-ConANN-2025} present ConANN, the first framework to provide formal, distribution-free error guarantees using \gls{CRC} for approximate nearest neighbor search in an inverted file vector index. The system dynamically calibrates the number of clusters probed for each query, ensuring that the \gls{FNR} remains below a user-defined threshold with high confidence.
 
 \section{Summary}
 \label{sec:summary}
@@ -297,6 +309,6 @@ Finally, Horchidan et al. \cite{Horchidan-ConANN-2025} present ConANN, a framewo
 
 We presented the theoretical foundations for both replicated state machines and uncertainty-aware decision-making. \gls{SMR} was described as the standard approach for building fault-tolerant services, with uniform sequence consensus and leader-based Sequence Paxos providing the formal and practical basis for maintaining a replicated log. Fast Paxos and related fast-path techniques reduce latency by allowing replicas to bypass the leader, but this optimization is inherently optimistic: it improves performance when collisions are rare, but can degrade performance when contention or network delays are high.
 
-To address this uncertainty, we introduced \gls{CP} and \gls{CRC} as statistical frameworks that provide formal guarantees. Split conformal prediction enables efficient uncertainty estimation in practical systems, while conformal risk control allows guarantees over system-level risk rather than simple prediction coverage. These methods make it possible to transform heuristic confidence estimates into decisions with formal guarantees.
+As methods to address uncertainty, we introduced \gls{CP} and \gls{CRC} as statistical frameworks that provide formal guarantees. Split conformal prediction enables efficient uncertainty estimation in practical systems, while \gls{CRC} allows guarantees over system-level risk rather than simple prediction coverage. These methods make it possible to transform heuristic confidence estimates into decisions with formal guarantees.
 
-Finally, we highlighted the gap in prior work where adaptive mechanisms for replicated logs remain limited while conformal methods have been shown to provide formal guarantees in decision-making for data systems. This motivates the approach of this thesis: using uncertainty-aware methods to adapt the use of fast-path consensus in replicated log systems.
+Finally, we highlighted the gap in prior work where adaptive mechanisms for replicated logs remain limited while conformal methods have been successfully applied to provide formal guarantees for data management systems. This motivates the approach of this thesis: using uncertainty-aware methods to adapt the use of fast-path consensus in replicated log systems.
