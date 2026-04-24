@@ -157,7 +157,7 @@ In \textit{full \gls{CP}}, the non-conformity score $s((x, y); \mathcal{D}) \in 
     \label{alg:full_conformal_prediction}
 \end{algorithm}
 
-The core idea of \textit{full \gls{CP}} is to systematically test every candidate label $y$ in the entire label space $\mathcal{Y}$ for its plausibility relative to the observed training data. For each candidate label, full \gls{CP} constructs a hypothetical augmented dataset by pairing the test feature $X_{test}$ with that specific candidate and treating this pair as a legitimate part of the original training set. The non-conformity score is computed for every point in this new, larger dataset, which involves a complete training cycle of the underlying model for every possible label. If the score of the hypothesized test point $(X_{test}, y)$ is higher than the $(1 - \alpha)$ quantile of the other scores, the label is deemed inconsistent. Algorithm~\ref{list:full_conformal_prediction} shows the full conformal prediction process as adapted from Angelopoulos et al. \cite{Angelopoulos-ConformalPredictionTheory-2025}, which also includes finite-sample corrections in the quantile computation.
+The core idea of \textit{full \gls{CP}} is to systematically test every candidate label $y$ in the entire label space $\mathcal{Y}$ for its plausibility relative to the observed training data. For each candidate label, full \gls{CP} constructs a hypothetical augmented dataset by pairing the test feature $X_{test}$ with that specific candidate and treating this pair as a legitimate part of the original training set. The non-conformity score is computed for every point in this new, larger dataset, which involves a complete training cycle of the underlying model for every possible label. If the score of the hypothesized test point $(X_{test}, y)$ is higher than the $(1 - \alpha)$ quantile of the other scores, the label is deemed inconsistent. Algorithm~\ref{alg:full_conformal_prediction} shows the full conformal prediction process as adapted from Angelopoulos et al. \cite{Angelopoulos-ConformalPredictionTheory-2025}, which also includes finite-sample corrections in the quantile computation.
 
 Intuitively, when performing the test with the correct label, the test point becomes statistically indistinguishable from the training data, meaning its score is unlikely to be very high. By only rejecting labels that make the test point look like a rare anomaly compared to the rest of the group, it is ensured that the true label is retained with the exact probability specified.
 
@@ -226,16 +226,15 @@ The mechanism for achieving this guarantee is the parameter $\lambda$, which act
     $$\mathcal{C} \subseteq \mathcal{C}' \Rightarrow \mathcal{L}(\mathcal{C}, y) \ge \mathcal{L}(\mathcal{C}', y)$$
 \end{enumerate}
 
+By combining these properties, the empirical risk $\widehat{R}(\lambda)$ defined as the average loss over the calibration set becomes a monotonically decreasing function of $\lambda$:
+
+$$\widehat{R}(\lambda) = \frac{1}{n} \sum_{i=1}^n \mathcal{L}(\mathcal{C}_{\lambda}(X_i), Y_i)$$
+
 In a classification setting, a common prediction set construction method based on $\lambda \in [0, 1]$ can look like this:
 $$\mathcal{C}_\lambda(x) = \{y : \hat{p}_y(x) \ge \lambda\}$$
 $\hat{p}_y(x)$ again denotes the probability of class $y$ when plugging in feature $x$ into some predictive model, which means that the prediction set includes all classes where this predicted probability is larger than $\lambda$.
 
 \todo{Later put a reference here to the section where we formalize the prediction problem for fast-path gating as an example}
-
-By combining these properties, the empirical risk $\widehat{R}(\lambda)$ defined as the average loss over the calibration set becomes a monotonically decreasing function of $\lambda$:
-
-$$\widehat{R}(\lambda) = \frac{1}{n} \sum_{i=1}^n \mathcal{L}(\mathcal{C}_{\lambda}(X_i), Y_i)$$
-
 The objective is to select the smallest value of $\lambda$ whose empirical risk estimate remains below the desired risk limit $\alpha$, as shown in Figure~\ref{fig:conformal_risk_control}. With the inclusion of correction terms due to sampling variability in the risk estimate, this equation yields a valid selection rule for $\widehat{\lambda}$~\cite{Angelopoulus-ConformalRiskControl-2025, Angelopoulos-ConformalPredictionTheory-2025}:
 $$\widehat{\lambda} = \inf \left\{ \lambda : \frac{n}{n+1} \widehat{R}(\lambda) + \frac{B}{n+1} \leq \alpha \right\} = \inf \left\{ \lambda: \widehat{R}(\lambda) \leq \alpha - \frac{B - \alpha}{n} \right\}$$
 

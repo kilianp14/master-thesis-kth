@@ -2,41 +2,48 @@
 %\engExpl{What have you done? How did you do it? What design decisions did you make? How did what you did help you to meet your goals?}
 %\sweExpl{Vad du har gjort? Hur gjorde du det? Vilka designval gjorde du?Hur kom det du hjälpte dig att uppnå dina mål?}
 
-\section[Hardware/Software design …/Model/Simulation model  parameters/…]{Hardware/Software design …/Model/Simulation model \& parameters/…}
+\section{Adaptive Fast Mode Switching}
+\begin{itemize}
+    \item Choice of operating Mode (Regular Paxos, Fast Paxos) is made dynamically whenever a node wants to append something to the replicated log
+    \item Important: This decision is made INDEPENDENTLY for each node, meaning that different servers can have varying operating modes
+    \item Leader of a ballot always operates in normal mode since this will always be faster/ more successful, as a majority quorum is easier to achieve than a fast quorum and there is no forwarding penalty which would make it slower for a follower
+\end{itemize}
 
+\subsection{Mode Interoperability}
+\begin{itemize}
+    \item Different Accept Status in accept/accepted messages: FastAccept, LeaderAccept, SlowAccept
+    \item Operating Mode during Append: Fast Paxos -> Broadcast Accept with status FastAccept
+    \item Regular Paxos -> Forward Append Request to Leader who then broadcasts with LeaderAccept
+    \item Leader keeps a record of accepted messages for all open slots and if leader detects a collision: Broadcasts Slow Accept for that slot with the determined value
+    \item Followers react to the status in the accept phase messages with their accept logic: FastAccept and LeaderAccept must not override slots with an accepted value, while SlowAccept should always override
+\end{itemize}
 
-\subsection{Some examples of coding}
-%\engExpl{This section is simply to show some example of how you can include code in your thesis - this is not a section you would have in your thesis.}
-%\sweExpl{Det här avsnittet är helt enkelt för att visa ett exempel på hur du kan inkludera kod i ditt examensarbete - det här är inte ett avsnitt du skulle ha i ditt examensarbete.}
-% \engExpl{This template uses the package \texttt{lstlistings} for many different listings. Alternatively, one could use the \texttt{minited} package together with the \texttt{listings} environment, see, for example, \href{https://www.overleaf.com/learn/latex/Code_Highlighting_with_minted}{Code Highlighting with minted}. }
+\subsection{Quorum Logic and Collision Detection}
+Explain logic in the leader state when adding a proposal and returning a leader action -> pseudo-code
 
+\section{Risk-Controlled Mode Prediction}
+\begin{itemize}
+    \item Describe fast-path success from perspective of follower: Follower tries to append using a FastAccept and its value is inserted at the proposed slot without a slow path being required
+    \item Other possibilities: Leader gets a majority quorum faster using LeaderAccept; Other follower gets a fast quorum faster for that slot using FastAccept; Collision happens between 2 or more concurrent proposals
+    \item Goal: Limit the risk of a fast-path being attempted but not succeeding
+\end{itemize}
 
-In \Cref{lst:exampleUsingMinted}, line \ref{listinline:ExcelWriter} shows the use of the \texttt{ExcelWriter} function. Line \ref{listinline:UsingToexcel} writes a panda dataframe (named \texttt{comp}) to the spreadsheet, while line \ref{listinline:closingWriter} closes the open spreadsheet.
+\subsection{Risk Specification}
+\begin{itemize}
+    \item Describe the prediction sets and labels
+    \item Describe the model interface and how the prediction set construction method is created from it
+    \item Setup loss function
+    \item Maybe some more pseudo-code
+\end{itemize}
 
-\begin{listing}[!ht]
-\begin{minted}[linenos,breaklines, escapeinside=||]{python}
-import pandas as pd
-def make_spreadsheet_of_differences(pds):
-    global school
-    publishers=set()
-    writer = pd.ExcelWriter(f'/tmp/{school}_compare_duplicates.xlsx', engine='xlsxwriter') |\label{listinline:ExcelWriter}|
-    print("starting")
-    for idx, p in enumerate(pds):
-        p0=list(p)[0]
-        p1=list(p)[1]
-        print(f"\nfor {p0} and {p1}")
-        comp, publisher1, publisher2=compare_two_records_silent(p0, p1)
-        sheet_name=f'{p0}'.split(':')[1]
-        print(f'Wrote {sheet_name=}')|\label{listinline:UsingToexcel}|
-        comp.to_excel(writer, sheet_name=sheet_name)
-        publishers.add(publisher1)
-        publishers.add(publisher2)
-    
-    # Close the Pandas Excel writer and output the Excel file.
-    writer.close()|\label{listinline:closingWriter}|
-    print(f"{publishers=}")
-    return publishers
-\end{minted}
-\caption{Example of using \texttt{minted} with python code}
-\label{lst:exampleUsingMinted}
-\end{listing}
+\subsection{Decision Layer}
+Given a threshold $\hat{\lambda}$ and model input features, show how the decision is made which mode to set -> definitely pseudo-code here
+
+\subsection{Calibration}
+\begin{itemize}
+    \item Calibration set is generated by collecting the relevant features during operation where every node always chooses fast-path
+    \item Hint at dangers of distribution shift due to sudden change to all nodes mode changing???
+    \item Maybe small things about optimization strategy to find optimal $\lambda$
+\end{itemize}
+
+\section{Score Function for Fast-Path Regulation}
