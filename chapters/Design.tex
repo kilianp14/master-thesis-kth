@@ -3,23 +3,121 @@
 %\sweExpl{Vad du har gjort? Hur gjorde du det? Vilka designval gjorde du?Hur kom det du hjälpte dig att uppnå dina mål?}
 
 \section{Adaptive Fast Mode Switching}
-\begin{itemize}
-    \item Choice of operating Mode (Regular Paxos, Fast Paxos) is made dynamically whenever a node wants to append something to the replicated log
-    \item Important: This decision is made INDEPENDENTLY for each node, meaning that different servers can have varying operating modes
-    \item Leader of a ballot always operates in normal mode since this will always be faster/ more successful, as a majority quorum is easier to achieve than a fast quorum and there is no forwarding penalty which would make it slower for a follower
-\end{itemize}
+The core of the proposed system lies in its ability to dynamically transition between operating modes (Regular Paxos and Fast Paxos) based on real-time conditions. Whenever a node attempts to append a proposal to the replicated log, it collects data representing the current environment and evaluates through an internal predictor if choosing the fast-path for this entry is sensible. This ensures that the system can react nearly instantaneously to shifts in proposal rates or network conditions.
+
+Importantly, this design decision means that all nodes choose their operating modes independently, enabling the system to handle heterogeneous workloads where some nodes may be more prone to contention than others in an efficient manner. In comparison to a design with global synchronization regarding the current Paxos variant, different servers in the consensus cluster can have a varying operating modes, requiring additional logic for ensuring safety as discussed in Section \ref{sect:mode-interoperability} and Section \ref{sect:quorum-logic}.
+
+While followers can utilize the adaptive predictor to decide between forwarding a proposal (Regular Paxos) or attempting a fast-path (Fast Paxos), the leader should consistently operates in the regular mode for two reasons: A standard majority quorum is easier to achieve than the larger fast quorum and the leader does not incur the forwarding penalty, which is the main drawback of using the regular mode over the fast mode.
 
 \subsection{Mode Interoperability}
+\label{sect:mode-interoperability}
+The coexistence of multiple operating modes within a single ballot necessitates a robust mechanism for ensuring that nodes can process messages from different protocol variants without compromising safety or consistency. To achieve this interoperability, every \texttt{Accept} and \texttt{Accepted} message is tagged with a corresponding \texttt{AcceptStatus}:
 \begin{itemize}
-    \item Different Accept Status in accept/accepted messages: FastAccept, LeaderAccept, SlowAccept
-    \item Operating Mode during Append: Fast Paxos -> Broadcast Accept with status FastAccept
-    \item Regular Paxos -> Forward Append Request to Leader who then broadcasts with LeaderAccept
-    \item Leader keeps a record of accepted messages for all open slots and if leader detects a collision: Broadcasts Slow Accept for that slot with the determined value
-    \item Followers react to the status in the accept phase messages with their accept logic: FastAccept and LeaderAccept must not override slots with an accepted value, while SlowAccept should always override
+\item \textbf{LeaderAccept (Regular path):} Indicates a proposal issued by the leader via the standard Paxos protocol.
+\item \textbf{FastAccept (Fast path):} Indicates a proposal initiated directly by a follower attempting to reach a fast quorum.
+\item \textbf{SlowAccept (Slow path):} Indicates a remedial proposal issued by the leader to resolve a detected collision of proposals.
 \end{itemize}
 
+The flow of an append operation depends entirely on the node's local decision. When a node selects the \textit{Fast Paxos} mode, it bypasses the leader and broadcasts an \texttt{Accept} message with the \texttt{FastAccept} status directly to all peers after having assigned a slot to the proposal. Conversely, if the node selects \textit{Regular Paxos}, it forwards the proposal to the current leader, who, upon receiving this request, assigns the entry a slot and broadcasts an \texttt{Accept} message with the \texttt{LeaderAccept} status.
+
+A challenge in decentralized mode switching is a collision, where multiple nodes attempt to occupy the same log slot with different values via the fast path or the regular path. To maintain liveness, the leader maintains a record of all \texttt{Accepted} messages received from the cluster for every open slot. If the leader detects that no proposal can be decided on due to a lack of responses or conflicting values for the same index, it triggers a resolution via the slow path. The concrete logic for the collision detection is described in Section \ref{sect:quorum-logic}. When having to use the slow path, the leader determines the correct proposal to choose for this slot and broadcasts a new \texttt{Accept} message with the \texttt{SlowAccept} status.
+
+The safety of the replicated log relies on strict rules regarding when a node is allowed to update its local state. In this system, followers apply logic that respects the "authority" of the message status. \texttt{FastAccept} and \texttt{LeaderAccept} messages are treated as first-come, first-served. A follower is only allowed to accept these values if the corresponding slot in its local log is currently empty. This prevents an uncoordinated follower from inadvertently overwriting a value that might have already achieved a quorum elsewhere. In contrast, a message with \texttt{SlowAccept} status is treated as a command to resolve a conflict. Since this status is only issued by the leader after observing the cluster state, it is permitted to override any previously accepted value in a follower’s log. This hierarchy ensures that the leader can always converge the cluster toward a single value, even in the presence of high contention and mixed-mode operations.
+
 \subsection{Quorum Logic and Collision Detection}
+\label{sect:quorum-logic}
 Explain logic in the leader state when adding a proposal and returning a leader action -> pseudo-code
+
+\begin{algorithm}
+\caption{Proposal Handling}
+\begin{algorithmic}[1]
+
+\STATE \textbf{procedure} add\_proposal(decided\_idx, pid, slot\_idx, entry, accept\_status)
+
+\IF $slot\_idx < decided\_idx$
+    \RETURN None
+\ENDIF
+
+\STATE accept\_meta[slot\_idx] $\gets$ accept\_meta[slot\_idx] $\cup \{ pid \mapsto (entry, accept\_status) \}$
+
+\STATE was\_pending $\gets$ (slot\_results[slot\_idx] = None) $\lor$ (slot\_results[slot\_idx] = Pending)
+
+\STATE slot\_result $\gets$ compute\_propose\_result(slot\_idx)
+
+\IF{slot\_result = Decided \AND slot\_idx = decided\_idx}
+    \STATE slot\_results[slot\_idx] $\gets$ slot\_result
+    \STATE newly\_decided $\gets$ empty list
+    \STATE current\_idx $\gets$ slot\_idx
+
+    \WHILE{slot\_results[current\_idx] = Decided}
+        \STATE $(entry, status) \gets$ slot\_results[current\_idx]
+        \STATE remove slot\_results[current\_idx]
+        \STATE append $(current\_idx, entry, status)$ to newly\_decided
+        \STATE remove accept\_meta[current\_idx]
+        \STATE current\_idx $\gets$ current\_idx + 1
+    \ENDWHILE
+
+    \RETURN Decided(newly\_decided, current\_idx)
+
+\ELSIF{slot\_result = SlowPath(entry) \AND was\_pending}
+    \STATE slot\_results[slot\_idx] $\gets$ SlowPath(entry)
+    \RETURN ProcessSlowPath(slot\_idx, entry)
+
+\ELSE
+    \STATE slot\_results[slot\_idx] $\gets$ slot\_result
+    \RETURN None
+\ENDIF
+
+\vspace{0.5em}
+\STATE \textbf{procedure} compute\_propose\_result(slot\_idx)
+
+\STATE proposals $\gets$ accept\_meta[slot\_idx]
+\IF{proposals = None}
+    \RETURN Pending
+\ENDIF
+
+\STATE total\_votes $\gets$ size(proposals)
+\IF{not majority(total\_votes)}
+    \RETURN Pending
+\ENDIF
+
+\STATE vote\_counts $\gets$ empty map
+
+\FORALL{$(entry, status)$ in proposals}
+    \IF{entry not in vote\_counts}
+        \STATE vote\_counts[entry] $\gets$ (0,0,0,0)
+    \ENDIF
+
+    \STATE vote\_counts[entry].total $\gets$ +1
+
+    \IF{status = OpAccepted}
+        \STATE vote\_counts[entry].op $\gets$ +1
+    \ELSIF{status = FpFastAccepted}
+        \STATE vote\_counts[entry].fast $\gets$ +1
+    \ELSE
+        \STATE vote\_counts[entry].slow $\gets$ +1
+    \ENDIF
+\ENDFOR
+\STATE winner $\gets$ entry with maximum total votes
+\STATE $(entry, (op, fast, slow, total)) \gets$ winner
+\IF{majority(op)}
+    \RETURN Decided(entry, LeaderAccept)
+\ENDIF
+\IF{fast\_quorum(fast)}
+    \RETURN Decided(entry, FastAccept)
+\ENDIF
+\IF{majority(slow)}
+    \RETURN Decided(entry, SlowAccept)
+\ENDIF
+\STATE remaining $\gets$ total\_nodes - total\_votes
+\IF{fast\_quorum(remaining + fast) $\lor$ majority(remaining + op)}
+    \RETURN Pending
+\ELSE
+    \RETURN SlowPath(entry)
+\ENDIF
+\end{algorithmic}
+\end{algorithm}
+
 
 \section{Risk-Controlled Mode Prediction}
 \begin{itemize}
