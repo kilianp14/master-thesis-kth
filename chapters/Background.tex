@@ -134,24 +134,36 @@ In \textit{full \gls{CP}}, the non-conformity score $s((x, y); \mathcal{D}) \in 
 
 \begin{algorithm}[t]
     \begin{algorithmic}[1]
-        \renewcommand{\algorithmicrequire}{}
-        \REQUIRE
-        \noindent\begin{tabular}{@{}ll}
-            Training data: & $\mathcal{D} = \{(X_1, Y_1), \dots, (X_n, Y_n)\}\in (\mathcal{X} \times \mathcal{Y})^n$\\
-            Test feature: & $X_{test} \in \mathcal{X}$\\
-            Target error rate: & $\alpha \in [0,1]$\\
-            Non-conformity score: & $s: (\mathcal{X} \times \mathcal{Y}) \times (\mathcal{X} \times \mathcal{Y})^* \rightarrow \mathbb{R}$
-        \end{tabular}
-        \vspace{2mm}
-        \hrule
-        \vspace{2mm}
-        \FORALL{$y \in \mathcal{Y}$}
-            \STATE Augmented training set: $\mathcal{D}^y \leftarrow \mathcal{D} \cup (X_{test}, y)$
-            \STATE Conformal scores: $S_i^y \leftarrow s((X_i, Y_i); \mathcal{D}^y)$ for all $i \in \{1, \dots, n\}$
-            \STATE Conformal score of hypothesized test point: $S_{test}^y \leftarrow s((X_{test}, y); \mathcal{D}^y)$
-            \STATE Conformal quantile: $\hat{q}^y \leftarrow Quantile(S_1^y, \dots, S_n^y, S_{test}^y; (1 - \alpha)(1 + 1/n))$
-        \ENDFOR
-        \RETURN Prediction set: $\mathcal{C}(X_{test}) \leftarrow \{y \in \mathcal{Y} : S_{test}^y \le \hat{q}^y\}$
+        \vspace{1mm}
+        \Statex \textbf{Inputs:}
+        \Statex \hspace{\algorithmicindent}
+        \begin{minipage}[t]{0.92\linewidth}
+        Training data
+        $\mathcal D = \{(X_1,Y_1),\dots,(X_n,Y_n)\}\in(\mathcal X\times\mathcal Y)^n$
+        
+        Test feature
+        $X_{\mathrm{test}}\in\mathcal X$
+        
+        Target error rate
+        $\alpha\in[0,1]$
+        
+        Non-conformity score
+        $s:(\mathcal X\times\mathcal Y)\times(\mathcal X\times\mathcal Y)^*
+        \to \mathbb R$
+        \end{minipage}
+        
+        \vspace{1mm}
+        \Statex \textbf{Output:}
+        \Statex \hspace{\algorithmicindent}
+        Prediction set $\mathcal C(X_{\mathrm{test}})$
+        \Statex \hrulefill
+        \For{$y \in \mathcal{Y}$}
+            \State Augmented training set: $\mathcal{D}^y \leftarrow \mathcal{D} \cup (X_{test}, y)$
+            \State Conformal scores: $S_i^y \leftarrow s((X_i, Y_i); \mathcal{D}^y)$ for all $i \in \{1, \dots, n\}$
+            \State Conformal score of hypothesized test point: $S_{test}^y \leftarrow s((X_{test}, y); \mathcal{D}^y)$
+            \State Quantile: $\hat{q}^y \leftarrow Quantile(S_1^y, \dots, S_n^y, S_{test}^y; (1 - \alpha)(1 + 1/n))$
+        \EndFor
+        \State \Return $\mathcal{C}(X_{test}) \leftarrow \{y \in \mathcal{Y} : S_{test}^y \le \hat{q}^y\}$
     \end{algorithmic}
     \caption{Full Conformal Prediction for Classification}
     \label{alg:full_conformal_prediction}
@@ -167,21 +179,31 @@ Full \gls{CP} as described is computationally impractical. It requires full retr
 
 \begin{algorithm}[t]
     \begin{algorithmic}[1]
-        \renewcommand{\algorithmicrequire}{}
-        \REQUIRE
-        \noindent\begin{tabular}{@{}ll}
-            Model fitting data: & $\mathcal{D}_{mod} \in (\mathcal{X} \times \mathcal{Y})^m$\\
-            Calibration data: & $\mathcal{D}_{cal} = \{(X_1, Y_1), \dots, (X_n, Y_n)\}\in (\mathcal{X} \times \mathcal{Y})^n$\\
-            Test feature: & $X_{test} \in \mathcal{X}$\\
-            Target error rate: & $\alpha \in [0, 1]$\\
-        \end{tabular}
-        \vspace{2mm}
-        \hrule
-        \vspace{2mm}
-        \STATE Construct a score function $s: \mathcal{X} \times \mathcal{Y} \rightarrow \mathbb{R}$ using $\mathcal{D}_{mod}$
-        \STATE Conformal scores of calibration set: $S_i \leftarrow s(X_i, Y_i)$, for all $i \in \{1, \dots, n\}$
-        \STATE Conformal quantile: $\hat{q} \leftarrow Quantile(S_1, \dots, S_n; (1 - \alpha)(1 + 1/n))$
-        \RETURN Prediction set: $\mathcal{C}(X_{test}) \leftarrow \{y \in \mathcal{Y}: s(X_{test}, y) \le \hat{q}\}$
+        \vspace{1mm}
+        \Statex \textbf{Inputs:}
+        \Statex \hspace{\algorithmicindent}
+        \begin{minipage}[t]{0.92\linewidth}
+            Model fitting data
+            $\mathcal{D}_{mod} \in (\mathcal{X} \times \mathcal{Y})^m$
+            
+            Calibration data
+            $\mathcal{D}_{cal} = \{(X_1, Y_1), \dots, (X_n, Y_n)\}\in (\mathcal{X} \times \mathcal{Y})^n$
+            
+            Test feature
+            $X_{test} \in \mathcal{X}$
+            
+            Target error rate
+            $\alpha \in [0, 1]$
+        \end{minipage}
+        \vspace{1mm}
+        \Statex \textbf{Output:}
+        \Statex \hspace{\algorithmicindent}
+        Prediction set $\mathcal C(X_{\mathrm{test}})$
+        \Statex \hrulefill
+        \State Construct a score function $s: \mathcal{X} \times \mathcal{Y} \rightarrow \mathbb{R}$ using $\mathcal{D}_{mod}$
+        \State Conformal scores of calibration set: $S_i \leftarrow s(X_i, Y_i)$, for all $i \in \{1, \dots, n\}$
+        \State Conformal quantile: $\hat{q} \leftarrow Quantile(S_1, \dots, S_n; (1 - \alpha)(1 + 1/n))$
+        \State \Return $\mathcal{C}(X_{test}) \leftarrow \{y \in \mathcal{Y}: s(X_{test}, y) \le \hat{q}\}$
     \end{algorithmic}
     \caption{Split Conformal Prediction for Classification}
     \label{alg:split_conformal_prediction}
@@ -240,33 +262,43 @@ $$\widehat{\lambda} = \inf \left\{ \lambda : \frac{n}{n+1} \widehat{R}(\lambda) 
 
 \begin{algorithm}[t]
     \begin{algorithmic}[1]
-        \renewcommand{\algorithmicrequire}{}
-        \REQUIRE
-        \noindent\begin{tabular}{@{}ll}
-            Model fitting data: & $\mathcal{D}_{mod} \in (\mathcal{X} \times \mathcal{Y})^m$\\
-            Calibration data: & $\mathcal{D}_{cal} = \{(X_1, Y_1), \dots, (X_n, Y_n)\}\in (\mathcal{X} \times \mathcal{Y})^n$\\
-            Test feature: & $X_{test} \in \mathcal{X}$\\
-            Loss function: & $\mathcal{L}: 2^{\mathcal{Y}} \times \mathcal{Y} \rightarrow (-\infty, B]$ \\
-            Risk limit: & $\alpha\in(-\infty, B]$
-        \end{tabular}
-        \vspace{2mm}
-        \hrule
-        \vspace{2mm}
-        \STATE Get construction method for prediction sets $\mathcal{C}_\lambda(x)$ using $\mathcal{D}_{mod}$
-        \FORALL{$\lambda \in \Lambda$}
-            \STATE Calibration losses: $L_i^\lambda \leftarrow \mathcal{L}(\mathcal{C}_\lambda(X_i),Y_i)$ for $i=1,\dots,n$
-            \STATE Empirical risk: $\hat{R}^\lambda \leftarrow \frac{1}{n}\sum_{i=1}^{n}L_i^\lambda$
-        \ENDFOR
-        \STATE Select parameter: $\widehat{\lambda} \leftarrow \inf \left\{ \lambda : \frac{n}{n+1} \hat{R}^\lambda + \frac{B}{n+1} \leq \alpha \right\}$
-        \RETURN $\mathcal{C}_{\hat{\lambda}}(X_{test})$
+        \vspace{1mm}
+        \Statex \textbf{Inputs:}
+        \Statex \hspace{\algorithmicindent}
+        \begin{minipage}[t]{0.92\linewidth}
+            Model fitting data
+            $\mathcal{D}_{mod} \in (\mathcal{X} \times \mathcal{Y})^m$
+            
+            Calibration data
+            $\mathcal{D}_{cal} = \{(X_1, Y_1), \dots, (X_n, Y_n)\}\in (\mathcal{X} \times \mathcal{Y})^n$
+            
+            Test feature
+            $X_{test} \in \mathcal{X}$
+            
+            Loss function
+            $\mathcal{L}: 2^{\mathcal{Y}} \times \mathcal{Y} \rightarrow (-\infty, B]$
+            
+            Risk limit
+            $\alpha\in(-\infty, B]$
+        \end{minipage}
+        \vspace{1mm}
+        \Statex \textbf{Output:}
+        \Statex \hspace{\algorithmicindent}
+        Prediction set $\mathcal C(X_{\mathrm{test}})$
+        \Statex \hrulefill
+        \State Get construction method for prediction sets $\mathcal{C}_\lambda(x)$ using $\mathcal{D}_{mod}$
+        \For{$\lambda \in \Lambda$}
+            \State Calibration losses: $L_i^\lambda \leftarrow \mathcal{L}(\mathcal{C}_\lambda(X_i),Y_i)$ for $i=1,\dots,n$
+            \State Empirical risk: $\hat{R}^\lambda \leftarrow \frac{1}{n}\sum_{i=1}^{n}L_i^\lambda$
+        \EndFor
+        \State Select parameter: $\widehat{\lambda} \leftarrow \inf \left\{ \lambda : \frac{n}{n+1} \hat{R}^\lambda + \frac{B}{n+1} \leq \alpha \right\}$
+        \State \Return $\mathcal{C}_{\hat{\lambda}}(X_{test})$
     \end{algorithmic}
     \caption{Conformal Risk Control for Classification}
     \label{alg:conformal_risk_control}
 \end{algorithm}
 
-Algorithm~\ref{alg:conformal_risk_control} formalizes the utilization conformal risk control in a classification setting. In a practical implementation, $\widehat{\lambda}$ can be efficiently pre-computed using a binary-search mechanism.
-
-\subsection{Adaptive Conformal Inference?}
+Algorithm~\ref{alg:conformal_risk_control} formalizes the utilization conformal risk control in a classification setting. In a practical implementation, $\widehat{\lambda}$ can be efficiently pre-computed using a basic root-search mechanism.
 
 \section{Related Work}
 \label{sec:related_work}

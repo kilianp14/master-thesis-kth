@@ -28,96 +28,82 @@ The safety of the replicated log relies on strict rules regarding when a node is
 \label{sect:quorum-logic}
 Explain logic in the leader state when adding a proposal and returning a leader action -> pseudo-code
 
-\begin{algorithm}
-\caption{Proposal Handling}
+\begin{algorithm}[t]
+\caption{Quorum Evaluation and Collision Resolution}
+\label{alg:quorum_eval_collision_resolution}
+
 \begin{algorithmic}[1]
+\Procedure{ComputeProposeResult}{$proposals$}
+\If{\textbf{not } majority quorum on $|proposals|$}
+    \State \Return $\textsc{Pending}$
+\EndIf
+\State $(e^\star, leader, fast, slow) \gets$ entry in $proposals$ with maximum total votes
+\If{majority quorum on $leader$}
+    \State \Return $\textsc{Decided}(e^\star, \textsc{LeaderAccept})$
+\EndIf
+\If{fast quorum on $fast$}
+    \State \Return $\textsc{Decided}(e^\star, \textsc{FastAccept})$
+\EndIf
+\If{majority quorum on $slow$}
+    \State \Return $\textsc{Decided}(e^\star, \textsc{SlowAccept})$
+\EndIf
+\If{\textbf{not } fast quoum on $|proposals|$}
+    \State \Return $\textsc{Pending}$
+\EndIf
 
-\STATE \textbf{procedure} add\_proposal(decided\_idx, pid, slot\_idx, entry, accept\_status)
-
-\IF $slot\_idx < decided\_idx$
-    \RETURN None
-\ENDIF
-
-\STATE accept\_meta[slot\_idx] $\gets$ accept\_meta[slot\_idx] $\cup \{ pid \mapsto (entry, accept\_status) \}$
-
-\STATE was\_pending $\gets$ (slot\_results[slot\_idx] = None) $\lor$ (slot\_results[slot\_idx] = Pending)
-
-\STATE slot\_result $\gets$ compute\_propose\_result(slot\_idx)
-
-\IF{slot\_result = Decided \AND slot\_idx = decided\_idx}
-    \STATE slot\_results[slot\_idx] $\gets$ slot\_result
-    \STATE newly\_decided $\gets$ empty list
-    \STATE current\_idx $\gets$ slot\_idx
-
-    \WHILE{slot\_results[current\_idx] = Decided}
-        \STATE $(entry, status) \gets$ slot\_results[current\_idx]
-        \STATE remove slot\_results[current\_idx]
-        \STATE append $(current\_idx, entry, status)$ to newly\_decided
-        \STATE remove accept\_meta[current\_idx]
-        \STATE current\_idx $\gets$ current\_idx + 1
-    \ENDWHILE
-
-    \RETURN Decided(newly\_decided, current\_idx)
-
-\ELSIF{slot\_result = SlowPath(entry) \AND was\_pending}
-    \STATE slot\_results[slot\_idx] $\gets$ SlowPath(entry)
-    \RETURN ProcessSlowPath(slot\_idx, entry)
-
-\ELSE
-    \STATE slot\_results[slot\_idx] $\gets$ slot\_result
-    \RETURN None
-\ENDIF
-
-\vspace{0.5em}
-\STATE \textbf{procedure} compute\_propose\_result(slot\_idx)
-
-\STATE proposals $\gets$ accept\_meta[slot\_idx]
-\IF{proposals = None}
-    \RETURN Pending
-\ENDIF
-
-\STATE total\_votes $\gets$ size(proposals)
-\IF{not majority(total\_votes)}
-    \RETURN Pending
-\ENDIF
-
-\STATE vote\_counts $\gets$ empty map
-
-\FORALL{$(entry, status)$ in proposals}
-    \IF{entry not in vote\_counts}
-        \STATE vote\_counts[entry] $\gets$ (0,0,0,0)
-    \ENDIF
-
-    \STATE vote\_counts[entry].total $\gets$ +1
-
-    \IF{status = OpAccepted}
-        \STATE vote\_counts[entry].op $\gets$ +1
-    \ELSIF{status = FpFastAccepted}
-        \STATE vote\_counts[entry].fast $\gets$ +1
-    \ELSE
-        \STATE vote\_counts[entry].slow $\gets$ +1
-    \ENDIF
-\ENDFOR
-\STATE winner $\gets$ entry with maximum total votes
-\STATE $(entry, (op, fast, slow, total)) \gets$ winner
-\IF{majority(op)}
-    \RETURN Decided(entry, LeaderAccept)
-\ENDIF
-\IF{fast\_quorum(fast)}
-    \RETURN Decided(entry, FastAccept)
-\ENDIF
-\IF{majority(slow)}
-    \RETURN Decided(entry, SlowAccept)
-\ENDIF
-\STATE remaining $\gets$ total\_nodes - total\_votes
-\IF{fast\_quorum(remaining + fast) $\lor$ majority(remaining + op)}
-    \RETURN Pending
-\ELSE
-    \RETURN SlowPath(entry)
-\ENDIF
+\State $remaining \gets |nodes| - |proposals|$
+\For{\textbf{each} $(e, leader, fast, slow)$ \textbf{in} vote counts of $proposals$}
+    \If{fast quorum on remaining + fast \textbf{or } \Statex \qquad\qquad majority quorum on remaining + leader \textbf{or } \Statex \qquad\qquad slow > 0}
+        \State \Return $\textsc{SlowPath}(e)$
+    \EndIf
+\EndFor
+\State \Return $\textsc{SlowPath}(e^\star)$
+\EndProcedure
 \end{algorithmic}
 \end{algorithm}
 
+\begin{algorithm}[t]
+\caption{Leader Proposal Processing}
+\label{alg:leader_proposal}
+
+\begin{algorithmic}[1]
+
+\Procedure{AddProposal}
+{$pid, slot\_idx, entry, status, decided\_idx$}
+
+\If{$slot\_idx < decided\_idx$}
+    \State \Return $\textsc{NoAction}$
+\EndIf
+
+\State Insert $(entry, status)$ into $\textit{acceptMeta}[slot\_idx][pid]$
+\State $previous \gets \textit{slotresults}[s]$
+\State $result \gets \Call{ComputeResult}{s}$
+\State $\textit{slotresults}[s] \gets result$
+
+\If{$result = \textsc{Decided}(entry,status)$ and $slot\_idx = decided\_idx$}
+
+    \State $D \gets [\ ]$, $i \gets slot\_idx$
+
+    \While{$\textit{slotResults}[i] = \textsc{Decided}(e,s)$}
+
+        \State Remove $\textit{slotResults}[i]$
+        \State Append $(i,e,a)$ to $D$
+        \State Remove $\textit{acceptMeta}[i]$
+        \State $i \gets i+1$
+
+    \EndWhile
+
+    \State \Return $\textsc{DecidedAction}(D,i)$
+\ElsIf{$r = \textsc{SlowPath}(e)$ and $previous = \textsc{Pending}$}
+    \State \Return $\textsc{SlowPathAction}(slot\_idx,e)$
+\Else
+    \State \Return $\textsc{NoAction}$
+\EndIf
+
+\EndProcedure
+
+\end{algorithmic}
+\end{algorithm}
 
 \section{Risk-Controlled Mode Prediction}
 \begin{itemize}
