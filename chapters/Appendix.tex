@@ -1,3 +1,26 @@
+\chapter{Proof of Slow-Path Resolution Safety}
+\label{seca:slow_path_resolution_safety_proof}
+Let $n$ denote the total number of nodes in the cluster, $Q_M = \lceil \frac{n+1}{2} \rceil$ represent the standard majority quorum, and $Q_F = \lceil \frac{3n}{4} \rceil$ represent the fast quorum. Assume the leader has collected $Q_F$ total responses for a given slot. Consider the worst-case scenario where these responses are partitioned entirely between a single value $A$ marked as $\textsc{LeaderAccept}$ and a single value $B$ marked as $\textsc{FastAccept}$. Let $v_A$ and $v_B$ denote the observed vote counts for $A$ and $B$ respectively, such that $v_A + v_B = Q_F$. The number of uncast remaining votes is bounded by $R = n - Q_F$.
+
+For both values to remain viable candidates for quorum satisfaction, the remaining votes must be sufficient to independently drive both values to their respective thresholds. This yields the following system of inequalities:
+\begin{align}
+    v_A + R &\ge Q_M \label{eq:proof_majority} \\
+    v_B + R &\ge Q_F \label{eq:proof_fast}
+\end{align}
+Summing inequalities (\ref{eq:proof_majority}) and (\ref{eq:proof_fast}) and substituting $v_A + v_B = Q_F$ results in:
+\begin{equation}
+    Q_F + 2R \ge Q_M + Q_F \implies 2R \ge Q_M
+\end{equation}
+Substituting $R = n - Q_F$ into the expression yields:
+\begin{equation}
+    2(n - Q_F) \ge Q_M \implies 2n \ge Q_M + 2Q_F
+\end{equation}
+By applying the definitions of the quorum thresholds ($Q_M \ge \frac{n+1}{2}$ and $Q_F \ge \frac{3n}{4}$), we obtain:
+\begin{equation}
+    2n \ge \frac{n+1}{2} + 2\left(\frac{3n}{4}\right) \implies 2n \ge 2n + \frac{1}{2} \implies 0 \ge \frac{1}{2}
+\end{equation}
+This yields a clear contradiction. Thus, given $Q_F$ total responses, it is mathematically impossible for both value $A$ to retain a path to a standard majority quorum and value $B$ to retain a path to a fast quorum. Consequently, the leader can always unambiguously determine that at least one of the protocol paths has failed to achieve its quorum, allowing for a safe slow-path resolution.
+
 \chapter{Supporting materials}
 \label{sec:supportingMaterial}
 \generalExpl{Here is a place to add supporting material that can help others build upon your work. You can include files as attachments to the PDF file or indirectly via URLs. Alternatively, consider adding supporting material uploaded as separate files in DiVA.}
