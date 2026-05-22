@@ -90,7 +90,7 @@ In the leader-based Sequence Paxos algorithm described above, only the leader is
     \item The acceptors respond with corresponding accepted messages either directly to the learners or to the leader, who subsequently informs the learners once a value is chosen. 
 \end{enumerate}
 
-The primary motivation for introducing Fast Paxos is to reduce this latency by one communication step, allowing any participating process to propose values directly to the acceptors instead of first forwarding them to the leader. This optimization was originally devised by Leslie Lamport~\cite{Lamport-FastPaxos-2006}. In such a \textit{fast round}, acceptors simply accept the first value they receive from any proposer and notify the leader (and potentially the learners) of their decision via an \textit{accepted} message.
+The primary motivation for introducing Fast Paxos is to reduce this latency by one message delay, allowing any participating process to propose values directly to the acceptors instead of first forwarding them to the leader. This optimization was originally devised by Leslie Lamport~\cite{Lamport-FastPaxos-2006}. In such a \textit{fast round}, acceptors simply accept the first value they receive from any proposer and notify the leader (and potentially the learners) of their decision via an \textit{accepted} message.
 
 \begin{figure}[t]
     \centering

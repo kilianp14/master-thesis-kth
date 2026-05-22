@@ -3,32 +3,32 @@
 %\sweExpl{Vad du har gjort? Hur gjorde du det? Vilka designval gjorde du?Hur kom det du hjälpte dig att uppnå dina mål?}
 
 \section{Adaptive Fast Mode Switching}
-The core of the proposed system lies in its ability to dynamically transition between operating modes (Regular Paxos and Fast Paxos) based on real-time conditions. Whenever a node attempts to append a proposal to the replicated log, it collects data representing the current environment and evaluates through an internal predictor if choosing the fast-path for this entry is sensible. This ensures that the system can react nearly instantaneously to shifts in proposal rates or network conditions.
+The core of the proposed system lies in its ability to dynamically transition between operating modes (Regular Paxos and Fast Paxos) based on real-time conditions. Whenever a node attempts to append a proposal to the replicated log, it collects data representing the current environment and evaluates through an internal predictor if choosing the fast-path for this entry is sensible. This design aims to allow the system to react quickly to shifts in proposal rates or network conditions.
 
-Importantly, this design decision means that all nodes choose their operating modes independently, enabling the system to handle heterogeneous workloads where some nodes may be more prone to contention than others in an efficient manner. In comparison to a design with global synchronization regarding the current Paxos variant, different servers in the consensus cluster can have a varying operating modes, requiring additional logic for ensuring safety as discussed in Section \ref{sect:mode-interoperability} and Section \ref{sect:quorum-logic}.
+With nodes being able to select modes independently, we enable the system to handle heterogeneous workloads where some nodes may be more prone to contention than others in a more effective manner. In comparison to a design with global synchronization regarding the current Paxos variant, different servers in the consensus cluster can have varying operating modes, requiring additional logic for ensuring safety as discussed in Section \ref{sect:mode-interoperability} and Section \ref{sect:quorum-logic}.
 
 While followers can utilize the adaptive predictor to decide between forwarding a proposal (Regular Paxos) or attempting a fast-path (Fast Paxos), the leader should consistently operate in the regular mode for two reasons: A standard majority quorum is easier to achieve than the larger fast quorum and the leader does not incur the forwarding penalty, which is the main drawback of using the regular mode over the fast mode.
 
 \subsection{Mode Interoperability}
 \label{sect:mode-interoperability}
-The coexistence of multiple operating modes within a single ballot necessitates a robust mechanism for ensuring that nodes can process messages from different protocol variants without compromising safety or consistency. To achieve this interoperability, every \texttt{Accept} and \texttt{Accepted} message is tagged with a corresponding \texttt{AcceptStatus}:
+The coexistence of multiple operating modes for the same slot within a single ballot necessitates a robust mechanism for ensuring that nodes can process messages from different protocol variants without compromising safety or consistency. To achieve this interoperability, every \texttt{Accept} and \texttt{Accepted} message is tagged with a corresponding \texttt{AcceptStatus}:
 \begin{itemize}
 \item \textbf{LeaderAccept (Regular path):} Indicates a proposal issued by the leader via the standard Paxos protocol.
 \item \textbf{FastAccept (Fast path):} Indicates a proposal initiated directly by a follower attempting to reach a fast quorum.
 \item \textbf{SlowAccept (Slow path):} Indicates a remedial proposal issued by the leader to resolve a detected collision of proposals.
 \end{itemize}
 
-The flow of an append operation depends entirely on the node's local decision. When a node selects the \textit{Fast Paxos} mode, it bypasses the leader and broadcasts an \texttt{Accept} message with the \texttt{FastAccept} status directly to all peers after having assigned a slot to the proposal. Conversely, if the node selects \textit{Regular Paxos}, it forwards the proposal to the current leader, who, upon receiving this request, assigns the entry a slot and broadcasts an \texttt{Accept} message with the \texttt{LeaderAccept} status.
+Append handling depends on the node’s local mode selection. In \textit{Fast Paxos} mode, the node broadcasts a \texttt{Accept} message with the \texttt{FastAccept} status directly to peers after assigning the slot with the smallest index that is still empty to the proposal. In \textit{Regular Paxos} mode, the proposal is forwarded to the current leader, which assigns the slot and broadcasts an \texttt{Accept} message with the \texttt{LeaderAccept} status.
 
 A challenge in decentralized mode switching is a collision, where multiple nodes attempt to occupy the same log slot with different values via the fast path or the regular path. To maintain liveness, the leader maintains a record of all \texttt{Accepted} messages received from the cluster for every open slot. If the leader detects that no proposal can be decided on due to a lack of responses or conflicting values for the same index, it triggers a resolution via the slow path. The concrete logic for the collision detection is described in Section \ref{sect:quorum-logic}. When having to use the slow path, the leader determines the correct proposal to choose for this slot and broadcasts a new \texttt{Accept} message with the \texttt{SlowAccept} status.
 
-The safety of the replicated log relies on strict rules regarding when a node is allowed to update its local state. In this system, followers apply logic that respects the "authority" of the message status. \texttt{FastAccept} and \texttt{LeaderAccept} messages are treated as first-come, first-served. A follower is only allowed to accept these values if the corresponding slot in its local log is currently empty. This prevents an uncoordinated follower from inadvertently overwriting a value that might have already achieved a quorum elsewhere. In contrast, a message with \texttt{SlowAccept} status is treated as a command to resolve a conflict. Since this status is only issued by the leader after observing the cluster state, it is permitted to override any previously accepted value in a follower’s log. This hierarchy ensures that the leader can always converge the cluster toward a single value, even in the presence of high contention and mixed-mode operations.
+The safety of the replicated log relies on strict rules regarding when a node is allowed to update its local state. In this system, followers apply logic that respects the "authority" of the message status. \texttt{FastAccept} and \texttt{LeaderAccept} messages are treated as first-come, first-served. A follower is only allowed to accept these values if the corresponding slot in its local log is currently empty. This prevents an uncoordinated follower from inadvertently overwriting a value that might have already achieved a quorum elsewhere. In contrast, a message with \texttt{SlowAccept} status is treated as a command to resolve a conflict. Since this status is only issued by the leader after observing the cluster state, it is permitted to override any previously accepted value in a follower’s log. Under the assumption of a stable leader and quorum connectivity, this hierarchy is intended to allow the leader to converge conflicting proposals toward a single value.
 
 \subsection{Quorum Logic and Collision Detection}
 \label{sect:quorum-logic}
 This section details the deterministic logic utilized by the cluster leader to evaluate quorums, detect proposal collisions, and drive individual log slots to a decided state. None of the additional state maintained by the leader requires persistence to stable storage for recovery purposes even in a fail-recovery model.
 
-The operational boundary of the presented mechanisms is restricted to a stable accept phase where the leader remains constant. While handling leader failures and executing the subsequent log synchronization are critical components for overall fault tolerance, the more complex mechanisms required during a leader change are considered out of scope for this specific analysis.
+The presented mechanisms assume a phase where the leader is in a stable accept phase. While handling leader failures or leader changes and executing the subsequent log synchronization are critical components for a thought-out consensus protocol, the more complex mechanisms required are considered out of scope for this specific analysis due to its experimental nature.
 
 \begin{algorithm}[t]
 \caption{Quorum Evaluation and Collision Resolution}
@@ -49,7 +49,7 @@ The operational boundary of the presented mechanisms is restricted to a stable a
 \If{majority quorum on $slow$}
     \State \Return $\textsc{Chosen}(e^\star, \textsc{SlowAccept})$
 \EndIf
-\If{\textbf{not } fast quoum on $|proposals|$}
+\If{\textbf{not } fast quorum on $|proposals|$}
     \State \Return $\textsc{Pending}$
 \EndIf
 
@@ -59,35 +59,20 @@ The operational boundary of the presented mechanisms is restricted to a stable a
         \State \Return $\textsc{Collision}(e)$
     \EndIf
 \EndFor
-\State \Return $\textsc{Collsion}(e^\star)$
+\State \Return $\textsc{Collision}(e^\star)$
 \EndProcedure
 \end{algorithmic}
 \end{algorithm}
 
-To evaluate the current state of an uncommitted log entry, the leader leverages Algorithm \ref{alg:quorum_eval_collision_resolution}. This algorithm operates as a pure function that takes the set of collected proposals and votes for a given slot and returns its discrete operational status: $\textsc{Pending}$, $\textsc{Collision}(entry)$ with $entry$ being a save value to execute a slow-path with or $\textsc{Chosen}(entry, accept\_status)$ where the $entry$ was chosen via the path indicated by the $accept\_status$.
+To evaluate the current state of an uncommitted log entry, the leader leverages Algorithm \ref{alg:quorum_eval_collision_resolution}. This algorithm operates as a pure function that takes the set of collected proposals and votes for a given slot and returns its discrete operational status: $\textsc{Pending}$, $\textsc{Collision}(entry)$ with $entry$ being a save value to execute a slow-path with or $\textsc{Chosen}(entry, acceptStatus)$ where the $entry$ was chosen via the path indicated by the $acceptStatus$.
 
-The evaluation begins by checking for immediate quorum satisfaction. Early termination occurs, and a status of $\textsc{Chosen}$ is returned, if any single entry accumulates enough votes to meet the threshold dictated by its specific \texttt{AcceptStatus}. Concretely, this requires a standard majority quorum for entries tagged with $\textsc{LeaderAccept}$ or $\textsc{SlowAccept}$, and a larger fast quorum for entries tagged with $\textsc{FastAccept}$. Because all these ways of acceptance require at least a majority of votes, it is enough to check the entry with the maximum total votes. Additionally, if less than a majority has voted, this also means that no decision could have been reached in any way, making the slot $\textsc{Pending}$.
+The evaluation begins by checking for immediate quorum satisfaction. A value is chosen once it reaches the quorum required by its \texttt{AcceptStatus}. This requires a standard majority quorum for entries tagged with $\textsc{LeaderAccept}$ or $\textsc{SlowAccept}$, and a larger fast quorum for entries tagged with $\textsc{FastAccept}$. Because all these ways of acceptance require at least a majority of votes, it is enough to check the entry with the maximum total votes. Additionally, if less than a majority has voted, this also means that no decision could have been reached, making the slot $\textsc{Pending}$.
 
-If no single entry has achieved its required quorum, the leader must determine whether a collision has occurred and safely select a value to propose on the slow path. In a heterogeneous environment of mixed modes for the same slot, merely collecting a simple majority of total cluster responses is insufficient to safely trigger collision resolution. Consider, for instance, a cluster of five nodes, where a regular majority quorum consists of three and a fast quorum of four nodes. If the leader received three responses for a slot with one being a $\textsc{LeaderAccept}$ for value $A$ and two $\textsc{FastAccept}$ messages for value $B$. Although a simple majority of responses has been gathered, the outcome remains ambiguous. With 2 nodes yet to respond, value $A$ could still theoretically achieve a majority quorum, while value $B$ could concurrently reach a fast quorum. Initiating a slow-path recovery at this stage risks overriding a value that might have independently achieved a quorum elsewhere in the network.
+If no single entry has achieved its required quorum, the leader must determine whether a collision has occurred and select a value that cannot conflict with a potentially chosen value for the slow path. Merely collecting a simple majority of total cluster responses is insufficient to safely trigger collision resolution in this mixed mode environment. Consider, for instance, a cluster of five nodes, where a regular majority quorum consists of three and a fast quorum of four nodes. If the leader received three responses for a slot with one being a $\textsc{LeaderAccept}$ for value $A$ and two $\textsc{FastAccept}$ messages for value $B$, the outcome remains ambiguous, although a simple majority of responses has been gathered. With 2 nodes yet to respond, value $A$ could still theoretically achieve a majority quorum, while value $B$ could concurrently reach a fast quorum. Initiating a slow-path recovery at this stage risks overriding a value that might have achieved a quorum elsewhere in the network.
 
-To resolve this ambiguity safely, the leader must wait until a fast quorum of total responses has been collected for the slot. Once a fast quorum of responses is observed, it becomes mathematically impossible for more than one value to be able to reach its respective quorum using the remaining uncast votes. A proof of this is written out in Appendix \ref{seca:slow_path_resolution_safety_proof}.
+To avoid overriding a value that may still reach quorum, the leader must wait until a fast quorum of total responses has been collected for the slot. Once a fast quorum of responses is observed, it becomes mathematically impossible for more than one value to be able to reach its respective quorum using the remaining uncast votes. A proof of this is written out in Appendix \ref{seca:slow_path_resolution_safety_proof}.
 
 After this threshold is met, the leader executes the final loop of Algorithm \ref{alg:quorum_eval_collision_resolution} to identify a valid candidate for the slow path. The leader computes the number of uncast votes ($remaining$) and checks if any entry can still mathematically achieve its required threshold. If an entry retains the potential to reach its quorum, it is selected as the safe value for the slow path. In cases where high contention prevents any entry from being able to reach a quorum, the system falls back to the entry with the highest current vote count.
-
-\begin{itemize}
-    \item \textbf{Leader State Machine Updates (Algorithm \ref{alg:leader_proposal}: \texttt{AddNewProposal})}
-    \begin{itemize}
-        \item Introduce Algorithm \ref{alg:leader_proposal} as the stateful mechanism executed by the leader upon receiving any proposal (from followers or itself). It acts as a wrapper around the state computation to emit actionable directives.
-        \item \textbf{Filtering and Recording:} Note the initial safeguard where proposals for indices prior to the contiguous decided sequence ($decided\_idx$) are immediately discarded. Valid proposals are appended to the metadata ledger for that specific slot.
-        \item \textbf{Action Generation based on State:} Explain how the algorithm maps the result of \texttt{ComputeProposeResult} to a leader action:
-        \begin{itemize}
-            \item \textsc{DecidedAction}: Triggered when a slot reaches a \textsc{Decided} state and perfectly aligns with the current $decided\_idx$. The algorithm sweeps forward through the log to batch any consecutively decided slots into a single suffix, advancing the log efficiently.
-            \item \textsc{SlowPathAction}: Triggered when the state transitions from \textsc{Pending} to \textsc{SlowPath}($e$). This directs the leader to broadcast a \textsc{SlowAccept} message for value $e$ to resolve the detected collision.
-            \item \textsc{NoAction}: Returned when the slot remains \textsc{Pending} or when a collision was already previously detected (preventing duplicate slow-path broadcasts).
-        \end{itemize}
-        \item \textbf{Summary of Liveness:} Conclude that this mechanism guarantees the leader will constantly push the replicated log forward, cleanly isolating the varying quorum requirements of mixed-mode operations into a single deterministic evaluation per entry.
-    \end{itemize}
-\end{itemize}
 
 \begin{algorithm}[t]
 \caption{Leader Proposal Processing}
@@ -96,33 +81,32 @@ After this threshold is met, the leader executes the final loop of Algorithm \re
 \begin{algorithmic}[1]
 
 \Procedure{AddNewProposal}
-{$pid, slot\_idx, entry, status, decided\_idx$}
+{$pid, slotIdx, entry, status$}
 
-\If{$slot\_idx < decided\_idx$}
+\If{$slotIdx < decidedIdx$}
     \State \Return $\textsc{NoAction}$
 \EndIf
 
-\State Append $(pid, entry, status)$ to $\textit{acceptMeta}[slot\_idx]$
-\State $previous \gets \textit{slotresults}[slot\_idx]$
-\State $result \gets \Call{ComputeResult}{accept\_meta[slot\_idx]}$
-\State $\textit{slotresults}[slot\_idx] \gets result$
+\State Append $(pid, entry, status)$ to $\textit{acceptMeta}[slotIdx]$
+\State $previous \gets \textit{slotResults}[slotIdx]$
+\State $result \gets \Call{ComputeProposeResult}{acceptMeta[slotIdx]}$
+\State $\textit{slotResults}[slotIdx] \gets result$
 
-\If{$result = \textsc{Chosen}(\_, \_)$ and $slot\_idx = decided\_idx$}
+\If{$result = \textsc{Chosen}(\_, \_)$ and $slotIdx = decidedIdx$}
 
-    \State $new\_decided\_suffix \gets [\ ]$
-    \State $new\_decided\_idx \gets slot\_idx$
+    \State $newDecidedSuffix \gets [\ ]$
 
-    \While{$\textit{slotResults}[new\_decided\_idx] = \textsc{Chosen}(e,s)$}
-        \State Append $(new\_decided\_idx,e,s)$ to $new\_decided\_suffix$
-        \State Remove $\textit{slotResults}[new\_decided\_idx]$
-        \State Remove $\textit{acceptMeta}[new\_decided\_idx]$
-        \State $new\_decided\_idx \gets new\_decided\_idx+1$
+    \While{$\textit{slotResults}[decidedIdx] = \textsc{Chosen}(e,s)$}
+        \State Append $(decidedIdx,e,s)$ to $newDecidedSuffix$
+        \State Remove $\textit{slotResults}[decidedIdx]$
+        \State Remove $\textit{acceptMeta}[decidedIdx]$
+        \State $decidedIdx \gets decidedIdx+1$
 
     \EndWhile
 
-    \State \Return $\textsc{DecidedAction}(new\_decided\_suffix,new\_decided\_idx)$
+    \State \Return $\textsc{DecidedAction}(newDecidedSuffix,decidedIdx)$
 \ElsIf{$result = \textsc{Collision}(e)$ and $previous = \textsc{Pending}$}
-    \State \Return $\textsc{SlowPathAction}(slot\_idx,e)$
+    \State \Return $\textsc{SlowPathAction}(slotIdx,e)$
 \Else
     \State \Return $\textsc{NoAction}$
 \EndIf
@@ -131,6 +115,17 @@ After this threshold is met, the leader executes the final loop of Algorithm \re
 
 \end{algorithmic}
 \end{algorithm}
+
+To translate the described quorum evaluation into concrete leader actions, the leader executes Algorithm \ref{alg:leader_proposal} upon receiving any accepted proposal, whether initiated by a follower or by itself. This mechanism serves as a stateful wrapper around the functional quorum computation.
+
+The procedure begins with an initial safeguard step: any proposal targeting a log index prior to the currently contiguous decided sequence (denoted as $decidedIdx$) is immediately discarded as obsolete. Valid proposals are subsequently added to the internal metadata for the corresponding slot, ensuring an up-to-date record of all cast votes. The algorithm then invokes \texttt{ComputeProposeResult} and maps its returned state to one of three specific leader actions:
+\begin{itemize}
+    \item \textsc{DecidedAction}: This action is triggered when the slot achieves a \textsc{Chosen} state and perfectly aligns with the current $decidedIdx$. Upon this trigger, the algorithm sweeps forward through the internal metadata to identify all consecutively chosen slots. These contiguous entries form a single suffix that can now be permanently decided, subsequently advancing the cluster's $decidedIdx$.
+    \item \textsc{SlowPathAction}: If the evaluation transitions the slot's state from \textsc{Pending} to $\textsc{Collision}(e)$, the leader emits a \textsc{SlowPathAction}. This directive instructs the leader to broadcast an \texttt{Accept} message with the \texttt{SlowAccept} status for value $e$, thereby resolving the detected collision according to the hierarchical rules established in Section \ref{sect:mode-interoperability}.
+    \item \textsc{NoAction}: This fallback is returned either when the slot remains in a \textsc{Pending} state due to insufficient votes, or when a collision has already been detected and acted upon in a previous iteration. The latter condition is required to prevent the emission of duplicate slow-path broadcasts for the same log index.
+\end{itemize}
+
+Assuming a stable leader and continued fast-quorum connectivity, the design guarantees liveness during the accept phase. Compared to regular Sequence Paxos, if the cluster degrades to a simple majority, the leader might not be able to safely resolve collisions, effectively halting the log.
 
 \section{Risk-Controlled Mode Prediction}
 \begin{itemize}
