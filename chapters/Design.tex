@@ -127,10 +127,22 @@ The procedure begins with an initial safeguard step: any proposal targeting a lo
 
 Assuming a stable leader and continued fast-quorum connectivity, the design guarantees liveness during the accept phase. Compared to regular Sequence Paxos, if the cluster degrades to a simple majority, the leader might not be able to safely resolve collisions, effectively halting the log.
 
+\section{Heuristic Score for Fast-Path Success}
+While the leader-side proposal processing and collision resolution described previously provides safety and liveness under favorable conditions, the followers must individually choose the operating modes to use to achieve optimal latency for each request. Compared to regular Sequence Paxos, this means choosing to use the fast-path when it is likely successful, avoiding the message delay for forwarding the request. Compared to Fast Sequence Paxos, this means choosing the safer forwarding option when a fast-path attempt is considered risky, since a collision  and its subsequent slow-path resolution and potential need for retrying introduce heavy latency penalties.
+
+From the perspective of a follower, we can consider a fast-path attempt successful only if its proposal achieves a fast quorum directly, without requiring a slow-path collision resolution. Conversely, a failure occurs whenever this optimal path is interrupted. A fast-path attempt will fail if the target slot is claimed by a concurrent proposal by the leader through the regular path (majority quorum of $\textsc{LeaderAccept}$ messages), claimed by a different follower's concurrent fast-path proposal (fast quorum of $\textsc{FastAccept}$ messages), or stalled entirely by a collision that forces the cluster into a slow-path recovery.
+
+To dynamically find out the right mode to use, we design a heuristic that condenses real-time metrics into a score estimating the probability of a fast-path succeeding to serve as the foundation for the mode predictor.
+
+\subsection{Important Metrics}
+\begin{figure*}[t]
+    \includegraphics[width=\linewidth]{figures/all_features_importance.pdf}
+    \caption{}
+    \label{fig:all-features-importance}
+\end{figure*}
+
 \section{Risk-Controlled Mode Prediction}
 \begin{itemize}
-    \item Describe fast-path success from perspective of follower: Follower tries to append using a FastAccept and its value is inserted at the proposed slot without a slow path being required
-    \item Other possibilities: Leader gets a majority quorum faster using LeaderAccept; Other follower gets a fast quorum faster for that slot using FastAccept; Collision happens between 2 or more concurrent proposals
     \item Goal: Limit the risk of a fast-path being attempted but not succeeding
 \end{itemize}
 
@@ -151,5 +163,3 @@ Given a threshold $\hat{\lambda}$ and model input features, show how the decisio
     \item Hint at dangers of distribution shift due to sudden change to all nodes mode changing???
     \item Maybe small things about optimization strategy to find optimal $\lambda$
 \end{itemize}
-
-\section{Score Function for Fast-Path Regulation}
