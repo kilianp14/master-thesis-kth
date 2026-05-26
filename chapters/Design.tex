@@ -132,14 +132,58 @@ While the leader-side proposal processing and collision resolution described pre
 
 From the perspective of a follower, we can consider a fast-path attempt successful only if its proposal achieves a fast quorum directly, without requiring a slow-path collision resolution. Conversely, a failure occurs whenever this optimal path is interrupted. A fast-path attempt will fail if the target slot is claimed by a concurrent proposal by the leader through the regular path (majority quorum of $\textsc{LeaderAccept}$ messages), claimed by a different follower's concurrent fast-path proposal (fast quorum of $\textsc{FastAccept}$ messages), or stalled entirely by a collision that forces the cluster into a slow-path recovery.
 
-To dynamically find out the right mode to use, we design a heuristic that condenses real-time metrics into a score estimating the probability of a fast-path succeeding to serve as the foundation for the mode predictor.
+To dynamically find out the right mode to use, we design a heuristic that condenses real-time metrics into a score estimating the probability of a fast-path succeeding to serve as the foundation for the mode predictor. For this purpose, we simulate lots of distributed consensus networks to analyze how network latency and proposal rates affect a follower node's ability to successfully commit a proposal via a fast quorum path versus experiencing collisions or overwrites.
 
 \subsection{Important Metrics}
+To isolate the environmental variables that potentially impact fast-path outcomes, we define a set of system features tracked from the perspective of an individual follower. These metrics can be put into three categories:
+
+\vspace{1em}
+\noindent\textbf{Network Latency:}
+\begin{itemize}
+    \item \textit{Latency to Leader}: Baseline message delay to the designated leader.
+    \item \textit{Latency to Majority Quorum}: The time required until a majority quorum can be reached with a message.
+    \item \textit{Latency to Fast Quorum}: The time required until a fast quorum can be reached with a message.
+    \item \textit{Maximum Latency}: Baseline message delay to the furthest node .
+\end{itemize}
+
+\noindent\textbf{Traffic and Proposal Rates:}
+\begin{itemize}
+    \item \textit{Leader Proposals/sec}: Volume of concurrent accept requests initiated by the leader. This is a measure about how many other requests take the regular path.
+    \item \textit{Own Proposals/sec}: The individual request rate of the follower.
+    \item \textit{Other Followers' Proposals/sec}: The aggregate concurrent request rate originating from all other followers. This is a measure about how many other requests take the fast path.
+    \item \textit{Max Follower Proposals/sec}: The peak request rate observed from a competing follower.
+\end{itemize}
+
+\noindent\textbf{System Scale:}
+\begin{itemize}
+    \item \textit{Node Count}: Total number of active nodes operating within the  cluster.
+\end{itemize}
+
+To determine which of these metrics actually drive the system's behavior, we performed a feature importance analysis on the collected simulation data. An XGBoost regression model~\cite{Chen-XGBoost-2016} was trained using the established features to predict the follower's fast-path success rate. To ensure the feature set comprehensively captured the system dynamics before analyzing importance, the model was evaluated against a holdout test dataset. The model achieved a low Root Mean Squared Error ($\text{RMSE} = 0.00372$) and a high Coefficient of Determination ($R^2 = 0.97458$). This $R^2$ score indicates that the selected metrics account for approximately 97.5\% of the variance in fast-path success, validating that the input features successfully capture the underlying mechanics of the system.
+
 \begin{figure*}[t]
     \includegraphics[width=\linewidth]{figures/all_features_importance.pdf}
-    \caption{}
+    \caption{Feature importance for fast-path success measured by total information gain across the XGBoost model ensemble.} 
     \label{fig:all-features-importance}
 \end{figure*}
+
+With the model validated, the relative impact of each metric was quantified using the \textit{Information Gain} of the underlying decision trees, which measures the total reduction in prediction uncertainty contributed by a specific feature across the entire ensemble. This result is illustrated in Figure~\ref{fig:all-features-importance}.
+
+\begin{itemize}
+    \item Goal: Simple and easy to compute score
+    \item Show and explain that using only the latency to fast quorum (and remove all other latency metrics) does not degrade performance of the model by a lot
+    \item Same for all other metrics except leader proposals per sec and other followers proposals/sec
+    \item Adding the two proposals is still solid, as well as then multiplying latency to fq with the new combined proposals
+    \item only one metric left that can be seen as the number of proposals likely to be in transit while we try a fast-path -> simple metric to track -> now build a score function from it
+\end{itemize}
+
+\subsection{Score Function}
+\begin{itemize}
+    \item Plotting the remaining metric agains the success-rate -> sigmoid like in log space
+    \item midpoint at $\approx 0.5$ -> makes sense as the chance of success should be roughly $50\%$ when there is a concurrent request $50\%$ of the time
+    \item exponential factor is roughly $4/3$ as determined by model fit
+    \item show some math to transform this sigmoid in log space into power function in normal space -> final score function -> show good rmse and r2
+\end{itemize}
 
 \section{Risk-Controlled Mode Prediction}
 \begin{itemize}
