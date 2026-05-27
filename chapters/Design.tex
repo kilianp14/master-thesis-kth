@@ -159,7 +159,7 @@ To isolate the environmental variables that potentially impact fast-path outcome
     \item \textit{Node Count}: Total number of active nodes operating within the  cluster.
 \end{itemize}
 
-To determine which of these metrics actually drive the system's behavior, we performed a feature importance analysis on the collected simulation data. An XGBoost regression model~\cite{Chen-XGBoost-2016} was trained using the established features to predict the follower's fast-path success rate. To ensure the feature set comprehensively captured the system dynamics before analyzing importance, the model was evaluated against a holdout test dataset. The model achieved a low Root Mean Squared Error ($\text{RMSE} = 0.00372$) and a high Coefficient of Determination ($R^2 = 0.97458$). This $R^2$ score indicates that the selected metrics account for approximately 97.5\% of the variance in fast-path success, validating that the input features successfully capture the underlying mechanics of the system.
+To determine which of these metrics actually drive the system's behavior, we performed a feature importance analysis on the collected simulation data. An XGBoost regression model~\cite{Chen-XGBoost-2016} was trained using the established features to predict the follower's fast-path success rate. To ensure the feature set comprehensively captured the system dynamics before analyzing importance, the model was evaluated against a holdout test dataset. The model achieved a low \gls{RMSE} of $0.00372$ and a high \textit{Coefficient of Determination} ($R^2 = 0.97458$). This $R^2$ score indicates that the selected metrics account for approximately 97.5\% of the variance in fast-path success, validating that the input features successfully capture the underlying mechanics of the system.
 
 \begin{figure*}[t]
     \includegraphics[width=\linewidth]{figures/all_features_importance.pdf}
@@ -169,21 +169,54 @@ To determine which of these metrics actually drive the system's behavior, we per
 
 With the model validated, the relative impact of each metric was quantified using the \textit{Information Gain} of the underlying decision trees, which measures the total reduction in prediction uncertainty contributed by a specific feature across the entire ensemble. This result is illustrated in Figure~\ref{fig:all-features-importance}.
 
-\begin{itemize}
-    \item Goal: Simple and easy to compute score
-    \item Show and explain that using only the latency to fast quorum (and remove all other latency metrics) does not degrade performance of the model by a lot
-    \item Same for all other metrics except leader proposals per sec and other followers proposals/sec
-    \item Adding the two proposals is still solid, as well as then multiplying latency to fq with the new combined proposals
-    \item only one metric left that can be seen as the number of proposals likely to be in transit while we try a fast-path -> simple metric to track -> now build a score function from it
-\end{itemize}
+To minimize system overhead, the resulting score function, however, should be simpler and efficient to compute, requiring as little runtime metric tracking as possible. For this purpose, the goal is to first reduce the feature space without losing much performance. From the original feature importance plot, we can see that the latency to a fast quorum is by far the most important network latency metric. If we remove all other latency features and repeat the XGBoost training procedure, we achieve a \gls{RMSE} of $0.00631$ and and $R^2$ score of $0.95689$, which demonstrates that the model retains most of its predictive accuracy despite using a significantly smaller feature set. Figure~\ref{fig:one-latency-features-importance} shows the resulting feature importance.
+
+\begin{figure*}[t]
+    \includegraphics[width=\linewidth]{figures/one_latency_features_importance.pdf}
+    \caption{Feature importance for fast-path success with a reduced feature-set measured by total information gain.} 
+    \label{fig:one-latency-features-importance}
+\end{figure*}
+
+Now, keeping only the three most important features (\textit{Latency to Fast Quorum}, \textit{Leader Proposals/sec}, and \textit{Other Followers' Proposals/sec}) increases the \gls{RMSE} to $0.00798$ and decreases the $R^2$ score to $0.94552$, which is an acceptable trade-off because the model still explains over 94\% of the variance while drastically simplifying runtime tracking. With these three metrics, we now try to build a score function predicting the likelihood of fast-path success that is easy to evaluate.
+
 
 \subsection{Score Function}
-\begin{itemize}
-    \item Plotting the remaining metric agains the success-rate -> sigmoid like in log space
-    \item midpoint at $\approx 0.5$ -> makes sense as the chance of success should be roughly $50\%$ when there is a concurrent request $50\%$ of the time
-    \item exponential factor is roughly $4/3$ as determined by model fit
-    \item show some math to transform this sigmoid in log space into power function in normal space -> final score function -> show good rmse and r2
-\end{itemize}
+To explore how the three remaining metrics interact, we can look at the time a proposal spends in flight. The \textit{Latency to Fast Quorum} can be thought of as a window where a fast-path proposal is vulnerable to competition. During this time, requests from both the leader and other followers could potentially disrupt the fast path. Therefore, summing these two rates and multiplying by the latency gives a dimensionless value that could intuitively track the number of competing proposals issued during that window. This combination provides a plausible starting point for a well-defined score function, which is also underlined by the fact that an XGBoost model just on this metric produces a \gls{RMSE} of $0.00806$ an $R^2$ score of $0.94495$. This is very close to the results achieved using the original features separately.
+
+When visualizing the "competing proposals" against the fast-path success rate in log-space (as done in Figure~\ref{fig:score-function}), a clear pattern emerges. The data exhibits a distinct sigmoid-like shape, with the success rate remaining near one for low values, before dropping sharply, and flattening out at zero. 
+\begin{figure*}[t]
+    \includegraphics[width=\linewidth]{figures/score_function.pdf}
+    \caption{} 
+    \label{fig:score-function}
+\end{figure*}
+
+To approximate this relationship, we fit a sigmoid function using the "competing propoals, $x$, which is the product of the fast quorum latency and the combined proposal rate. The model is formulated as:
+$$S(x) = \frac{1}{1 + e^{k(\ln(x) - \ln(x_0))}}$$
+A curve fit yields a steepness factor of around $k \approx \frac{5}{4}$ and a parameter $x_0 \approx 0.5$, which marks the inflection point where the predicted success rate drops to $0.5$. The value of the later makes intuitive sense, as when there is a $50\%$ chance of a competing proposal, then it is imaginable that there is roughly a $50\%$ chance of our fast-path attempt not being involved in a conflict.
+
+Inserting these values and transforming the equation leads to the final heuristic score function, as visualized in Figure \ref{fig:score-function}, in the following form:
+$$S(x) = \frac{1}{1 + (2 \cdot \text{Fast Quorum Latency (s)} \cdot \text{Incoming Accept Messages/s})^{\frac{5}{4}}}$$
+
+With this score function, we achieve a \gls{RMSE} of $0.00817$ and an $R^2$ score of $0.94422$ on the test data. A summary comparing the performance metrics of each model iteration against the original feature set is provided in Table~\ref{tab:model-performance-comparison}.
+
+\begin{table}[t]
+\centering
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Model Configuration} & \textbf{RMSE} & \textbf{$R^2$ Score} \\
+\midrule
+XGBoost (Full Feature Set) & 0.00372 & 0.97458 \\
+XGBoost (Reduced Latency Features) & 0.00631 & 0.95689 \\
+XGBoost (Top Three Features) & 0.00798 & 0.94552 \\
+XGBoost (Single Combined Metric) & 0.00806 & 0.94495 \\
+Analytical Heuristic Function & 0.00817 & 0.94422 \\ 
+\bottomrule
+\end{tabular}
+\caption{Performance comparison of feature selection and predictive models.}
+\label{tab:model-performance-comparison}
+\end{table}
+
 
 \section{Risk-Controlled Mode Prediction}
 \begin{itemize}
