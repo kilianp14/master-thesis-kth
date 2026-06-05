@@ -300,6 +300,62 @@ $$\widehat{\lambda} = \inf \left\{ \lambda : \frac{n}{n+1} \widehat{R}(\lambda) 
 
 Algorithm~\ref{alg:conformal_risk_control} formalizes the utilization conformal risk control in a classification setting. In a practical implementation, $\widehat{\lambda}$ can be efficiently pre-computed using a basic root-search mechanism.
 
+\subsection{Adaptive Conformal Inference}
+\label{sect:adaptive_conformal_inference}
+The conformal prediction methods discussed thus far rely heavily on the assumption of data exchangeability. However, in many real-world online learning or time-series applications, the underlying data-generating distribution shifts over time~\cite{Gibbs-AdaptiveConformalInference-2021, Zaffran-AdaptiveConformalPredictionsTimeSeries-2022, Feldman-RiskControlOnlineLearning-2023}. When this exchangeability assumption breaks down, the theoretical coverage and risk guarantees of standard conformal prediction fail.
+
+To address this limitation, Gibbs and Candès introduced \gls{ACI}, which adapts to arbitrary distribution shifts by treating the significance level $\alpha$ as a dynamic parameter that is continuously updated based on the model's past errors~\cite{Gibbs-AdaptiveConformalInference-2021}. Feldman et al. subsequently extended this concept to accommodate generic user-defined loss functions, known as \textit{Rolling Risk Control} ~\cite{Feldman-RiskControlOnlineLearning-2023}.
+
+Rather than using a fixed calibration set to compute a static threshold, Rolling Risk Control updates the threshold parameter $\lambda_t$ at each time step $t$. Upon receiving a new feature $X_t$, the system outputs a prediction set $\mathcal{C}_{\lambda_t}(X_t)$. Once the true label $Y_t$ is revealed, the loss $\mathcal{L}(\mathcal{C}_{\lambda_t}(X_t), Y_t)$ is evaluated, and the parameter is updated for the next time step using a fixed learning rate $\gamma > 0$:
+$$\lambda_{t+1} = \lambda_t + \gamma \left( \mathcal{L}(\mathcal{C}_{\lambda_t}(X_t), Y_t) - \alpha \right)$$
+
+If the model's recent empirical risk exceeds the target limit $\alpha$, the parameter $\lambda_t$ is increased to produce more conservative (larger) prediction sets in subsequent steps. Conversely, if the risk falls below $\alpha$, the sets are made smaller by a decrease in $\lambda_t$.
+
+For this procedure to be valid, the set construction function must satisfy the monotonicity properties detailed in Section~\ref{sect:conformal_risk_control}. Furthermore, it is assumed that the loss function is bounded, and that extreme values of $\lambda$ guarantee specific bounds. Producing the full label space $\mathcal{Y}$ strictly satisfies the target risk ($\mathcal{L}(\mathcal{Y}, y) < \alpha$), and producing the empty set $\emptyset$ strictly violates it ($\mathcal{L}(\emptyset, y) > \alpha$) for all $y \in \mathcal{Y}$~\cite{Feldman-RiskControlOnlineLearning-2023}. Under these conditions, Rolling Risk Control provides a robust, distribution-free guarantee that the time-averaged empirical risk converges exactly to the target risk limit $\alpha$:
+$$\lim_{T \to \infty} \frac{1}{T} \sum_{t=1}^T \mathcal{L}(\mathcal{C}_{\lambda_t}(X_t), Y_t) = \alpha$$
+
+Algorithm~\ref{alg:rolling_risk_control} details the operational deployment of Rolling Risk Control for classification tasks.
+
+\begin{algorithm}[t]
+    \begin{algorithmic}[1]
+        \vspace{1mm}
+        \Statex \textbf{Inputs:}
+        \Statex \hspace{\algorithmicindent}
+        \begin{minipage}[t]{0.92\linewidth}
+            Model fitting data
+            $\mathcal{D}_{mod} \in (\mathcal{X} \times \mathcal{Y})^m$
+            
+            Inference data (stream)
+            $\mathcal{D} = \{(X_1, Y_1), \dots, (X_T, Y_T)\}\in (\mathcal{X} \times \mathcal{Y})^T$
+            
+            Loss function
+            $\mathcal{L}: 2^{\mathcal{Y}} \times \mathcal{Y} \rightarrow (-\infty, B]$
+            
+            Risk limit
+            $\alpha\in(-\infty, B]$
+
+            Learning rate
+            $\gamma \in \mathbb{R}^+$
+        \end{minipage}
+        \vspace{1mm}
+        \Statex \textbf{Output:}
+        \Statex \hspace{\algorithmicindent}
+        Prediction sets (stream) $\{\mathcal C(X_1), \dots, \mathcal{C}(X_T)\}$
+        \Statex \hrulefill
+        \State Get construction method for prediction sets $\mathcal{C}_\lambda(x)$ using $\mathcal{D}_{mod}$
+        \State Initialize $\lambda_1 \leftarrow 0$
+        \For{$t \in \{1, \dots, T\}$}
+            \State Obtain feature vector $X_t$
+            \State Output prediction set: $\mathcal{C}_{\lambda_t}(X_t)$
+            \State Obtain true label $Y_t$
+            \State Loss: $L_t \leftarrow \mathcal{L}(\mathcal{C}_{\lambda_t}(X_t),Y_t)$
+            \State Update $\lambda_{t+1} \leftarrow \lambda_t + \gamma(L_t - \alpha)$
+        \EndFor
+    \end{algorithmic}
+    \caption{Rolling Risk Control for Classification}
+    \label{alg:rolling_risk_control}
+\end{algorithm}
+
 \section{Related Work}
 \label{sec:related_work}
 
@@ -340,6 +396,6 @@ Finally, Horchidan et al.~\cite{Horchidan-ConANN-2025} present ConANN, the first
 
 We presented the theoretical foundations for both replicated state machines and uncertainty-aware decision-making. \gls{SMR} was described as the standard approach for building fault-tolerant services, with uniform sequence consensus and leader-based Sequence Paxos providing the formal and practical basis for maintaining a replicated log. Fast Paxos and related fast-path techniques reduce latency by allowing replicas to bypass the leader, but this optimization is inherently optimistic: it improves performance when collisions are rare, but can degrade performance when contention or network delays are high.
 
-As methods to address uncertainty, we introduced \gls{CP} and \gls{CRC} as statistical frameworks that provide formal guarantees. Split conformal prediction enables efficient uncertainty estimation in practical systems, while \gls{CRC} allows guarantees over system-level risk rather than simple prediction coverage. These methods make it possible to transform heuristic confidence estimates into decisions with formal guarantees.
+As methods to address uncertainty, we introduced \gls{CP} and \gls{CRC} as statistical frameworks that provide formal guarantees. Split conformal prediction enables efficient uncertainty estimation in practical systems, while \gls{CRC} allows guarantees over system-level risk rather than simple prediction coverage. These methods make it possible to transform heuristic confidence estimates into decisions with formal guarantees, and can be extended to an online-setting that involves time-series data.
 
 Finally, we highlighted the gap in prior work where adaptive mechanisms for replicated logs remain limited while conformal methods have been successfully applied to provide formal guarantees for data management systems. This motivates the approach of this thesis: using uncertainty-aware methods to adapt the use of fast-path consensus in replicated log systems.

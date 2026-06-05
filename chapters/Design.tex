@@ -40,14 +40,8 @@ The presented mechanisms assume a phase where the leader is in a stable accept p
     \State \Return $\textsc{Pending}$
 \EndIf
 \State $(e^\star, leader, fast, slow) \gets$ entry in $proposals$ with maximum total votes
-\If{majority quorum on $leader$}
-    \State \Return $\textsc{Chosen}(e^\star, \textsc{LeaderAccept})$
-\EndIf
-\If{fast quorum on $fast$}
-    \State \Return $\textsc{Chosen}(e^\star, \textsc{FastAccept})$
-\EndIf
-\If{majority quorum on $slow$}
-    \State \Return $\textsc{Chosen}(e^\star, \textsc{SlowAccept})$
+\If{majority quorum on $leader$ \textbf{or } \Statex \qquad\: fast quorum on $fast$ \textbf{or } \Statex \qquad\: majority quorum on $slow$}
+    \State \Return $\textsc{Chosen}(e^\star)$
 \EndIf
 \If{\textbf{not } fast quorum on $|proposals|$}
     \State \Return $\textsc{Pending}$
@@ -92,12 +86,12 @@ After this threshold is met, the leader executes the final loop of Algorithm \re
 \State $result \gets \Call{ComputeProposeResult}{acceptMeta[slotIdx]}$
 \State $\textit{slotResults}[slotIdx] \gets result$
 
-\If{$result = \textsc{Chosen}(\_, \_)$ and $slotIdx = decidedIdx$}
+\If{$result = \textsc{Chosen}(\_)$ and $slotIdx = decidedIdx$}
 
     \State $newDecidedSuffix \gets [\ ]$
 
-    \While{$\textit{slotResults}[decidedIdx] = \textsc{Chosen}(e,s)$}
-        \State Append $(decidedIdx,e,s)$ to $newDecidedSuffix$
+    \While{$\textit{slotResults}[decidedIdx] = \textsc{Chosen}(e)$}
+        \State Append $(decidedIdx,e)$ to $newDecidedSuffix$
         \State Remove $\textit{slotResults}[decidedIdx]$
         \State Remove $\textit{acceptMeta}[decidedIdx]$
         \State $decidedIdx \gets decidedIdx+1$
@@ -159,13 +153,13 @@ To isolate the environmental variables that potentially impact fast-path outcome
     \item \textit{Node Count}: Total number of active nodes operating within the  cluster.
 \end{itemize}
 
-To determine which of these metrics actually drive the system's behavior, we performed a feature importance analysis on the collected simulation data. An XGBoost regression model~\cite{Chen-XGBoost-2016} was trained using the established features to predict the follower's fast-path success rate. To ensure the feature set comprehensively captured the system dynamics before analyzing importance, the model was evaluated against a holdout test dataset. The model achieved a low \gls{RMSE} of $0.00372$ and a high \textit{Coefficient of Determination} ($R^2 = 0.97458$). This $R^2$ score indicates that the selected metrics account for approximately 97.5\% of the variance in fast-path success, validating that the input features successfully capture the underlying mechanics of the system.
-
 \begin{figure*}[t]
     \includegraphics[width=\linewidth]{figures/all_features_importance.pdf}
     \caption{Feature importance for fast-path success measured by total information gain across the XGBoost model ensemble.} 
     \label{fig:all-features-importance}
 \end{figure*}
+
+To determine which of these metrics actually drive the system's behavior, we performed a feature importance analysis on the collected simulation data. An XGBoost regression model~\cite{Chen-XGBoost-2016} was trained using the established features to predict the follower's fast-path success rate. To ensure the feature set comprehensively captured the system dynamics before analyzing importance, the model was evaluated against a holdout test dataset. The model achieved a low \gls{RMSE} of $0.00372$ and a high \textit{Coefficient of Determination} ($R^2 = 0.97458$). This $R^2$ score indicates that the selected metrics account for approximately 97.5\% of the variance in fast-path success, validating that the input features successfully capture the underlying mechanics of the system.
 
 With the model validated, the relative impact of each metric was quantified using the \textit{Information Gain} of the underlying decision trees, which measures the total reduction in prediction uncertainty contributed by a specific feature across the entire ensemble. This result is illustrated in Figure~\ref{fig:all-features-importance}.
 
@@ -186,18 +180,19 @@ To explore how the three remaining metrics interact, we can look at the time a p
 When visualizing the "competing proposals" against the fast-path success rate in log-space (as done in Figure~\ref{fig:score-function}), a clear pattern emerges. The data exhibits a distinct sigmoid-like shape, with the success rate remaining near one for low values, before dropping sharply, and flattening out at zero. 
 \begin{figure*}[t]
     \includegraphics[width=\linewidth]{figures/score_function.pdf}
-    \caption{} 
+    \caption{Observed fast-path success rate versus the expected number of competing proposals. The red line highlights the analytical heuristic score used for prediction.}
     \label{fig:score-function}
 \end{figure*}
 
-To approximate this relationship, we fit a sigmoid function using the "competing propoals, $x$, which is the product of the fast quorum latency and the combined proposal rate. The model is formulated as:
+To approximate this relationship, we fit a sigmoid function using the "competing propoals", $x$, which is the product of the fast quorum latency and the combined proposal rate. The model is formulated as:
 $$S(x) = \frac{1}{1 + e^{k(\ln(x) - \ln(x_0))}}$$
 A curve fit yields a steepness factor of around $k \approx \frac{5}{4}$ and a parameter $x_0 \approx 0.5$, which marks the inflection point where the predicted success rate drops to $0.5$. The value of the later makes intuitive sense, as when there is a $50\%$ chance of a competing proposal, then it is imaginable that there is roughly a $50\%$ chance of our fast-path attempt not being involved in a conflict.
 
 Inserting these values and transforming the equation leads to the final heuristic score function, as visualized in Figure \ref{fig:score-function}, in the following form:
-$$S(x) = \frac{1}{1 + (2 \cdot \text{Fast Quorum Latency (s)} \cdot \text{Incoming Accept Messages/s})^{\frac{5}{4}}}$$
+$$\vec{x} = \begin{bmatrix} x_1 \\ x_2 \end{bmatrix} = \begin{bmatrix} \text{Fast Quorum Latency (s)} \\ \text{Incoming Accept Messages/s} \end{bmatrix}$$
+$$S(\vec{x}) = \frac{1}{1 + (2 \cdot x_1 \cdot x_2)^{\frac{5}{4}}}$$
 
-With this score function, we achieve a \gls{RMSE} of $0.00817$ and an $R^2$ score of $0.94422$ on the test data. A summary comparing the performance metrics of each model iteration against the original feature set is provided in Table~\ref{tab:model-performance-comparison}.
+With this score function, we achieve a \gls{RMSE} of $0.00817$ and an $R^2$ score of $0.94422$ on the test data. A summary comparing the performance metrics of each model iteration against the original feature set is provided in Table~\ref{tab:model-performance-comparison}. The function can now serve as the heuristic notion of uncertainty, as needed for \gls{CRC}, around the mode prediction.
 
 \begin{table}[t]
 \centering
@@ -219,24 +214,44 @@ Analytical Heuristic Function & 0.00817 & 0.94422 \\
 
 
 \section{Risk-Controlled Mode Prediction}
-\begin{itemize}
-    \item Goal: Limit the risk of a fast-path being attempted but not succeeding
-\end{itemize}
+To bound the risk of failed fast-path attempts, the system incorporates the heuristic function into a risk-controlled prediction layer, outlined in this section. This framework wraps the scoring model to guarantee that the rate of fast-path failures remains below a user-specified significance level $\alpha$. This failure rate is measured relative to the total number of append attempts initiated by the node, rather than only the subset of proposals where the fast-path was actively selected.
 
 \subsection{Risk Specification}
 \begin{itemize}
-    \item Describe the prediction sets and labels
-    \item Describe the model interface and how the prediction set construction method is created from it
-    \item Setup loss function
-    \item Maybe some more pseudo-code
+    \item \textbf{Label Space:} The possible outcomes of a proposal are defined as $\mathcal{Y} = \{\text{Success}, \text{NoSuccess}\}$.
+    \item \textbf{Loss:} The system only penalizes ``false positives'' regarding fast-path safety. The empirical loss function is defined such that:
+    \begin{itemize}
+        \item Loss is $1.0$ if the true outcome is \texttt{NoSuccess}, but the prediction set fails to include \texttt{NoSuccess} (meaning the system confidently, but incorrectly, predicted a guaranteed fast-path success).
+        \item Loss is $0.0$ in all other scenarios (including conservative predictions where the fast path would have succeeded, but the system safely defaulted to the regular path).
+        \item Include table: prediction sets vs. true label with loss
+    \end{itemize}
+    \item \textbf{Significance Level ($\alpha$):} The system accepts a user-defined significance level (e.g., $0.05$), which dictates the maximum acceptable empirical risk of making a bad fast-path decision -> Define by using excepted value and probability
 \end{itemize}
 
 \subsection{Decision Layer}
-Given a threshold $\hat{\lambda}$ and model input features, show how the decision is made which mode to set -> definitely pseudo-code here
-
-\subsection{Calibration}
+Swap with previous??
 \begin{itemize}
-    \item Calibration set is generated by collecting the relevant features during operation where every node always chooses fast-path
-    \item Hint at dangers of distribution shift due to sudden change to all nodes mode changing???
-    \item Maybe small things about optimization strategy to find optimal $\lambda$
+    \item \textbf{Model Interface:} For a given proposal, the system evaluates the real-time features $X$ (Fast Quorum Latency and Other Nodes' Proposals/sec) using the previously defined heuristic model to assign a probability score to both labels.
+    \item \textbf{Set Construction:} A label is included in the prediction set if its assigned probability score is $\geq 1 - \lambda$, where $\lambda$ is the conformal threshold parameter.
+    \item \textbf{Mode Mapping:} The prediction set is directly translated into an operational mode for the incoming proposal:
+    \begin{itemize}
+        \item If \texttt{NoSuccess} is present in the prediction set, the risk of collision is too high. The node falls back to Regular Paxos (\texttt{Mode::OmniPaxos}), forwarding the proposal to the leader.
+        \item If \texttt{NoSuccess} is absent from the prediction set, the node initiates Fast Paxos (\texttt{Mode::FastPaxos})
+    \end{itemize}
+    \item  Include a brief algorithm block here showing the logic for \texttt{get\_prediction\_set\_with\_lambda(features, lambda)} and \texttt{get\_new\_mode(features)}.
+\end{itemize}
+
+\subsection{Calibration Strategy}
+\begin{itemize}
+    \item \textbf{The Counterfactual Data Problem:} To calibrate the system, nodes need ground-truth data on whether a fast-path attempt would have succeeded under current network conditions.
+    \item \textbf{Shadow Proposals (\texttt{TestAccept}):} To solve this, the protocol introduces a safe, parallel data-gathering mechanism. When a node is in the calibration phase and forwards a regular proposal to the leader, it simultaneously broadcasts a \texttt{TestAccept} message to all peers.
+    \item \textbf{State-Safe Tracking:}
+    \begin{itemize}
+        \item Followers treat \texttt{TestAccept} messages passively: they acknowledge them if the target slot is empty, but they do not write them to the actual replicated log -> answers sender.
+        \item If a \texttt{TestAccept} accumulates a fast quorum of votes, the original proposer records a \texttt{Success} label for those feature conditions.
+        \item If the actual slot is decided by the leader before the test proposal reaches a fast quorum, the proposer records a \texttt{NoSuccess} label.
+        \item Not perfect, might underestimate at times (forwarding over leader somehow faster or dropped answer) but good enough in stable network conditions
+    \end{itemize}
+    \item \textbf{Threshold Optimization:} Once sufficient calibration data is collected, the node computes the optimal $\hat{\lambda}$ parameter. It utilizes a binary search algorithm (running for 80 iterations over the interval $[0, 1]$) to find the exact root where the empirical risk over the calibration set is bounded by the significance level $\alpha$.
+    \item Maybe include a sequence diagram illustrating a follower sending a \texttt{ProposalForward} to the leader while simultaneously broadcasting \texttt{TestAccept} messages to the cluster, demonstrating how the calibration data is gathered without altering the true log state.
 \end{itemize}
