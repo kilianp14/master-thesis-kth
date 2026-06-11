@@ -217,19 +217,37 @@ Analytical Heuristic Function & 0.00817 & 0.94422 \\
 To bound the risk of failed fast-path attempts, the system incorporates the heuristic function into a risk-controlled prediction layer, outlined in this section. This framework wraps the scoring model to guarantee that the rate of fast-path failures remains below a user-specified significance level $\alpha$. This failure rate is measured relative to the total number of append attempts initiated by the node, rather than only the subset of proposals where the fast-path was actively selected.
 
 \subsection{Risk Specification}
-\begin{itemize}
-    \item \textbf{Label Space:} The possible outcomes of a proposal are defined as $\mathcal{Y} = \{\text{Success}, \text{NoSuccess}\}$.
-    \item \textbf{Loss:} The system only penalizes ``false positives'' regarding fast-path safety. The empirical loss function is defined such that:
-    \begin{itemize}
-        \item Loss is $1.0$ if the true outcome is \texttt{NoSuccess}, but the prediction set fails to include \texttt{NoSuccess} (meaning the system confidently, but incorrectly, predicted a guaranteed fast-path success).
-        \item Loss is $0.0$ in all other scenarios (including conservative predictions where the fast path would have succeeded, but the system safely defaulted to the regular path).
-        \item Include table: prediction sets vs. true label with loss
-    \end{itemize}
-    \item \textbf{Significance Level ($\alpha$):} The system accepts a user-defined significance level (e.g., $0.05$), which dictates the maximum acceptable empirical risk of making a bad fast-path decision -> Define by using excepted value and probability
-\end{itemize}
+To formulate the mode selection as a risk-control problem, the system's outcomes and penalties must be strictly defined. We establish this formulation using three primary components: the label space, the loss function, and the user-defined risk level.
+
+First, we define the operational label space of a proposal attempt as $\mathcal{Y} = \{\textsc{Success}, \textsc{NoSuccess}\}$. A $\textsc{Success}$ indicates that a fast-path proposal from the perspective of the proposing follower achieves a fast quorum directly under the current network conditions. Conversely, a $\textsc{NoSuccess}$ means that the attempt would fail. This could be either due to a leader proposal for the same slot that receives a majority quorum on \texttt{LeaderAccepts}, a competing follower's proposal achieving a fast quorum on \texttt{FastAccepts} for the desired slot, or general contention requiring a leader-initiated slow-path recovery.
+
+To control the failure rate of fast-paths, which is the risk we are trying to control, we have to penalize the false positives, where a fast-path is chosen and ends up being unsuccessful. If we fall back to the conservative/regular path whenever the \texttt{NoSuccess} label is included in the prediction set, the loss can be defined as such: The loss to $1$ whenever the true outcome is \texttt{NoSuccess}, but the prediction set fails to include \texttt{NoSuccess} (meaning the system confidently, but incorrectly, predicted a fast-path success) and $0$ otherwise. This loss is mapped using Table \ref{tab:loss-matrix}.
+
+\begin{table}[t]
+\centering
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{lcccc}
+& \multicolumn{4}{c}{\textbf{Prediction Set}} \\
+\cmidrule(l){2-5}
+\textbf{True Label} & $\emptyset$ & $\{Success\}$ & $\{NoSuccess\}$ & $\{Success, NoSuccess\}$ \\
+\midrule
+\textbf{Success}   & 0 & 0 & 0 & 0 \\
+\textbf{NoSuccess} & \textbf{1} & \textbf{1} & 0 & 0 \\
+\bottomrule
+\end{tabular}
+\caption{Loss based on true labels versus prediction sets.}
+\label{tab:loss-matrix}
+\end{table}
+
+The design does not punish conservative predictions where the fast-path would have succeeded but the system safely defaulted to the regular path. The reason for this choice is that such a punishment simply does not fit into a loss function that has to satisfy the monotonicity properties relevant to provide the guarantees of \gls{CRC}, as outlined in Section \ref{sect:conformal_risk_control}.
+
+Finally, the framework bounds the risk using a user-specified risk level $\alpha \in (0, 1)$, which dictates the target failure rate. If we had an exchangable calibration set, the standard \gls{CRC} procedure would provide the following guarantee for a new test point:
+$$\mathbb{E}(\mathcal{L}(\mathcal{C}_{\widehat\lambda}(X_{test}), Y_{test})) \le \alpha$$
+Since real-life workloads are unlikely to be exchangable, however, we instead use the rolling risk-control procedure (as defined in Section \ref{sect:adaptive_conformal_inference}), which gives us the following for a stream of decision problems in this case:
+$$\lim_{T \to \infty} \frac{1}{T} \sum_{t=1}^T \mathcal{L}(\mathcal{C}_{\lambda_t}(X_t), Y_t) \le \alpha$$
+Here, the converging value is bounded by $\alpha$ instead of being equal to it, as outlined previously. The reason is that in a setup where the fast-path always succeeds, the failure rate (and therefore the risk) is zero. Formally, our loss function does not satisfy the property that it has to produce a value higher than $\alpha$ when provided an empty prediction set since $\mathcal{L}(\emptyset, Success) = 0 < \alpha$.
 
 \subsection{Decision Layer}
-Swap with previous??
 \begin{itemize}
     \item \textbf{Model Interface:} For a given proposal, the system evaluates the real-time features $X$ (Fast Quorum Latency and Other Nodes' Proposals/sec) using the previously defined heuristic model to assign a probability score to both labels.
     \item \textbf{Set Construction:} A label is included in the prediction set if its assigned probability score is $\geq 1 - \lambda$, where $\lambda$ is the conformal threshold parameter.
