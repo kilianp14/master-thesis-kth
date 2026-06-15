@@ -243,21 +243,42 @@ The design does not punish conservative predictions where the fast-path would ha
 
 Finally, the framework bounds the risk using a user-specified risk level $\alpha \in (0, 1)$, which dictates the target failure rate. If we had an exchangable calibration set, the standard \gls{CRC} procedure would provide the following guarantee for a new test point:
 $$\mathbb{E}(\mathcal{L}(\mathcal{C}_{\widehat\lambda}(X_{test}), Y_{test})) \le \alpha$$
-Since real-life workloads are unlikely to be exchangable, however, we instead use the rolling risk-control procedure (as defined in Section \ref{sect:adaptive_conformal_inference}), which gives us the following for a stream of decision problems in this case:
+Since real-life workloads are unlikely to be exchangable, however, we instead use the rolling risk-control procedure (as defined in Section \ref{sect:adaptive_conformal_inference}), which gives us the following for a stream of decision problems:
 $$\lim_{T \to \infty} \frac{1}{T} \sum_{t=1}^T \mathcal{L}(\mathcal{C}_{\lambda_t}(X_t), Y_t) \le \alpha$$
 Here, the converging value is bounded by $\alpha$ instead of being equal to it, as outlined previously. The reason is that in a setup where the fast-path always succeeds, the failure rate (and therefore the risk) is zero. Formally, our loss function does not satisfy the property that it has to produce a value higher than $\alpha$ when provided an empty prediction set since $\mathcal{L}(\emptyset, Success) = 0 < \alpha$.
 
 \subsection{Decision Layer}
-\begin{itemize}
-    \item \textbf{Model Interface:} For a given proposal, the system evaluates the real-time features $X$ (Fast Quorum Latency and Other Nodes' Proposals/sec) using the previously defined heuristic model to assign a probability score to both labels.
-    \item \textbf{Set Construction:} A label is included in the prediction set if its assigned probability score is $\geq 1 - \lambda$, where $\lambda$ is the conformal threshold parameter.
-    \item \textbf{Mode Mapping:} The prediction set is directly translated into an operational mode for the incoming proposal:
-    \begin{itemize}
-        \item If \texttt{NoSuccess} is present in the prediction set, the risk of collision is too high. The node falls back to Regular Paxos (\texttt{Mode::OmniPaxos}), forwarding the proposal to the leader.
-        \item If \texttt{NoSuccess} is absent from the prediction set, the node initiates Fast Paxos (\texttt{Mode::FastPaxos})
-    \end{itemize}
-    \item  Include a brief algorithm block here showing the logic for \texttt{get\_prediction\_set\_with\_lambda(features, lambda)} and \texttt{get\_new\_mode(features)}.
-\end{itemize}
+To execute runtime mode switching, each follower monitors local environment metrics. The fast quorum latency can be tracked continuously via a sliding window of recent message round-trip times to a fast quorum of peers, while the incoming proposal rate is calculated by recording the timestamps of arriving \texttt{Accept} messages from other nodes within a moving time window.
+
+\begin{algorithm}[t]
+    \caption{Conformal Mode Prediction}
+    \label{alg:conformal_mode_prediction}
+    \begin{algorithmic}[1]
+        \Procedure{GetPredictionSet}{$features, \lambda$}
+            \State $scores \gets \textsc{Model}(features)$
+            \State $predictionSet \gets [\ ]$
+            \For{\textbf{each} $(label, score)$ \textbf{in} $scores$}
+                \If{$score \ge 1.0 - \lambda$}
+                    \State Append $label$ to $predictionSet$
+                \EndIf
+            \EndFor
+            \State \Return $predictionSet$
+        \EndProcedure
+        \vspace{0.5em}
+        \Procedure{GetNewMode}{$features$}
+            \State $labels \gets \Call{GetPredictionSet}{features, \widehat{\lambda}}$
+            \If{$\textsc{NoSuccess} \in labels$}
+                \State \Return $\textsc{RegularPaxos}$
+            \Else
+                \State \Return $\textsc{FastPaxos}$
+            \EndIf
+        \EndProcedure
+    \end{algorithmic}
+\end{algorithm}
+
+For every proposal attempt, the decision layer follows Algorithm \ref{alg:conformal_prediction}. First, the tracked metrics are fed into the heuristic function to obtain probability scores for both outcomes in the label space $\mathcal{Y}$. Next, a prediction set is constructed by including any label whose assigned score satisfies the threshold condition bounded by the conformal parameter $\widehat{\lambda}$. Intuitively, a threshold of $\widehat{\lambda} = 1$ always returns the full label set, forcing a maximally conservative posture, whereas a threshold of $\widehat{\lambda} = 0$ collapses the selection down to an empty set.
+
+Finally, the contents of the prediction set are directly translated into an operational mode for the proposal. If the set contains the \texttt{NoSuccess} label, the node falls back to Regular Paxos, forwarding the proposal to the leader. Conversely, if \texttt{NoSuccess} is absent from the prediction set, the node switches to FastPaxos mode and initiates a fast-path broadcast.
 
 \subsection{Calibration Strategy}
 \begin{itemize}
