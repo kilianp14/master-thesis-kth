@@ -33,9 +33,7 @@ The safety of the replicated log relies on strict rules regarding when a node is
 
 \subsection{Quorum Logic and Collision Detection}
 \label{sect:quorum-logic}
-This section details the deterministic logic utilized by the cluster leader to evaluate quorums, detect proposal collisions, and drive individual log slots to a decided state. None of the additional state maintained by the leader requires persistence to stable storage for recovery purposes even in a fail-recovery model.
-
-The presented mechanisms assume a phase where the leader is in a stable accept phase. While handling leader failures or leader changes and executing the subsequent log synchronization are critical components for a thought-out consensus protocol, the more complex mechanisms required are considered out of scope for this specific analysis due to its experimental nature.
+This section details the deterministic logic utilized by the cluster leader to evaluate quorums, detect proposal collisions, and drive individual log slots to a decided state. The presented mechanisms assume a phase where the leader is in a stable accept phase. None of the additional state maintained by the leader requires persistence to stable storage for recovery purposes even in a fail-recovery model.
 
 \begin{algorithm}[t]
 \caption{Quorum Evaluation and Collision Resolution}
@@ -71,7 +69,7 @@ The evaluation begins by checking for immediate quorum satisfaction. A value is 
 
 If no single entry has achieved its required quorum, the leader must determine whether a collision has occurred and select a value that cannot conflict with a potentially chosen value for the slow path under the made assumptions. Merely collecting a majority of total cluster responses is insufficient to safely trigger collision resolution in this mixed-mode environment. Consider, for instance, a cluster of five nodes, where a regular majority quorum consists of three and a fast quorum of four nodes. If the leader received three responses for a slot, with one being a $\textsc{LeaderAccept}$ of entry $A$ and two being $\textsc{FastAccept}$ messages of entry $B$, the outcome remains ambiguous, although a simple majority of responses has been gathered. With 2 nodes yet to respond, value $A$ could still theoretically achieve a majority quorum, while value $B$ could concurrently reach a fast quorum. Initiating a slow-path recovery at this stage risks overriding a value that might have achieved a quorum elsewhere in the network.
 
-To avoid overriding a value that may still reach quorum, the leader must wait until a fast quorum of total responses has been collected for the slot. Once a fast quorum of responses is observed, it becomes mathematically impossible for more than one value to be able to reach its respective quorum using the remaining uncast votes. A proof of this is written out in Appendix \ref{seca:slow_path_resolution_safety_proof}.
+To avoid overriding a value that may still reach quorum, the leader must wait until a fast quorum of total responses has been collected for the slot. Then, it becomes mathematically impossible for more than one value to be able to reach its respective quorum using the remaining uncast votes. A proof of this is written out in Appendix \ref{seca:slow_path_resolution_safety_proof}.
 
 After this threshold is met, the leader executes the final loop of Algorithm \ref{alg:quorum_eval_collision_resolution} to identify a valid candidate for the slow path. The leader computes the number of uncast votes ($remaining$) and checks if any entry can still mathematically achieve its required threshold. If an entry retains the potential to reach its quorum, it is selected as the safe value for the slow path. In cases where high contention prevents any entry from being able to reach a quorum, the system falls back to the entry with the highest current vote count.
 
@@ -138,7 +136,11 @@ From the perspective of a follower, we can consider a fast path attempt successf
 
 To dynamically determine the appropriate operating mode, we design a heuristic that condenses real-time metrics into a score estimating the probability of a fast path succeeding, serving as the foundation for the mode predictor. This is done empirically via network simulations.
 
-We repeatedly simulate randomized consensus networks spanning a broad range of operating conditions. For each simulation, the cluster size, baseline network latency, aggregate proposal rate, and the proportion of proposals initiated by the leader are sampled randomly. Proposal rates and network latencies are sampled logarithmically to ensure that the dataset covers several orders of magnitude without concentrating samples in either the low- or high-load regions. Individual link latencies are additionally randomized to introduce network asymmetry, and the leader's proposal share is varied independently to expose different mixtures of regular- and fast-path traffic. Each simulation is executed until a sufficient number of proposal attempts have been observed, after which every follower contributes one training sample consisting of locally observable runtime metrics together with the empirically measured fraction of proposals that successfully completed through the fast path. The resulting dataset is then used to investigate how different metrics influence fast-path success.
+We repeatedly simulate consensus networks spanning a broad range of operating conditions. Each simulation instantiates a cluster consisting of between four and eight nodes. The aggregate proposal rate is sampled logarithmically between 5 and 50,000 proposals per second, while the baseline one-way network latency is sampled logarithmically between 0.2 ms and 200 ms. The proportion of proposals initiated by the leader is sampled independently, with the remaining proposal load distributed randomly among the followers to expose different mixtures of regular- and fast-path traffic.
+
+To introduce heterogeneous network conditions, every communication link is assigned an independent latency based on the sampled baseline latency together with randomized per-link variation. Individual message transmissions additionally experience randomized latency jitter, allowing each follower to observe a distinct network environment. Proposal generation and message delivery are simulated asynchronously using a discrete-event model.
+
+The simulation duration is adjusted according to the aggregate proposal rate to ensure that each parameter configuration produces a sufficient number of proposal attempts while keeping the computational cost manageable. A total of 10,000 independent parameter configurations are simulated. After each simulation, every follower contributes one training sample consisting of locally observable runtime metrics together with the empirically measured fraction of proposals that completed successfully through the fast path. The parameter distributions are chosen to provide broad coverage of the operating space rather than to model a specific production workload. The resulting dataset is then used to investigate how different metrics influence fast-path success.
 
 \subsection{Important Metrics}
 To isolate the environmental variables that potentially impact fast-path outcomes, we define a set of system features tracked from the perspective of an individual follower. These metrics are divided into three categories driven by the structural trade-offs of the protocol: \textbf{Network Latency} captures time windows where proposals can be competed with; \textbf{Traffic and Proposal Rates} measure active, concurrent slot competition that could trigger a collision, and \textbf{System Scale} impacts the absolute quorum thresholds. The considered metrics are as follows:
@@ -173,7 +175,7 @@ To isolate the environmental variables that potentially impact fast-path outcome
 
 To determine which of these metrics actually drive the system's behavior, we performed a feature importance analysis on the collected simulation data. An XGBoost regression model~\cite{Chen-XGBoost-2016} was trained using the established features to predict the empirical fraction of proposals that completed successfully through the fast path for an individual follower. The dataset was randomly partitioned into training (70\%), validation (15\%), and test (15\%) subsets. XGBoost models were trained on the training partition while monitoring the validation partition for early stopping to reduce overfitting. All reported evaluation metrics refer exclusively to the held-out test partition.
 
-Using all the described metrics, the XGBoost model achieved a low \gls{RMSE} of $0.00372$ and a high \textit{Coefficient of Determination} ($R^2 = 0.97458$). This $R^2$ score indicates that the selected metrics account for approximately 97.5\% of the variance in fast-path success, validating that the input features successfully capture the underlying mechanics of the system.
+Using all the described metrics, the XGBoost model achieved a low \gls{RMSE} of $0.00372$ and a high \textit{Coefficient of Determination} ($R^2 = 0.97458$). This $R^2$ score indicates that the selected metrics account for approximately 97.5\% of the variance in fast-path success, validating that the input features successfully capture the underlying mechanics of the simulator.
 
 With the model validated, the relative impact of each metric was quantified using the \textit{Information Gain} of the underlying decision trees. This was selected because it measures the reduction in prediction error contributed by each feature over all tree splits in the ensemble. The result is illustrated in Figure~\ref{fig:all-features-importance}.
 
@@ -198,12 +200,12 @@ When visualizing the "competing proposals" against the fast-path success rate in
 \end{figure*}
 
 To approximate this relationship, we fit a sigmoid function using the "competing propoals", $x$, which is the product of the fast quorum latency and the combined proposal rate. The model is formulated as follows:
-$$S(x) = \frac{1}{1 + e^{k(\ln(x) - \ln(x_0))}}$$
+$$\hat{\pi}(x) = \frac{1}{1 + e^{k(\ln(x) - \ln(x_0))}}$$
 A curve fit yields a steepness factor of around $k \approx \frac{5}{4}$ and a parameter $x_0 \approx 0.5$, which marks the inflection point where the predicted success rate drops to $0.5$. The latter is consistent with intuition, as when there is a $50\%$ chance of a competing proposal, then it is imaginable that there is roughly a $50\%$ chance of our fast-path attempt not being involved in a conflict.
 
 Inserting these values and transforming the equation leads to the final heuristic score function, as visualized in Figure \ref{fig:score-function}, in the following form:
 $$\vec{x} = \begin{bmatrix} x_1 \\ x_2 \end{bmatrix} = \begin{bmatrix} \text{Fast Quorum Latency (s)} \\ \text{Incoming Accept Messages/s} \end{bmatrix}$$
-$$S(\vec{x}) = \frac{1}{1 + (2 \cdot x_1 \cdot x_2)^{\frac{5}{4}}}$$
+$$\pi(\vec{x}) = \frac{1}{1 + (2 \cdot x_1 \cdot x_2)^{\frac{5}{4}}}$$
 
 With this score function, we achieve a \gls{RMSE} of $0.00817$ and an $R^2$ score of $0.94422$ on the test data. This small trade-off in accuracy is acceptable to have a negligible computation and an interpretable score. A summary comparing the performance metrics of each model iteration against the original feature set is provided in Table~\ref{tab:model-performance-comparison}. The function can now serve as the heuristic notion of uncertainty, as needed for \gls{CRC}, around the mode prediction.
 
@@ -233,9 +235,9 @@ To bound the risk of failed fast-path attempts, the system incorporates the heur
 \subsection{Risk Specification}
 To formulate the mode selection as a risk-control problem, the system's outcomes and penalties must be strictly defined. We establish this formulation using three primary components: the label space, the loss function, and the user-defined risk level.
 
-First, we define the operational label space of a proposal attempt as $\mathcal{Y} = \{\textsc{Success}, \textsc{NoSuccess}\}$. A $\textsc{Success}$ indicates that a fast-path proposal from the perspective of the proposing follower achieves a fast quorum directly under the current network conditions. Conversely, a $\textsc{NoSuccess}$ means that the attempt would fail. This could be either due to a leader proposal for the same slot that receives a majority quorum on \texttt{LeaderAccepts}, a competing follower's proposal achieving a fast quorum on \texttt{FastAccepts} for the desired slot, or general contention requiring a leader-initiated slow-path recovery.
+First, we define the operational label space of a proposal attempt as $\mathcal{Y} = \{\textsc{Success}, \textsc{NoSuccess}\}$. A $\textsc{Success}$ indicates that a fast-path proposal from the perspective of the proposing follower achieves a fast quorum directly under the current network conditions. Conversely, a $\textsc{NoSuccess}$ means that the attempt would fail.
 
-To control the failure rate of fast-paths, which is the risk we are trying to control, we have to penalize the false positives, where a fast-path is chosen and ends up being unsuccessful. If we fall back to the conservative/regular path whenever the \texttt{NoSuccess} label is included in the prediction set, the loss can be defined as such: The loss to $1$ whenever the true outcome is \texttt{NoSuccess}, but the prediction set fails to include \texttt{NoSuccess} (meaning the system confidently, but incorrectly, predicted a fast-path success) and $0$ otherwise. This loss is mapped using Table \ref{tab:loss-matrix}.
+To bound the failure rate of fast paths, which is the risk we are trying to control, we have to penalize the false positives, where a fast-path is chosen and ends up being unsuccessful. If we fall back to the conservative/regular path whenever the \texttt{NoSuccess} label is included in the prediction set, the loss can be defined as such: The loss to $1$ whenever the true outcome is \texttt{NoSuccess}, but the prediction set fails to include \texttt{NoSuccess} (meaning the system confidently, but incorrectly, predicted a fast-path success) and $0$ otherwise. This loss is mapped using Table \ref{tab:loss-matrix}.
 
 \begin{table}[t]
 \centering
@@ -255,11 +257,20 @@ To control the failure rate of fast-paths, which is the risk we are trying to co
 
 The design does not punish conservative predictions where the fast-path would have succeeded but the system safely defaulted to the regular path. The reason for this choice is that such a punishment simply does not fit into a loss function that has to satisfy the monotonicity properties relevant to provide the guarantees of \gls{CRC}, as outlined in Section \ref{sect:conformal_risk_control}.
 
+To mathematically evaluate this loss against our target failure rate, we must formally define the output of the prediction layer based on the heuristic established in Section \ref{sec:heuristic_score}. Let $\vec{x} \in \mathcal{X}$ denote the vector of real-time network features, and let $\pi(\vec{x})$ be the heuristic score representing the estimated probability of a fast-path success. We define a generalized scoring function $s(\vec{x}, y)$ for the label space $\mathcal{Y}$, where:
+\begin{alignat*}{2}
+&s(\vec{x}, \textsc{Success}) &&= \pi(\vec{x})\\
+&s(\vec{x}, \textsc{NoSuccess}) &&= 1 - \pi(\vec{x})
+\end{alignat*}
+We can then define the conformal predictor $\mathcal{C}_\lambda(\vec{x})$ as a set-valued function $\mathcal{C}_\lambda: \mathcal{\vec{x}} \rightarrow 2^{\mathcal{Y}}$ controlled by a calibration parameter $\lambda \in [0, 1]$. For a given proposal attempt, the prediction set is constructed by including any label whose score meets or exceeds the threshold $1 - \lambda$:
+$$\mathcal{C}_\lambda(\vec{x}) = \{ y \in \mathcal{Y} \mid s(\vec{x}, y) \ge 1 - \lambda \}$$
+This construction guarantees monotonicity with respect to $\lambda$. A maximally conservative parameter ($\lambda = 1$) lowers the inclusion threshold to $0$, yielding the complete label space $\mathcal{C}_1(X) = \{\textsc{Success}, \textsc{NoSuccess}\}$, which guarantees a safe fallback to the regular path. Conversely, as $\lambda$ approaches $0$, the threshold tightens, and the prediction set shrinks to only include labels with a high degree of heuristic certainty. 
+
 Finally, the framework bounds the risk using a user-specified risk level $\alpha \in (0, 1)$, which dictates the target failure rate. If we had an exchangeable calibration set, the standard \gls{CRC} procedure would provide the following guarantee for a new test point:
 $$\mathbb{E}(\mathcal{L}(\mathcal{C}_{\widehat\lambda}(X_{test}), Y_{test})) \le \alpha$$
 Since real-life workloads are unlikely to be exchangeable, however, we instead use the rolling risk-control procedure (as defined in Section \ref{sect:adaptive_conformal_inference}), which gives us the following for a stream of decision problems:
 $$\lim_{T \to \infty} \frac{1}{T} \sum_{t=1}^T \mathcal{L}(\mathcal{C}_{\lambda_t}(X_t), Y_t) \le \alpha$$
-Here, the converging value is bounded by $\alpha$ instead of being equal to it, as outlined previously. The reason is that in a setup where the fast-path always succeeds, the failure rate (and therefore the risk) is zero. Formally, our loss function does not satisfy the property that it has to produce a value higher than $\alpha$ when provided an empty prediction set since $\mathcal{L}(\emptyset, Success) = 0 < \alpha$.
+Here, the converging value is bounded by it $\alpha$ instead of being equal to it, as outlined previously. The reason is that in a setup where the fast-path always succeeds, the failure rate (and therefore the risk) is zero. Formally, our loss function does not satisfy the property that it has to produce a value higher than $\alpha$ when provided an empty prediction set since $\mathcal{L}(\emptyset, Success) = 0 < \alpha$.
 
 \subsection{Decision Layer}
 To execute runtime mode switching, each follower monitors local environment metrics. The fast quorum latency can be tracked continuously via a sliding window of recent message round-trip times to a fast quorum of peers, while the incoming proposal rate is calculated by recording the timestamps of arriving \texttt{Accept} messages from other nodes within a moving time window.
@@ -299,7 +310,7 @@ To calibrate the prediction layer, nodes require ground-truth data indicating wh
 
 Whenever a node opts for the regular path and forwards a proposal to the leader, it can simultaneously broadcast a shadow proposal tagged with a \texttt{TestAccept} status to all peers. Receiving followers treat \texttt{TestAccept} messages passively: if the target log slot is currently empty, the follower acknowledges the message by sending an \texttt{Accepted} response back to the original proposer, but it strictly does not write the entry to its local replicated log.
 
-The original proposer accumulates these responses to determine the simulated outcome. If a \texttt{TestAccept} gathers a fast quorum of acknowledgments, the hypothetical fast-path attempt is deemed successful, and a \textsc{Success} label is recorded alongside the corresponding feature state. Conversely, if the actual log slot is committed by the leader via a \texttt{Decide} without the fast quorum being formed, meaning many nodes have ignored this shadow proposal and the attempt is considered failed, recording a \textsc{NoSuccess} label. While this mechanism might occasionally underestimate fast-path viability, for instance, if the forwarded regular proposal is processed exceptionally fast or if an acknowledgment packet is dropped, it provides a sufficiently accurate proxy metric under stable network conditions.
+The original proposer accumulates these responses to determine the simulated outcome. If a \texttt{TestAccept} gathers a fast quorum of acknowledgments, the hypothetical fast-path attempt is deemed successful, and a \textsc{Success} label is recorded alongside the corresponding feature state. Conversely, if the actual log slot is committed by the leader via a \texttt{Decide} without the fast quorum being formed, meaning many nodes have ignored this shadow proposal and the attempt is considered failed, it records a \textsc{NoSuccess} label. While this mechanism might occasionally underestimate fast-path viability, for instance, if the forwarded regular proposal is processed exceptionally fast or if an acknowledgment packet is dropped, it provides a sufficiently accurate proxy metric under stable network conditions.
 
 Actual calibration can then happen two different ways: offline and online. In the offline calibration phase, the node collects a batch of shadow proposal outcomes to form a static dataset. The system then computes an optimal initial parameter, $\widehat{\lambda}$ using the standard \gls{CRC} approach, by employing a binary search algorithm to find the exact root where the empirical risk over the calibration set matches the significance level $\alpha$. While this offline batch calibration does not provide formal theoretical guarantees for non-exchangeable future data, it can establish a sound baseline.
 
@@ -308,10 +319,3 @@ $$\widehat{\lambda}_{t} \leftarrow \widehat{\lambda}_t + \gamma \left( \mathcal{
 This continuous adjustment bounds the failure rate and provides the long-term risk guarantees outlined previously.
 
 Notably, the system does not need to issue shadow proposals during this online operational phase with our current loss function. Because of its definition, it evaluates to exactly zero whenever the prediction set contains the \textsc{NoSuccess} label, which forces the node to take the regular path. The true label of what \textit{would} have happened on the fast-path becomes mathematically irrelevant for the parameter update. The loss can only be non-zero when the system confidently chooses the fast-path and subsequently fails. As a result, the online risk-control loop can operate without the network overhead of shadow proposals in this case.
-
-
-
-TODOS:
-\begin{itemize}
-    \item Formally define C-lambda(X)
-\end{itemize}

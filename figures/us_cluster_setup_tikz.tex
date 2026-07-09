@@ -1,0 +1,56 @@
+\begin{tikzpicture}
+    \node[anchor=south west, inner sep=0] (map) at (0,0) {\includegraphics[width=\textwidth]{figures/BlankMap-US.pdf}};
+    
+    \tikzset{
+        server info/.style={
+            align=center,
+            font=\sffamily\scriptsize
+        },
+        edge label/.style={
+            fill=white,
+            text=gray!90!black,
+            font=\sffamily\scriptsize\bfseries,
+            inner sep=2pt,
+            rounded corners=2pt,
+            draw=gray!20,
+            thin
+        }
+    }
+
+    \node[label={[server info]left:\textbf{Oregon} (ID: 1)\\us-west1-b}] (oregon) at (3.0, 6.5) {
+        \includegraphics[width=1.2cm]{figures/cluster_node.pdf}
+    };
+    
+    \node[label={[server info]below:\textbf{Los Angeles} (ID: 3)\\us-west2-b}] (los-angeles) at (1.25, 3.0) {
+        \includegraphics[width=1.2cm]{figures/cluster_node.pdf}
+    };
+    
+    \node[label={[server info]above:\textbf{Iowa} (ID: 3)\\us-central1-b}] (iowa) at (10.0, 6.0) {
+        \includegraphics[width=1.2cm]{figures/cluster_node.pdf}
+    };
+    
+    \node[label={[server info]below:\textbf{Columbus} (ID: 4)\\us-east5-b}] (columbus) at (11.75, 3.75) {
+        \includegraphics[width=1.2cm]{figures/cluster_node.pdf}
+    };
+    
+    \node[label={[server info]below:\textbf{Las Vegas} (ID: 5)\\us-west4-b}] (las-vegas) at (4.0, 4.0) {
+        \includegraphics[width=1.2cm]{figures/cluster_node.pdf}
+    };
+
+    \begin{scope}[every path/.style={{Triangle}-{Triangle}, draw=blue!50!gray, thick}]
+        
+        \draw (oregon) -- (los-angeles) node[midway, edge label] {12ms};
+        \draw (columbus) -- (iowa) node[midway, edge label] {11ms};
+        \draw (los-angeles) -- (las-vegas) node[midway, edge label] {4ms};
+        \draw (oregon) -- (columbus) node[midway, edge label] {31ms};
+        
+        \draw (las-vegas) to[bend left=10] node[midway, edge label] {30ms} (columbus);
+        \draw (oregon) to[bend left=20] node[midway, edge label] {19ms} (iowa);
+        \draw (oregon) to[bend left=12] node[midway, edge label] {13ms} (las-vegas);
+        \draw (los-angeles) to[bend right=14] node[midway, edge label] {23ms} (iowa);
+        \draw (los-angeles) to[bend right=25] node[midway, edge label] {32ms} (columbus);
+        \draw (las-vegas) to[bend left=20] node[midway, edge label] {14ms} (iowa);
+    \end{scope}
+    
+    \node[orange, rotate=20, xshift=0.2cm] at (las-vegas.north west) {\large\faCrown};
+\end{tikzpicture}

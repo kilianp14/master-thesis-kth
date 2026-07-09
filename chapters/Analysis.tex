@@ -1,258 +1,35 @@
-\sweExpl{svensk: Resultat och Analys}
+\section{Experimental Setup}
+\begin{itemize}
+    \item Rust programming language
+    \item Library based on a simplified Omnipaxos (without batching, only in-memory storage, incomplete log sync, no truncating or snapshotting)
+\end{itemize}
+\subsection{State Machine Application}
+For the experiments, we used a linearizable, in-memory key-value store as the application-level replicated state machine. State transitions and queries are driven by three basic operations: inserting a key-value pair, deleting a key, or retrieving a value based on a key. To guarantee strict linearizability and prevent stale data, both read and write operations are appended to the consensus log. As the consensus engine commits these entries, the server executes the commands sequentially once they are decided.
 
-\engExpl{Sometimes this is split into two chapters.\\Keep in mind: How you are going to evaluate what you have done? What are your metrics?\\Analysis of your data and proposed solution\\Does this meet the goals which you had when you started?}
+Client requests are encapsulated into a standardized command structure that includes a unique command identifier and a coordinator node identifier. Upon receiving a request, the coordinator node appends this command to the consensus log. After the log entry is committed and executed sequentially by the state machine, the node matching the recorded coordinator identifier handles routing the final execution outcome back to the originating client.
 
-In this chapter, we present the results and discuss them.
+\subsection{Node Setup}
 
-\sweExpl{I detta kapitel presenterar vi resultaten och diskutera dem.\\Ibland delas detta upp i två kapitel.\\Hur du ska utvärdera vad du har gjort? Vad är din statistik?\\Analys av data och föreslagen lösning\\Innebär detta att uppfyllelse av de mål som du hade när du började?}
-
-\section{Major results}
-\sweExpl{Huvudsakliga resultat}
-
-Some statistics of the delay measurements are shown in Table~\ref{tab:delayMeasurements}.
-The delay has been computed from the time the GET request is received until the response is sent.
-
-\sweExpl{Lite statistik av fördröjningsmätningarna visas i Tabell~\ref{tab:delayMeasurements}. Förseningen har beräknats från den tidpunkt då begäran GET tas emot fram till svaret skickas.}
-
-\begin{table}[!ht]
-  \begin{center}
-    \caption{Delay measurement statistics}
-    \label{tab:delayMeasurements}
-    \begin{tabular}{l|S[table-format=4.2]|S[table-format=3.2]} % <-- Alignments: 1st column left, 2nd middle and 3rd right, with vertical lines in between
-      \textbf{Configuration} & \textbf{Average delay (ns)} & \textbf{Median delay (ns)}\\
-      \hline
-      1 & 467.35 & 450.10\\
-      2 & 1687.5 & 901.23\\
-    \end{tabular}
-  \end{center}
-\end{table}
-
-Table \ref{tab:ping_results} shows the measurement of round trip times from four hosts to and from a server.
-\begin{table}[ht!]
-\caption[RTT for 4 hosts]{Result for the ping measurements of RTT for 4 hosts} 
-\label{tab:ping_results}
-\vspace{1em}
-\centering
-\begin{tabular}{l *{4}{S[table-format=2.3]}}
-{} & \multicolumn{4}{c}{host to server RTT in ms} \\
-\cmidrule{2-5}
-Host & \multicolumn{1}{c}{min}  & \multicolumn{1}{c}{avg} & \multicolumn{1}{c}{max} & \multicolumn{1}{c}{mdev} \\
-\midrule
-h1 & 5.625 & 5.625 & 5.625 & 0.0 \\
-h2 & 2.909 & 2.909 & 1.909 & 0.0 \\
-h3 & 5.007 & 5.007 & 5.007 & 0.0 \\
-h4 & 2.308 & 2.308 & 2.308 & 0.0 \\
-\midrule
-\end{tabular}
-\end{table}
-\FloatBarrier
-
-\sweExpl{Fördröj mätstatistik}
-\sweExpl{Konfiguration | Genomsnittlig fördröjning (ns) | Median fördröjning (ns)}
-
-Figure \ref{fig:processing_vs_payload_length} shows an example of the performance as measured in the experiments.
-
-\begin{figure}[!ht]
-% GNUPLOT: LaTeX picture
-\setlength{\unitlength}{0.240900pt}
-\ifx\plotpoint\undefined\newsavebox{\plotpoint}\fi
-\begin{picture}(1500,900)(0,0)
-\sbox{\plotpoint}{\rule[-0.200pt]{0.400pt}{0.400pt}}%
-\put(171.0,131.0){\rule[-0.200pt]{4.818pt}{0.400pt}}
-\put(151,131){\makebox(0,0)[r]{ 1.5}}
-\put(1419.0,131.0){\rule[-0.200pt]{4.818pt}{0.400pt}}
-\put(171.0,212.0){\rule[-0.200pt]{4.818pt}{0.400pt}}
-\put(151,212){\makebox(0,0)[r]{ 2}}
-\put(1419.0,212.0){\rule[-0.200pt]{4.818pt}{0.400pt}}
-\put(171.0,292.0){\rule[-0.200pt]{4.818pt}{0.400pt}}
-\put(151,292){\makebox(0,0)[r]{ 2.5}}
-\put(1419.0,292.0){\rule[-0.200pt]{4.818pt}{0.400pt}}
-\put(171.0,373.0){\rule[-0.200pt]{4.818pt}{0.400pt}}
-\put(151,373){\makebox(0,0)[r]{ 3}}
-\put(1419.0,373.0){\rule[-0.200pt]{4.818pt}{0.400pt}}
-\put(171.0,454.0){\rule[-0.200pt]{4.818pt}{0.400pt}}
-\put(151,454){\makebox(0,0)[r]{ 3.5}}
-\put(1419.0,454.0){\rule[-0.200pt]{4.818pt}{0.400pt}}
-\put(171.0,534.0){\rule[-0.200pt]{4.818pt}{0.400pt}}
-\put(151,534){\makebox(0,0)[r]{ 4}}
-\put(1419.0,534.0){\rule[-0.200pt]{4.818pt}{0.400pt}}
-\put(171.0,615.0){\rule[-0.200pt]{4.818pt}{0.400pt}}
-\put(151,615){\makebox(0,0)[r]{ 4.5}}
-\put(1419.0,615.0){\rule[-0.200pt]{4.818pt}{0.400pt}}
-\put(171.0,695.0){\rule[-0.200pt]{4.818pt}{0.400pt}}
-\put(151,695){\makebox(0,0)[r]{ 5}}
-\put(1419.0,695.0){\rule[-0.200pt]{4.818pt}{0.400pt}}
-\put(171.0,776.0){\rule[-0.200pt]{4.818pt}{0.400pt}}
-\put(151,776){\makebox(0,0)[r]{ 5.5}}
-\put(1419.0,776.0){\rule[-0.200pt]{4.818pt}{0.400pt}}
-\put(171.0,131.0){\rule[-0.200pt]{0.400pt}{4.818pt}}
-\put(171,90){\makebox(0,0){ 0}}
-\put(171.0,756.0){\rule[-0.200pt]{0.400pt}{4.818pt}}
-\put(298.0,131.0){\rule[-0.200pt]{0.400pt}{4.818pt}}
-\put(298,90){\makebox(0,0){ 10}}
-\put(298.0,756.0){\rule[-0.200pt]{0.400pt}{4.818pt}}
-\put(425.0,131.0){\rule[-0.200pt]{0.400pt}{4.818pt}}
-\put(425,90){\makebox(0,0){ 20}}
-\put(425.0,756.0){\rule[-0.200pt]{0.400pt}{4.818pt}}
-\put(551.0,131.0){\rule[-0.200pt]{0.400pt}{4.818pt}}
-\put(551,90){\makebox(0,0){ 30}}
-\put(551.0,756.0){\rule[-0.200pt]{0.400pt}{4.818pt}}
-\put(678.0,131.0){\rule[-0.200pt]{0.400pt}{4.818pt}}
-\put(678,90){\makebox(0,0){ 40}}
-\put(678.0,756.0){\rule[-0.200pt]{0.400pt}{4.818pt}}
-\put(805.0,131.0){\rule[-0.200pt]{0.400pt}{4.818pt}}
-\put(805,90){\makebox(0,0){ 50}}
-\put(805.0,756.0){\rule[-0.200pt]{0.400pt}{4.818pt}}
-\put(932.0,131.0){\rule[-0.200pt]{0.400pt}{4.818pt}}
-\put(932,90){\makebox(0,0){ 60}}
-\put(932.0,756.0){\rule[-0.200pt]{0.400pt}{4.818pt}}
-\put(1059.0,131.0){\rule[-0.200pt]{0.400pt}{4.818pt}}
-\put(1059,90){\makebox(0,0){ 70}}
-\put(1059.0,756.0){\rule[-0.200pt]{0.400pt}{4.818pt}}
-\put(1185.0,131.0){\rule[-0.200pt]{0.400pt}{4.818pt}}
-\put(1185,90){\makebox(0,0){ 80}}
-\put(1185.0,756.0){\rule[-0.200pt]{0.400pt}{4.818pt}}
-\put(1312.0,131.0){\rule[-0.200pt]{0.400pt}{4.818pt}}
-\put(1312,90){\makebox(0,0){ 90}}
-\put(1312.0,756.0){\rule[-0.200pt]{0.400pt}{4.818pt}}
-\put(1439.0,131.0){\rule[-0.200pt]{0.400pt}{4.818pt}}
-\put(1439,90){\makebox(0,0){ 100}}
-\put(1439.0,756.0){\rule[-0.200pt]{0.400pt}{4.818pt}}
-\put(171.0,131.0){\rule[-0.200pt]{0.400pt}{155.380pt}}
-\put(171.0,131.0){\rule[-0.200pt]{305.461pt}{0.400pt}}
-\put(1439.0,131.0){\rule[-0.200pt]{0.400pt}{155.380pt}}
-\put(171.0,776.0){\rule[-0.200pt]{305.461pt}{0.400pt}}
-\put(30,453){\rotatebox{-270}{\makebox(0,0){Processing time (ms)}}}
-\put(805,29){\makebox(0,0){Payload size (bytes)}}
-\put(868.0,131.0){\rule[-0.200pt]{0.400pt}{84.074pt}}
-\put(995.0,131.0){\rule[-0.200pt]{0.400pt}{98.287pt}}
-\put(1173.0,131.0){\rule[-0.200pt]{0.400pt}{118.041pt}}
-\put(1325.0,131.0){\rule[-0.200pt]{0.400pt}{134.904pt}}
-\put(1350.0,131.0){\rule[-0.200pt]{0.400pt}{137.795pt}}
-\put(1439.0,131.0){\rule[-0.200pt]{0.400pt}{155.380pt}}
-\end{picture}
-\caption[A GNUplot figure]{Processing time vs. payload length}\vspace{0.5cm}
-\label{fig:processing_vs_payload_length}
-\end{figure}
-\FloatBarrier		
-
-Given these measurements, we can calculate our processing bit rate as the inverse of the time it takes to process an additional byte divided by 8 bits per byte:
-
-\[
-	\text{bit rate} = \frac{1}{\frac{\text{time}_{\text{byte}}}{8}} = 20.03 \quad kb/s
-\] 
-
-\Cref{tab:majorMarkupLMDetailedResult} shows another table in which some values have been set in bold (using \textbackslash B) to emphasize them. Note how the \texttt{S} formatting has been modified so that it considers the weight of the characters and this is able to decimal align even these hold-faced numbers with the numbers in the column above them.
-
-\begin{table}[!ht]
+\begin{figure}[t]
     \centering
-    \caption{Median values of sandwich attributes}
-    \label{tab:majorMarkupLMDetailedResult}
-    \begin{tabular}{l *{2}{S[detect-weight,mode=text,table-format=3.2]}}
-        & \multicolumn{2}{c}{\textbf{sites}}\\
-        \cmidrule{2-3}
-        \textbf{Attribute} & \textbf{A} & \textbf{B} \\
-        \midrule
-        price (in SEK) & 36.5 & 71.3 \\
-        protean (g) & 97.2 & 100.0 \\
-        salt (mg) & 9.7 & 9.3 \\
-        \hline
-        \textbf{Average customer rating in \%} & \B 82.2 & \B 89.9 \\
-        \midrule
-    \end{tabular}
-\end{table}
-\FloatBarrier
-
-
-\Needspace*{4\baselineskip}
-\Cref{fig:stackedrust} shows a stacked bar chart using pgfplots. It illustrates how easy it is to take a set of data and make a stacked bar plot. One of the features is the shifted values -- this is very useful when the bar itself is too small to put the value into.
-
-\pgfplotstableread{
-Label Numbers  Refs  Struct/Enum  Heap  Arrays
-cratesio 70.04 19.83 8.31 1.3 0.52
-librs 49.26 30.49 10.80 7.92 1.53
-rustc 55.01 24.80 11.54 6.16 2.49
-}\testdata
-
-
-\pgfkeys{
-    /pgf/number format/.cd,
-    fixed,
-    fixed zerofill,
-    precision=2
-}
-\begin{figure}[ht!]
-    \centering
-    \scalebox{0.9}{
-    \begin{tikzpicture}
-    \begin{axis}[
-        ybar stacked,
-        %reverse legend,
-        reverse legend=false,
-        %https://tex.stackexchange.com/questions/88892/pgfplots-bar-plot-spacing-inbetween-bars
-        enlarge x limits=0.4,
-	    bar width=45pt,
-        /pgfplots/nodes near coords*/.append style={
-        every node near coord/.style={
-            color=black,
-            font=\small,
-            name=X,
-%            shift={    
-%                (50pt,25pt)
-%                },
-            xshift={50pt},
-                yshift ={
-                ifthenelse((\plotnum == 4), 30pt,20pt)},
-            },
-            scatter/@post marker code/.append code={
-                \node(Y){};
-                \draw(X)--(Y.center);
-            }
-        },
-	    nodes near coords,
-        bar shift=5pt,
-        ymin=0,
-        ymax=115,
-        xtick=data,
-        width=1\textwidth,
-        legend style={draw=none},
-        legend image post style={scale=2.0},
-        legend style={
-            at={(0.5,-0.2)},
-            anchor=north,
-            legend columns=-2,
-            font=\large,
-            %mark size=20pt,
-        },
-        ylabel=Percentage points (\%),
-        xticklabels from table={\testdata}{Label},
-        xticklabel style={rotate=30},
-    ]
-    \addplot  table [y=Numbers, meta=Label, x expr=\coordindex] {\testdata};
-    \addlegendentry{Numbers}
-    \addplot table [y=Refs, meta=Label, x expr=\coordindex] {\testdata};
-    \addlegendentry{Refs}
-    \addplot  table [y=Struct/Enum, meta=Label, x expr=\coordindex] {\testdata};
-    \addlegendentry{Struct/Enum}
-    \addplot  table [y=Heap, meta=Label, x expr=\coordindex] {\testdata};
-    \addlegendentry{Heap}
-    \addplot  table [y=Arrays, meta=Label, x expr=\coordindex] {\testdata};
-    \addlegendentry{Arrays}
-    \end{axis}
-    \end{tikzpicture}}
-\caption{Rust types distribution for the compiler, crates.io, and lib.rs.
-(percentage) - appears here with the permission of the author - see the thesis at \url{https://urn.kb.se/resolve?urn=urn\%3Anbn\%3Ase\%3Akth\%3Adiva-332124}}
-\label{fig:stackedrust}
+    \input{figures/europe_cluster_setup_tikz}
+    \caption{European cluster setup for experimentation, including one-way latencies.}
+    \label{fig:europe-cluster-setup}
 \end{figure}
-\FloatBarrier
 
+\begin{figure}[t]
+    \centering
+    \input{figures/us_cluster_setup_tikz}
+    \caption{US cluster setup for experimentation, including one-way latencies.}
+    \label{fig:us-cluster-setup}
+\end{figure}
 
+\subsection{Workloads}
 
-\section{Reliability Analysis}
-\sweExpl{Analys av tillförlitlighet\\
-Tillförlitlighet i metod och data}
+\section{Risk Guarantee Validity}
 
-\section{Validity Analysis}
-\sweExpl{Analys av validitet\\
-Validitet i metod och data}
+\section{Score Function Validity}
 
+\section{Latency Study}
+
+\section{Overhead Analysis}

@@ -1,0 +1,58 @@
+\begin{tikzpicture}
+    \node[anchor=south west, inner sep=0] (map) at (0,0) {\includegraphics[width=\textwidth]{figures/BlankMap-Europe.pdf}};
+    
+    \tikzset{
+        server info/.style={
+            align=center,
+            font=\sffamily\scriptsize
+        },
+        edge label/.style={
+            fill=white,
+            text=gray!90!black,
+            font=\sffamily\scriptsize\bfseries,
+            inner sep=2pt,
+            rounded corners=2pt,
+            draw=gray!20,
+            thin
+        }
+    }
+
+    \node[label={[server info]right:\textbf{Madrid} (ID: 2)\\europe-southwest1-b}] (madrid) at (1.5, 1.0) {
+        \includegraphics[width=1.2cm]{figures/cluster_node.pdf}
+    };
+    
+    \node[label={[server info]left:\textbf{London} (ID: 3)\\europe-west2-b}] (london) at (3.5, 8.0) {
+        \includegraphics[width=1.2cm]{figures/cluster_node.pdf}
+    };
+    
+    \node[label={[server info]below:\textbf{Frankfurt} (ID: 5)\\europe-west3-b}] (frankfurt) at (8.0, 7.0) {
+        \includegraphics[width=1.2cm]{figures/cluster_node.pdf}
+    };
+    
+    \node[label={[server info]below:\textbf{Warsaw} (ID: 4)\\europe-central2-b}] (warsaw) at (11.75, 8.0) {
+        \includegraphics[width=1.2cm]{figures/cluster_node.pdf}
+    };
+    
+    \node[label={[server info]left:\textbf{Stockholm} (ID: 1)\\europe-north2-b}] (stockholm) at (11.5, 12.0) {
+        \includegraphics[width=1.2cm]{figures/cluster_node.pdf}
+    };
+
+    \begin{scope}[every path/.style={{Triangle}-{Triangle}, draw=blue!50!gray, thick}]
+        
+        \draw (madrid) -- (london) node[midway, edge label] {12ms};
+        \draw (frankfurt) -- (warsaw) node[midway, edge label] {10ms};
+        \draw (warsaw) -- (stockholm) node[midway, edge label] {13ms};
+        
+        \draw (madrid) to[bend left=12] node[midway, edge label] {24ms} (stockholm);
+        \draw (madrid) to[bend right=8] node[midway, edge label] {20ms} (warsaw);
+        \draw (madrid) to[bend left=12] node[midway, edge label] {12ms} (frankfurt);
+        
+        \draw (london) to[bend left=10] node[midway, edge label] {6ms} (frankfurt);
+        \draw (london) to[bend left=10] node[midway, edge label] {17ms} (stockholm);
+        \draw (london) to[bend left=10] node[midway, edge label] {13ms} (warsaw);
+        
+        \draw (frankfurt) to[bend right=10] node[midway, edge label] {14ms} (stockholm);
+    \end{scope}
+    
+    \node[orange, rotate=20, xshift=0.2cm] at (frankfurt.north west) {\large\faCrown};
+\end{tikzpicture}
