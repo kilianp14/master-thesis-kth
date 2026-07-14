@@ -21,7 +21,7 @@
         \includegraphics[width=1.2cm]{figures/cluster_node.pdf}
     };
     
-    \node[label={[server info]below:\textbf{Los Angeles} (ID: 3)\\us-west2-b}] (los-angeles) at (1.25, 3.0) {
+    \node[label={[server info]below:\textbf{Los Angeles} (ID: 2)\\us-west2-b}] (los-angeles) at (1.25, 3.0) {
         \includegraphics[width=1.2cm]{figures/cluster_node.pdf}
     };
     
@@ -49,7 +49,7 @@
         \draw (oregon) to[bend left=12] node[midway, edge label] {13ms} (las-vegas);
         \draw (los-angeles) to[bend right=14] node[midway, edge label] {23ms} (iowa);
         \draw (los-angeles) to[bend right=25] node[midway, edge label] {32ms} (columbus);
-        \draw (las-vegas) to[bend left=20] node[midway, edge label] {14ms} (iowa);
+        \draw (las-vegas) to[bend left=20] node[midway, edge label] {21ms} (iowa);
     \end{scope}
     
     \node[orange, rotate=20, xshift=0.2cm] at (las-vegas.north west) {\large\faCrown};

@@ -1,8 +1,10 @@
 \section{Experimental Setup}
-\begin{itemize}
-    \item Rust programming language
-    \item Library based on a simplified Omnipaxos (without batching, only in-memory storage, incomplete log sync, no truncating or snapshotting)
-\end{itemize}
+The evaluation prototype is implemented in the Rust programming language, building directly upon a trimmed-down fork of the original OmniPaxos codebase. To cleanly isolate the protocol variables associated with decentralized mode switching, several production-level features of OmniPaxos were omitted. The log is managed entirely via an in-memory storage layer, which enforces a fail-stop failure model where nodes do not recover from persistent disk state. Log compaction mechanisms, including truncation and snapshotting, are excluded. Because the evaluation assumes a stable leader and continuous fast-quorum connectivity, a fully safe log synchronization phase at the conclusion of the prepare phase was omitted. Additionally, request batching is disabled to process proposals individually, ensuring that performance evaluation isolates fine-grained end-to-end latency rather than aggregate throughput.
+
+Building upon this baseline, the consensus layer incorporates the required protocol interoperability and modification rules. Both Accept and Accepted messages are extended to include an explicit AcceptStatus field. Followers are equipped with the logic necessary to bypass the leader and broadcast proposals directly to peers via the fast path. To handle the resulting mixed-mode logs, the leader's volatile state is modified to execute the tracking and deterministic collision-detection logic defined in Algorithm \ref{alg:quorum_eval_collision_resolution} and Algorithm \ref{alg:leader_proposal}. Follower-side update semantics are enforced to maintain safety: followers reject standard FastAccept and LeaderAccept messages if the target log index is already occupied, but they permit SlowAccept commands from the leader to override existing entries during collision resolution.
+
+When we operate in adaptive mode, the system implements dedicated tracking mechanisms for network features and performance labels. To estimate the fast-quorum latency, the \gls{BLE} layer extends its standard heartbeat messages with a microsecond timestamp; upon receiving a reply, the round-trip time is divided by two to compute individual one-way network latencies. Concurrently, the sequence Paxos layer tracks a running count of incoming Accept requests received within a sliding one-second window to estimate the proposal rate of other cluster nodes. Ground-truth labels are gathered using a dual approach. During the offline calibration phase, followers issue passive shadow proposals tagged with a TestAccept status alongside their forwarded regular requests to measure hypothetical fast-path viability without committing data. In the active operational phase, the system dispenses with shadow proposals and gathers labels implicitly by analyzing the final AcceptStatus of a node's own completed proposals once they are decided, where a resolved FastAccept signifies a fast-path success.These features and labels are processed by a prediction and calibration engine implemented as an isolated Conformal Mode Predictor module, which is invoked by the consensus layer during every append attempt. The module evaluates the non-linear heuristic model and executes the decision framework outlined in Algorithm \ref{alg:conformal_mode_prediction}. The calibration parameter ($\widehat{\lambda}$) is managed across two phases. In the offline calibration phase, the system executes a binary root-finding algorithm over a pre-collected batch dataset of shadow proposals to establish the initial baseline threshold. During runtime operations, an online calibration routine continuously updates the threshold via rolling updates, applying a gradient-descent step based on the real-time empirical loss to enforce the long-term risk bounds.
+
 \subsection{State Machine Application}
 For the experiments, we used a linearizable, in-memory key-value store as the application-level replicated state machine. State transitions and queries are driven by three basic operations: inserting a key-value pair, deleting a key, or retrieving a value based on a key. To guarantee strict linearizability and prevent stale data, both read and write operations are appended to the consensus log. As the consensus engine commits these entries, the server executes the commands sequentially once they are decided.
 
@@ -17,12 +19,48 @@ Client requests are encapsulated into a standardized command structure that incl
     \label{fig:europe-cluster-setup}
 \end{figure}
 
+\begin{table}[t]
+\centering
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Node} & \textbf{Regular Path} & \textbf{Fast Path} & \textbf{Slow Path} \\
+\midrule
+Stockholm  & 48ms & \textbf{\textit{37ms}} & 57ms \\
+Madrid  & 44ms & \textbf{\textit{42ms}} & 62ms \\
+London  & 32ms & \textbf{\textit{30ms}} & 50ms \\
+Warsaw  & 40ms & \textbf{\textit{37ms}} & 57ms \\
+Frankfurt  & \textbf{\textit{20ms}}  & 24ms & 44ms \\ 
+\bottomrule
+\end{tabular}
+\caption{Estimated end-to-end latencies in the European cluster setup using regular, fast, or slow execution paths for an entry appended by a co-located client.}
+\label{tab:cluster-latencies-europe}
+\end{table}
+
 \begin{figure}[t]
     \centering
     \input{figures/us_cluster_setup_tikz}
     \caption{US cluster setup for experimentation, including one-way latencies.}
     \label{fig:us-cluster-setup}
 \end{figure}
+
+\begin{table}[t]
+\centering
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Node} & \textbf{Regular Path} & \textbf{Fast Path} & \textbf{Slow Path} \\
+\midrule
+Oregon  & \textbf{\textit{52ms}} & 53ms & 79ms \\
+Los Angeles  & \textbf{\textit{21ms}} & 48ms & 74ms \\
+Iowa  & 68ms & \textbf{\textit{53ms}} & 79ms \\
+Columbus  & 86ms & \textbf{\textit{66ms}} & 92ms \\
+Las Vegas  & \textbf{\textit{26ms}} & 42ms & 68ms \\ 
+\bottomrule
+\end{tabular}
+\caption{Estimated end-to-end latencies in the US cluster setup using regular, fast, or slow execution paths for an entry appended by a co-located client.}
+\label{tab:cluster-latencies-us}
+\end{table}
 
 \subsection{Workloads}
 
