@@ -1,9 +1,11 @@
 \section{Experimental Setup}
-The evaluation prototype is implemented in the Rust programming language, building directly upon a trimmed-down fork of the original OmniPaxos codebase. To cleanly isolate the protocol variables associated with decentralized mode switching, several production-level features of OmniPaxos were omitted. The log is managed entirely via an in-memory storage layer, which enforces a fail-stop failure model where nodes do not recover from persistent disk state. Log compaction mechanisms, including truncation and snapshotting, are excluded. Because the evaluation assumes a stable leader and continuous fast-quorum connectivity, a fully safe log synchronization phase at the conclusion of the prepare phase was omitted. Additionally, request batching is disabled to process proposals individually, ensuring that performance evaluation isolates fine-grained end-to-end latency rather than aggregate throughput.
+The evaluation prototype is implemented in the Rust programming language, building directly upon a trimmed-down fork of the original OmniPaxos \cite{Ng-OmniPaxos-2023} codebase. To cleanly isolate the protocol variables associated with decentralized mode switching, several production-level features of OmniPaxos were omitted. The log is managed entirely via an in-memory storage layer, which enforces a fail-stop failure model where nodes do not recover from persistent disk state. Because the evaluation assumes a stable leader, a fully safe log synchronization phase at the conclusion of the prepare phase was omitted. Additionally, request batching is disabled, ensuring that performance evaluation isolates fine-grained end-to-end latency rather than aggregate throughput.
 
-Building upon this baseline, the consensus layer incorporates the required protocol interoperability and modification rules. Both Accept and Accepted messages are extended to include an explicit AcceptStatus field. Followers are equipped with the logic necessary to bypass the leader and broadcast proposals directly to peers via the fast path. To handle the resulting mixed-mode logs, the leader's volatile state is modified to execute the tracking and deterministic collision-detection logic defined in Algorithm \ref{alg:quorum_eval_collision_resolution} and Algorithm \ref{alg:leader_proposal}. Follower-side update semantics are enforced to maintain safety: followers reject standard FastAccept and LeaderAccept messages if the target log index is already occupied, but they permit SlowAccept commands from the leader to override existing entries during collision resolution.
+Building upon this baseline, the consensus layer incorporates the required protocol interoperability and modification rules outlined previously. This includes adding the AcceptStatus field in both Accept and Accepted messages, implementing the followers' logic to broadcast proposals directly to peers via the fast path, and executing the tracking and deterministic collision-detection logic defined in Algorithm \ref{alg:quorum_eval_collision_resolution} and Algorithm \ref{alg:leader_proposal} on the leader side. Follower-side update semantics are enforced to maintain safety: followers reject standard FastAccept and LeaderAccept messages if the target log index is already occupied, but permit SlowAccept commands from the leader to override existing entries during collision resolution.
 
-When we operate in adaptive mode, the system implements dedicated tracking mechanisms for network features and performance labels. To estimate the fast-quorum latency, the \gls{BLE} layer extends its standard heartbeat messages with a microsecond timestamp; upon receiving a reply, the round-trip time is divided by two to compute individual one-way network latencies. Concurrently, the sequence Paxos layer tracks a running count of incoming Accept requests received within a sliding one-second window to estimate the proposal rate of other cluster nodes. Ground-truth labels are gathered using a dual approach. During the offline calibration phase, followers issue passive shadow proposals tagged with a TestAccept status alongside their forwarded regular requests to measure hypothetical fast-path viability without committing data. In the active operational phase, the system dispenses with shadow proposals and gathers labels implicitly by analyzing the final AcceptStatus of a node's own completed proposals once they are decided, where a resolved FastAccept signifies a fast-path success.These features and labels are processed by a prediction and calibration engine implemented as an isolated Conformal Mode Predictor module, which is invoked by the consensus layer during every append attempt. The module evaluates the non-linear heuristic model and executes the decision framework outlined in Algorithm \ref{alg:conformal_mode_prediction}. The calibration parameter ($\widehat{\lambda}$) is managed across two phases. In the offline calibration phase, the system executes a binary root-finding algorithm over a pre-collected batch dataset of shadow proposals to establish the initial baseline threshold. During runtime operations, an online calibration routine continuously updates the threshold via rolling updates, applying a gradient-descent step based on the real-time empirical loss to enforce the long-term risk bounds.
+When we operate in adaptive mode, the system implements dedicated tracking mechanisms for network features and performance labels. To estimate the fast-quorum latency, the \gls{BLE} layer extends its standard heartbeat messages with a timestamp. Upon receiving a reply, the round-trip time is divided by two to compute individual one-way network latencies. Concurrently, the sequence Paxos layer tracks a running count of incoming Accept requests received within a sliding one-second window to estimate the proposal rate of other cluster nodes. Next to the shadow proposals, ground-truth labels are gathered by analyzing the final AcceptStatus of a node's own completed proposals once they are decided, where a resolved FastAccept signifies a fast-path success.
+
+These features and labels are processed by the prediction layer implemented as an isolated module. The module evaluates the model and executes the decision framework outlined in Algorithm \ref{alg:conformal_mode_prediction}. In the offline calibration phase, the system executes a binary root-finding algorithm over a pre-collected batch dataset of feature-label pairs to establish the initial baseline threshold. During runtime operations, an online calibration routine continuously updates the threshold as described previously.
 
 \subsection{State Machine Application}
 For the experiments, we used a linearizable, in-memory key-value store as the application-level replicated state machine. State transitions and queries are driven by three basic operations: inserting a key-value pair, deleting a key, or retrieving a value based on a key. To guarantee strict linearizability and prevent stale data, both read and write operations are appended to the consensus log. As the consensus engine commits these entries, the server executes the commands sequentially once they are decided.
@@ -12,12 +14,47 @@ Client requests are encapsulated into a standardized command structure that incl
 
 \subsection{Node Setup}
 
-\begin{figure}[t]
+\begin{figure}[t!]
     \centering
     \input{figures/europe_cluster_setup_tikz}
-    \caption{European cluster setup for experimentation, including one-way latencies.}
+    \caption{European cluster setup, including one-way latencies.}
     \label{fig:europe-cluster-setup}
 \end{figure}
+
+\begin{figure}[t]
+    \centering
+    \input{figures/us_cluster_setup_tikz}
+    \caption{US cluster setup, including one-way latencies.}
+    \label{fig:us-cluster-setup}
+\end{figure}
+
+To evaluate the system under realistic yet stable network conditions, the prototype is deployed on \gls{GCP} using homogeneous \texttt{e2-standard-4} instances running Debian 13, as detailed in Table \ref{tab:hardware-software-setup}. This instance class provides four virtual CPUs, guaranteeing at least one dedicated core per system component to prevent thread-scheduling bottlenecks. The network is configured with Google Virtual NICs and the Premium routing tier, ensuring that observed latency variances stem from geographic distance and workload contention rather than artificial cloud provider jitter. 
+
+Architecturally, the system on each node is decoupled into three distinct Docker containers (\texttt{client}, \texttt{server}, and \texttt{daemon}) using host networking to bypass virtualization overhead. The network daemon persists connections between nodes across different experiment runs, eliminating connection-establishment variance that would otherwise skew baseline latencies. Inter-process communication between the server and daemon is handled locally via Unix Domain Sockets.
+
+\begin{table}[t]
+\centering
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{ll}
+\toprule
+\textbf{Component} & \textbf{Configuration} \\
+\midrule
+Cloud Provider & Google Cloud Platform \\
+Machine Type & \texttt{e2-standard-4} (4 vCPUs, 16\,GB RAM) \\
+Operating System & Debian 13 \\
+Boot Disk Size & 10\,GB \\
+Network Interface Type & Google Virtual NIC \\
+Network Routing Tier & Premium\\
+Provisioning Model & Standard \\
+Container Environment & Docker (\texttt{--network host}) \\
+\bottomrule
+\end{tabular}
+\caption{Hardware and software configuration specifications for the experimental cluster instances deployed on GCP.}
+\label{tab:hardware-software-setup}
+\end{table}
+
+The evaluation is conducted across two distinct 5-node clusters, located in Europe (Figure \ref{fig:europe-cluster-setup}) and the US (Figure \ref{fig:us-cluster-setup}), to provide diverse latency profiles. Given a cluster size of $n=5$, a majority quorum requires three nodes for the regular and slow paths, while the fast path requires a strict fast quorum of four nodes. Because this thesis represents an exploratory study of the protocol's performance viability, the evaluation strictly assumes a zero-failure environment. This isolates the adaptive mechanism under ideal operating conditions, leaving availability trade-offs for future work. To explore realistic routing conditions, the stable leader is deterministically assigned to the most geographically central node in each cluster: Frankfurt in Europe and Las Vegas in the US.
+
 
 \begin{table}[t]
 \centering
@@ -37,12 +74,6 @@ Frankfurt  & \textbf{\textit{20ms}}  & 24ms & 44ms \\
 \label{tab:cluster-latencies-europe}
 \end{table}
 
-\begin{figure}[t]
-    \centering
-    \input{figures/us_cluster_setup_tikz}
-    \caption{US cluster setup for experimentation, including one-way latencies.}
-    \label{fig:us-cluster-setup}
-\end{figure}
 
 \begin{table}[t]
 \centering
@@ -61,6 +92,10 @@ Las Vegas  & \textbf{\textit{26ms}} & 42ms & 68ms \\
 \caption{Estimated end-to-end latencies in the US cluster setup using regular, fast, or slow execution paths for an entry appended by a co-located client.}
 \label{tab:cluster-latencies-us}
 \end{table}
+
+Tables \ref{tab:cluster-latencies-europe} and \ref{tab:cluster-latencies-us} present the estimated baseline latencies from the perspective of a co-located client. This end-to-end measurement encapsulates the initial request, quorum gathering (fast or regular), potential collision resolution, the leader's decide phase, local execution, and the final client reply. Co-locating the client simulates the architectural pattern of routing requests to the nearest edge replica while satisfying practical resource constraints. 
+
+The European topology exhibits a relatively distributed latency profile, where followers uniformly gain a slight advantage on a successful fast path because broadcasting to a localized fast quorum is faster than forwarding. Conversely, the US topology reveals a highly polarized profile. While distant nodes benefit significantly from the fast path, nodes physically close to the leader, such as Oregon and Los Angeles, incur a latency penalty when attempting to gather four distributed votes compared to simply forwarding their request. Since these nodes have zero mathematical incentive to switch operating modes, their local modes are locked to Regular Paxos in the adaptive experiments.
 
 \subsection{Workloads}
 
