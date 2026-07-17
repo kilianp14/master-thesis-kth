@@ -93,15 +93,36 @@ Las Vegas  & \textbf{\textit{26ms}} & 42ms & 68ms \\
 \label{tab:cluster-latencies-us}
 \end{table}
 
-Tables \ref{tab:cluster-latencies-europe} and \ref{tab:cluster-latencies-us} present the estimated baseline latencies from the perspective of a co-located client. This end-to-end measurement encapsulates the initial request, quorum gathering (fast or regular), potential collision resolution, the leader's decide phase, local execution, and the final client reply. Co-locating the client simulates the architectural pattern of routing requests to the nearest edge replica while satisfying practical resource constraints. 
+Tables \ref{tab:cluster-latencies-europe} and \ref{tab:cluster-latencies-us} present the estimated baseline latencies from the perspective of a co-located client. This end-to-end measurement encapsulates the initial request, quorum gathering (fast or regular), potential collision resolution, the leader's decide phase, local execution, and the final reply to the client. Co-locating the client simulates the architectural pattern of routing requests to the nearest edge replica while satisfying practical resource constraints.
 
-The European topology exhibits a relatively distributed latency profile, where followers uniformly gain a slight advantage on a successful fast path because broadcasting to a localized fast quorum is faster than forwarding. Conversely, the US topology reveals a highly polarized profile. While distant nodes benefit significantly from the fast path, nodes physically close to the leader, such as Oregon and Los Angeles, incur a latency penalty when attempting to gather four distributed votes compared to simply forwarding their request. Since these nodes have zero mathematical incentive to switch operating modes, their local modes are locked to Regular Paxos in the adaptive experiments.
+The European topology exhibits a relatively distributed latency profile, where followers uniformly gain a slight advantage on a successful fast path because broadcasting to a localized fast quorum is faster than forwarding. Conversely, the US topology has a more polarized profile. While distant nodes benefit significantly from the fast path, nodes physically close to the leader, such as Oregon and Los Angeles, incur a latency penalty when attempting to gather four distributed votes compared to simply forwarding their request. Since these nodes have zero mathematical incentive to switch operating modes, their local modes are locked to Regular Paxos in the adaptive experiments.
 
-\subsection{Workloads}
+\subsection{Workload Pattern}
+\begin{figure*}[t!]
+    \includegraphics[width=\linewidth]{figures/client_load_localevents.pdf}
+    \caption{Sample of the client workload patterns used for experimentation.} 
+    \label{fig:workload-pattern}
+\end{figure*}
 
-\section{Risk Guarantee Validity}
+\begin{itemize}
+    \item Because the thesis evaluates the viability of an adaptive consensus protocol, the workload must deliberately trigger conditions where the optimal strategy fluctuates between Fast Paxos and Regular Paxos
+    \item Under sustained, heavy traffic, standard consensus protocols like OmniPaxos \cite{Ng-OmniPaxos-2023} or Raft \cite{Ongaro-Raft-2014} are strictly superior due to high collision rates on the fast path; thus, stress-testing maximum throughput is out of scope.
+    \item Instead, the evaluation employs a highly bursty, low-contention workload designed to represent the "ideal conditions" for the adaptive system, ensuring periods where the fast path is highly viable interspersed with periods of high collision risk.
+
+    \item The system uses a load pattern based on local events. To create windows of opportunity for Fast Paxos, the baseline traffic between events is set to zero \gls{RPS}. 
+    \item When a local event is triggered at a node, the client injects a rapid burst of 50 peak \gls{RPS}.
+    \item The burst's intensity simulates a sudden influx of client activity that gradually normalizes, following an exponential decay curve with a rate of 0.5.
+    \item The timing of these bursts is unpredictable; the intervals between events are sampled from a normal distribution with a mean of 20 seconds and a standard deviation of 10 seconds. 
+    \item To further simulate organic traffic, a jitter factor of 0.5 applies randomized variance to the peak height of each burst
+
+    \item Each geographic server is driven by a single, independent client process -> has no impact on collisions since they inherently occur across the network between different servers
+    \item Because each of the five European nodes generates localized bursts independently, the aggregate system load dynamically fluctuates,
+    \item Both the exemplary trace of requests each individual server receives within an experiment as well as an aggregate is depicted in Figure \ref{fig:workload-pattern} 
+\end{itemize}
 
 \section{Score Function Validity}
+
+\section{Risk Guarantee Validity}
 
 \section{Latency Study}
 
