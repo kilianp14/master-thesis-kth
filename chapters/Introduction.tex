@@ -1,24 +1,8 @@
-%\generalExpl{Give a general introduction to the area. (Remember to use appropriate references in this and all other sections.)}
-%\engExpl{Use the glossaries package to help yourself and your readers. Add the acronyms and abbreviations to lib/acronyms.tex. Some examples are shown below: In this thesis, we will examine the use of \glspl{LAN}. In this thesis, we will assume that \glspl{LAN} include \glspl{WLAN}, such as \gls{WiFi}. you can't use the \gls() command in a heading - but you can get the short (\glsentryshort) or long version (\glsentryshort) or \glsentrylong or even the text entry (\glsentrytext) and then there is no problem - see https://tex.stackexchange.com/questions/198140/glossaries-and-custom-section-headings-broken}
-
 Modern applications running on the Internet are increasingly distributed to enable scalability, improve service availability, and decrease user latency. In a distributed system, individual components can only coordinate via message passing over a network, making it naturally volatile and prone to partial failures due to subsystems being largely independent \cite{Coulouris-DistributedSystems-2005}. This failure model and the pessimistically asynchronous nature of communication networks, preventing a global notion of time, make many conceptually simple problems notoriously difficult. One example is commonly referred to as the \textit{consensus} problem \cite{Coulouris-DistributedSystems-2005, Fischer-DistributedConsensus-1985, Dwork-ConsensusPartialSynchrony-1988} and requires multiple processes to decide on the same value in a strongly consistent manner.
 
 Research on this problem has come a long way since the \textit{Paxos} algorithm for solving consensus \cite{Lamport-Paxos-2001} was designed. \textit{Fast Paxos}, for instance, introduced an optimization eliminating a one-way delay in case of no concurrent proposals \cite{Lamport-FastPaxos-2006, Junqueira-ClassicVsFastPaxos-2007, Zhao-FastPaxos-2015}. In practice, these algorithms are commonly extended to maintain a continuously growing \textit{distributed log} instead of just being used to decide on a single value. Such a distributed log enables the implementation of \textit{\gls{SMR}} for processing deterministic operations on multiple nodes, providing guaranteed convergence to the same state \cite{Schneider-ReplicatedStateMachines-1990}. This is an important abstraction for applications like distributed databases \cite{Corbett-GoogleSpanner-2013, Taft-CockroachDB-2020, etcd-Docs} and coordination services \cite{Burrows-Chubby-2006, Hunt-Zookeeper-2010}.
 
 While consensus-based distributed logs inherently provide strong safety guarantees, their poor scalability and low throughput can dominate end-to-end system performance, in particular in geo-replicated deployments \cite{Stathakopoulou-RSMScalability-2022, Ryabinin-SwiftPaxos-2024}. As a result, a significant portion of current research focuses on reducing the overhead of log replication by using the optimistic fast paths originally devised for Fast Paxos. Fast-path algorithms, however, rely on favorable execution conditions, which rarely hold in production systems subject to churn, faults, skewed workloads, or even targeted attacks. In such collision-heavy scenarios, the expensive recovery mechanisms necessary to satisfy safety invariants degrade performance even below that of conservative protocols \cite{Junqueira-ClassicVsFastPaxos-2007}.
-
-%\section{Background}
-%\label{sec:background}
-%\sweExpl{svensk: Bakgrund}
-
-%\generalExpl{Present the background for the area. Set the context for your project – so that your reader can understand both your project and this thesis. (Give detailed background information in Chapter 2 - together with related work.)
-%Sometimes it is useful to insert a system diagram here so that the reader
-%knows what are the different elements and their relationship to each
-%other. This also introduces the names/terms/… that you are going to use
-%throughout your thesis (be consistent). This figure will also help you later
-%delimit what you are going to do and what others have done or will do.}
-
-%As one can find in RFC 1235\,\cite{ioannidis_coherent_1991} multicast is useful for xxxx. A number of different \glspl{OS} have been used in this work, such as the following \glspl{OS}: UNIX, Linux, Windows, etc. The main focus will be on one \gls{OS}, namely Linux.
 
 \section{Problem}
 \label{sec:problem}
@@ -30,7 +14,7 @@ While consensus-based distributed logs inherently provide strong safety guarante
 %\subsection{Scientific and engineering issues}\sweExpl{Vetenskaplig och ingenjörsmässig frågeställning}
 Much of the current research on \gls{SMR} departs from the classic notion of a single, totally ordered replicated log to a command ordering mechanism \cite{Ryabinin-SwiftPaxos-2024, Moraru-Epaxos-2013, Park-Curp-2019} to employ a fast path with minimal cost for mistakes. However, treating log-free or partially ordered consensus as a general replacement for replicated logs is not an option for all applications. Instead, there also exist possibilities to gate fast paths to avoid the majority of collisions in the first place while keeping a replicated log as the core abstraction layer.
 
-Since simply using static gating rules would leave performance on the table in calm periods and cause instability in turbulent ones, this thesis aims to explore the usage of \gls{CRC} \cite{Angelopoulus-ConformalRiskControl-2025} to regulate when the system can take the fast path and when it must revert to the conservative path. This approach can provide distribution-free, finite sample guarantees on a chosen rate of fast path mistakes, leaving safety invariants unchanged.
+Since simply using static gating rules would leave performance on the table in calm periods and cause instability in turbulent ones, this thesis aims to explore the usage of \gls{CRC} \cite{Angelopoulus-ConformalRiskControl-2025} to regulate when the system can take the fast path and when it must revert to the conservative path. This approach can be used to provide distribution-free, finite sample guarantees on a chosen rate of fast path mistakes, leaving safety invariants unchanged.
 Given this goal, we can formulate the central research question as follows:
 
 \begin{quote}
@@ -44,38 +28,24 @@ To address this main question, the work will tackle these supporting problems:
 
 
 \section{Purpose}
-%\sweExpl{Skilj på syfte och mål! Syfte är att förändra något till det bättre. I examensarbetet finns ofta två aspekter på detta. Dels vill problemägaren (företaget) få sitt problem löst till det bättre men akademin och ingenjörssamfundet vill också få nya erfarenheter och vetskap. Beskriv ett syfte som tillfredställer båda dessa aspekter. Det finns även ett syfte till som kan vara värt att beakta och det är att du som student skall ta examen och att du måste bevisa, i ditt examensarbete, att du uppfyller examensmålen. Dessa mål sammanfaller med kursmålen för examensarbetskursen. }
 %\generalExpl{State the purpose of your thesis and the purpose of your degree project. Describe who benefits and how they benefit if you achieve your goals. Include anticipated ethical, sustainability, social issues, etc. related to your project. (Return to these in your reflections in Section~\ref{sec:reflections}.)}
 This project focuses on the algorithmic efficiency of distributed consensus, which carries indirect implications for resource consumption. From a sustainability standpoint, the primary contribution is the potential reduction of computational waste. Standard fast-path protocols often suffer from recovery cycles that are expensive in terms of network usage, and more effective regulation has the potential to avoid redundant transmissions.
 
 From an ethical perspective, the work presents no significant risks. The study utilizes synthetic benchmarks and open-source libraries, involving no personal, private, or sensitive data. The project adheres to open-science principles by providing public access to the regulator implementation and experimental scripts, ensuring the results are transparent and verifiable.
 
 
-\section{Goals}
-%\sweExpl{Skilj på syfte och mål. Syftet är att åstakomma en förändring i något. Målen är vad som konkret skall göras för att om möjligt uppnå den önskade förändringen (syfte). }
-%\generalExpl{State the goal/goals of this degree project.}
-
-%The goal of this project is XXX. This has been divided into the following three sub-goals:
-%\begin{enumerate}
-%\item Subgoal 1 \sweExpl{för att tillfredsställa problemägaren – industrin?}
-%\item Subgoal 2\sweExpl{för att tillfredsställa ingenjörssamfundet och vetenskapen – akademin) }
-%\item Subgoal 3\sweExpl{eventuellt, för att uppfylla kursmålen – du som student}
-%\end{enumerate}
-
-%\generalExpl{In addition to presenting the goal(s), you might also state what the deliverables and results of the project are.}
+\section{Contributions}
 This thesis will contribute the following:
 \begin{enumerate}
-    \item A formalization of fast path regulation as conformal risk control around an unchanged safety core of a strongly consistent replicated log.
+    \item A formalization of fast path regulation as conformal risk control around the safety core of a strongly consistent replicated log.
     \item A practical nonconformity score and online calibration method that can track a target rate of fast path mistakes in realistic conditions.
-    \item An empirical study, including adversarial stress tests, which compares client latency and proposal throughput with bounded mistakes in comparison to the baselines.
+    \item An empirical study, which compares end-to-end latency with bounded mistakes in comparison to baselines.
     \item Open-source artifacts for the simulator, the regulator library, and reproducible experiment scripts.
 \end{enumerate}
 
 The application of conformal risk control to the domain of distributed consensus is, to our knowledge, novel. The findings could be of interest to distributed systems researchers and backend engineers who deal with the volatility of optimistic protocols in geo-replicated environments. Rather than proposing a new consensus algorithm, this work investigates whether statistical wrappers can provide a principled, distribution-free method to bound mistakes, potentially offering a more robust alternative to heuristics currently used.
 
 \section{Research Methodology}
-%\sweExpl{Här anger du vilken vilken övergripande undersökningsstrategi eller metod du skall använda för att försöka besvara den akademiska frågeställning och samtidigt lösa det e v ursprungliga problemet. Ofta kan man använda ”lösandet av ursprungsproblemet” som en fallstudie kring en akademisk frågeställning. Du undersöker någon intressant fråga i ”skarpt” läge och samlar resultat och erfarenhet ur detta. Tänk på att företaget ibland måste stå tillbaka i sin önskan och förväntan på projektets resultat till förmån för ny eller kompletterande ingenjörserfarenhet och vetenskap (ditt examensarbete). Det är du som student som bestämmer och löser fördelningen mellan dessa två intressen men se till att alla är informerade. }
-%\generalExpl{Introduce your choice of methodology/methodologies and method/methods – and the reason why you chose them. Contrast them with and explain why you did not choose other methodologies or methods. (The details of the actual methodology and method you have chosen will be given in Chapter~\ref{ch:methods}. Note that in Chapter~\ref{ch:methods}, the focus could be research strategies, data collection, data analysis, and quality assurance.) In this section you should present your philosophical assumption(s), research method(s), and research approach(es).}
 We outline the research methodology following the structure suggested by Håkansson \cite{Hakansson-ResearchMethods-2013}. Accordingly, this thesis uses a quantitative research methodology, a positivist research paradigm and a deductive research approach. This is appropriate because the research aims to test a hypothesis about the effect of \gls{CRC}-based fast-path regulation on system performance and mistake rates using objectively measurable variables such as latency, throughput, and fast-path mistake rate. The study assumes that system behavior can be observed, measured, and analyzed statistically, and that cause–effect relationships between protocol behavior and performance can be established through controlled experiments.
 
 The primary research methods adopted in this thesis are experimental and empirical. The study is experimental because it involves implementing a  regulator, manipulating system conditions, and measuring the resulting effects on performance and mistake rates under controlled conditions. It is empirical because the conclusions are based on observed data collected from simulations and experiments. Using statistical analysis, we will compare different deployments and see whether the proposed approach can result in improvements over the baselines. To ensure research quality, the work will address validity, reliability, and replicability through controlled experimental setups, repeated trials, and publicly available artifacts that allow reproduction of results.
@@ -85,5 +55,13 @@ The primary research methods adopted in this thesis are experimental and empiric
 While the proposed conformal regulator should be conceptually extensible to other leader-based replicated log protocols, the implementation and empirical evaluation for this research are confined to the Omnipaxos library. The research is also limited to protocols considering a crash-recovery failure model and does not address the presence of Byzantine faults within the environment, where malicious actors could circumvent the safety invariants of the used consensus algorithms.
 
 Furthermore, the scope of this project is restricted to software-level regulation at the consensus layer, excluding hardware-based network optimizations or modifications to the underlying transport protocols. Finally, this study does not account for potentially complex application-level state machines with large execution overheads, which could shift the overall performance bottleneck away from network transmissions.
+
+\begin{itemize}
+    \item Fail-stop failure model
+    \item Dont account for highly complex application-level state machines with large execution overheads
+    \item Only software-level regularization, excluding hardware-based optimizations or modifications of underlying transport protocols
+    \item In general, highly exploratorive work: There exists very little established methodology for design and analysis
+    \item This thesis deliberately does not try to come up with a fully fledged protocol with safety and liveness proofs -> basically just trying to see whether a hybrid approach for consensus could work and have a potential to be of practical use by observing under ideal conditions
+\end{itemize}
 
 \section{Structure of the Thesis}

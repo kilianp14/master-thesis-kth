@@ -39,17 +39,17 @@
 
     \begin{scope}[every path/.style={{Triangle}-{Triangle}, draw=blue!50!gray, thick}]
         
-        \draw (madrid) -- (london) node[midway, edge label] {12ms};
+        \draw (madrid) -- (london) node[midway, edge label] {13ms};
         \draw (frankfurt) -- (warsaw) node[midway, edge label] {10ms};
         \draw (warsaw) -- (stockholm) node[midway, edge label] {13ms};
         
         \draw (madrid) to[bend left=12] node[midway, edge label] {24ms} (stockholm);
-        \draw (madrid) to[bend right=8] node[midway, edge label] {20ms} (warsaw);
-        \draw (madrid) to[bend left=12] node[midway, edge label] {12ms} (frankfurt);
+        \draw (madrid) to[bend right=8] node[midway, edge label] {21ms} (warsaw);
+        \draw (madrid) to[bend left=12] node[midway, edge label] {13ms} (frankfurt);
         
-        \draw (london) to[bend left=10] node[midway, edge label] {6ms} (frankfurt);
+        \draw (london) to[bend left=10] node[midway, edge label] {9ms} (frankfurt);
         \draw (london) to[bend left=10] node[midway, edge label] {17ms} (stockholm);
-        \draw (london) to[bend left=10] node[midway, edge label] {13ms} (warsaw);
+        \draw (london) to[bend left=10] node[midway, edge label] {15ms} (warsaw);
         
         \draw (frankfurt) to[bend right=10] node[midway, edge label] {14ms} (stockholm);
     \end{scope}

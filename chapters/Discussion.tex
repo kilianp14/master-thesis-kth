@@ -5,3 +5,21 @@
 \section{Fast Path Viability}
 
 \section{Practical Implications}
+Ultimately, modern protocols like Omnipaxos \cite{Ng-OmniPaxos-2023} are: 
+\begin{itemize}
+    \item less complex to reason about
+    \item have better failure tolerance
+    \item are more extensible and simpler to extend
+    \item work well/more dependable in all kinds of scenarios 
+    \item potential latency benefits of fast-path is usually not that high in practice \cite{Junqueira-ClassicVsFastPaxos-2007}
+    \item a lot of performance can be gained by optimizing the cluster to the problem (cluster setup, number of nodes, leader placement and discovery, reconfiguration timing, network batching, storage configuration, caching \cite{Ng-UniCache-2023}, flexible quorums \cite{Howard-FlexiblePaxos-2016}
+\end{itemize}
+
+However, under highly specific circumstances, a hybrid protocol could become viable since gains in end-to-end latency are at least possible:
+\begin{itemize}
+    \item Cluster has to be very stable (static cluster setup, stable across-node latencies, few node failures)
+    \item Nodes, where the fast-path is inherently faster
+    \item Periods of low contention where the fast-path can succeed
+    \item a deployment where the most important thing is to decrease end-to-end latency and where across node message passing is the main bottleneck to improving latency
+\end{itemize}
+Whether the employing of the Conformal Risk Control/ Rolling Risk Control layer in the way it was designed aids the practical usability can not be determined based on the analysis. It can be said, however, that there is no big computational overhead in using it and it is generally able to provide bounds on the long-term empirical fast-path failure rate, which could improve stability and predictability compared to heuristics relying purely on estimators
