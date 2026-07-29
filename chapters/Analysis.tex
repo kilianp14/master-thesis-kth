@@ -1,3 +1,5 @@
+TODO: Add that all data is captured after one minute of warm-up, and learning rate is fixed to 0.005, dicussed in Limitations (see Section \ref{sec:limitations}), experiment duration, calibration duration
+
 This chapter presents the empirical evaluation of the proposed adaptive consensus architecture. The primary goal is to evaluate whether risk-controlled mode prediction can capitalize on specific operating conditions where fast-path execution offers latency advantages without exceeding target failure rates.
 
 The adaptive system is evaluated against two static protocol baselines. The first baseline represents a Regular Paxos implementation using a trimmed-down version of the OmniPaxos \cite{Ng-OmniPaxos-2023} codebase, where all followers consistently forward proposals to the central leader via the regular path. The second baseline is a static Fast Paxos implementation in which all followers unconditionally attempt fast-path broadcasts for every proposal. 
@@ -28,6 +30,7 @@ For the experiments, we used a linearizable, in-memory key-value store as the ap
 Client requests are encapsulated into a standardized command structure that includes a unique command identifier and a coordinator node identifier. Upon receiving a request, the coordinator node appends this command to the consensus log. After the log entry is committed and executed sequentially by the state machine, the node matching the recorded coordinator identifier handles routing the final execution outcome back to the originating client.
 
 \subsection{Node Setup}
+\label{sect:node_setup}
 \begin{figure}[t]
     \centering
     \input{figures/us_cluster_setup_tikz}
@@ -128,29 +131,49 @@ Each geographic server is driven by a single, independent client process sending
 \label{sec:latency_study}
 
 \begin{figure*}[t!]
+    \centering
     \includegraphics[width=\linewidth]{figures/latency_comparison_europe.pdf}
     \caption{End-to-end latency comparison for the European cluster setup between Regular Paxos, Fast Paxos, and Conformal Consensus with various risk levels.} 
     \label{fig:latency_comparison_europe}
 \end{figure*}
 
+We analyze the end-to-end request latencies of Conformal Consensus under different risk levels compared to static Regular Paxos and Fast Paxos baselines. Figures \ref{fig:latency_comparison_europe} and \ref{fig:latency_comparison_us} display the mean, median, and tail latencies (P10, P90, P95, P99) for both regions under the bursty workload pattern described in Section \ref{sec:experimental_setup}.
+
+In the European cluster experiment, Regular Paxos maintains a flat latency profile across all percentiles (P10--P99), demonstrating strong resilience to workload contention. In contrast, static Fast Paxos achieves lower P10 latency for followers but suffers substantial latency inflation at higher percentiles (P90, P95, and P99), producing the widest overall latency spread. This can also be seen at the leader node (\texttt{europe-west3}). Because high-percentile penalties heavily impact the average, static Fast Paxos reduces mean latency only when the geographic fast-path advantage is substantial, as seen at the Stockholm node (\texttt{europe-north2}). Where fast-path benefits are marginal, its mean latency regresses relative to Regular Paxos.
+
+Conformal Consensus dampens these extreme tail latencies. At a conservative risk level ($\alpha = 0.01$), for instance, latency inflation is restricted strictly to the P99 tail and remains unobservable at P90 and P95. Simultaneously, the adaptive mechanism preserves the low P10 latency of Fast Paxos, successfully capturing and increasing mean latency improvements on nodes with large fast-path advantages. However, where fast-path gains are minimal, residual slow-path fallbacks at high percentiles still cause a slight regression in mean latency compared to pure Regular Paxos.
+
+Finally, the target risk level $\alpha$ establishes a direct trade-off between stability and latency reduction. Lowering $\alpha$ systematically increases tail dampening and tightens the overall latency spread toward Regular Paxos, though this added stability proportionally diminishes potential mean latency gains.
+
 \begin{figure*}[t!]
     \includegraphics[width=\linewidth]{figures/latency_comparison_us.pdf}
-    \caption{End-to-end latency comparison for the US cluster setup between Regular Paxos, Fast Paxos, and Conformal Consensus with various risk levels.} 
+    \caption{End-to-end latency comparison for the (simulated) US cluster setup between Regular Paxos, Fast Paxos, and Conformal Consensus with various risk levels.} 
     \label{fig:latency_comparison_us}
 \end{figure*}
 
+To mitigate the unpredictable cloud network variance observed in the US cluster setupc, all nodes were deployed within a single geographic zone (\texttt{us-west4-c}) for the latency experiment, with the regional latency profile injected application-side. Under these conditions, the Regular and Fast Paxos baselines exhibit the same general performance trends observed in the European cluster.
+
+As discussed in Section \ref{sect:node_setup}, the Conformal Consensus configuration continuously routes \texttt{us-west1}, \texttt{us-west2}, and the leader (\texttt{us-west4}) through the regular path. The latencies for these nodes perfectly mirror the Regular Paxos baseline across all percentiles through the added stability. For the actively adapting nodes, higher theoretical fast-path gains result in a noticeable reduction in mean latency, making Conformal Consensus outperform both static baselines in this specific setup.
+
+
 \section{Overhead Analysis}
 \label{sec:overhead_analysis}
-- Two possible points where compute overhead could be introduced. Determining thresholds during batch calibration and additional compute when followers try to append (model evaluation and mode prediction to determine whether to choose fast-path or not, possible broadcast instead of request forward, and potential shadow proposals
+Conformal Consensus can introduce overhead in two primary areas: per-request mode evaluation during follower append attempts and threshold computation during batch calibration.
 
 \begin{figure*}[t]
+    \centering
     \includegraphics[width=\linewidth]{figures/append_performance.pdf}
-    \caption{Average execution times of an append attempt by followers across the operating modes.} 
+    \caption{Average execution times of an append attempt by followers across operating modes.} 
     \label{fig:append_performance}
 \end{figure*}
 
+Figure~\ref{fig:append_performance} shows the average local execution time per append attempt on a follower across operating modes. Regular Paxos requires under $0.002\,\text{ms}$ because the follower only forwards incoming requests to the leader. Fast Paxos increases this due to proposal broadcasting among peers. Adding \gls{CRC}, which includes evaluating the heuristic score, generating the prediction set, and processing potential shadow proposals during offline calibration, incurs less than $0.01\,\text{ms}$ of combined compute overhead per request. Given that end-to-end network latencies in both cluster topologies are on the order of tens of milliseconds (Section~\ref{sec:experimental_setup}), this local compute overhead is negligible and has no practical impact on request latency.
+
 \begin{figure*}[t]
+    \centering
     \includegraphics[width=\linewidth]{figures/calibration_overhead.pdf}
-    \caption{Threshold computation times during batch calibration in relation to the calibration set size.} 
+    \caption{Threshold computation time during batch calibration relative to calibration set size.} 
     \label{fig:calibration_overhead}
 \end{figure*}
+
+The second potential source of overhead is batch calibration, which runs a binary root-finding algorithm to establish an initial threshold $\widehat{\lambda}$. As shown in Figure~\ref{fig:calibration_overhead}, execution time scales linearly with dataset size. For a dataset of 3,000 samples (collected over 15 minutes under described workload patterns), the algorithm computes the threshold in approximately $15\,\text{ms}$. Batch calibration is entirely optional and serves primarily to establish a reliable baseline threshold prior to running online calibration. Because data collection can occur during regular operations, the root-finding routine can execute asynchronously, and the computational load is this low, batch calibration introduces no runtime disruption to the main consensus path.
