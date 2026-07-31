@@ -1,10 +1,8 @@
-TODO: Add that all data is captured after one minute of warm-up, and learning rate is fixed to 0.005, dicussed in Limitations (see Section \ref{sec:limitations}), experiment duration, calibration duration
-
 This chapter presents the empirical evaluation of the proposed adaptive consensus architecture. The primary goal is to evaluate whether risk-controlled mode prediction can capitalize on specific operating conditions where fast-path execution offers latency advantages without exceeding target failure rates.
 
-The adaptive system is evaluated against two static protocol baselines. The first baseline represents a Regular Paxos implementation using a trimmed-down version of the OmniPaxos \cite{Ng-OmniPaxos-2023} codebase, where all followers consistently forward proposals to the central leader via the regular path. The second baseline is a static Fast Paxos implementation in which all followers unconditionally attempt fast-path broadcasts for every proposal. 
+The adaptive system is evaluated against two static protocol baselines. The first baseline represents a Regular Paxos implementation using a trimmed-down version of the OmniPaxos \cite{Ng-OmniPaxos-2023} codebase, where all followers consistently forward proposals to the central leader via the regular path. The second baseline is a static variant of the hybrid protocol in which followers unconditionally select the fast path for every proposal, which therefore closely resembles Fast Paxos.
 
-After presenting the detailed experimental setup (see Section \ref{sec:experimental_setup}). The evaluation examines the system across four key performance and correctness dimensions. First, we assess whether the score function is a useful heuristic under dynamic request rates in Section \ref{sec:score_function_validity}. Second, Section \ref{sec:risk_guarantee_validity} verifies whether the Rolling Risk Control layer strictly bounds long-term empirical fast-path failure rates to the user-specified risk level. Third, Section \ref{sec:latency_study} analyzes end-to-end request latencies across European and US cluster topologies to identify the specific operational scenarios where adaptive mode switching achieves performance gains. Finally, Section \ref{sec:overhead_analysis} concludes the chapter by quantifying the possible overhead that can be introduced by the adaptive mechanism.
+After presenting the detailed experimental setup (see Section \ref{sec:experimental_setup}), the evaluation examines the system across four key performance and correctness dimensions. First, we assess whether the score function is a useful heuristic under dynamic request rates in Section \ref{sec:score_function_validity}. Second, Section \ref{sec:risk_guarantee_validity} verifies whether the Rolling Risk Control layer strictly bounds long-term empirical fast-path failure rates to user-specified risk levels. Third, Section \ref{sec:latency_study} analyzes end-to-end request latencies across multiple cluster topologies to identify whether adaptive mode switching can achieve performance gains. Finally, Section \ref{sec:overhead_analysis} concludes the chapter by quantifying the possible computational overhead that can be added by the introduced mechanisms.
 
 
 \section{Experimental Setup}
@@ -15,7 +13,8 @@ Building upon this baseline, the consensus layer incorporates the required proto
 
 When we operate in adaptive mode, the system implements dedicated tracking mechanisms for network features and success labels. To estimate the fast-quorum latency, the \gls{BLE} layer extends its standard heartbeat messages with a timestamp. Upon receiving a reply, the round-trip time is divided by two to compute individual one-way network latencies. Concurrently, the sequence Paxos layer tracks a running count of incoming Accept requests received within a sliding one-second window to estimate the proposal rate of other cluster nodes. Next to the shadow proposals, ground-truth labels are gathered by analyzing the final AcceptStatus of a node's own completed proposals once they are decided, where a resolved FastAccept signifies a fast-path success.
 
-These features and labels are processed by the prediction layer implemented as an isolated module. The module evaluates the model and executes the decision framework outlined in Algorithm \ref{alg:conformal_mode_prediction}. In the offline calibration phase, the system executes a binary root-finding algorithm over a pre-collected batch dataset of feature-label pairs to establish the initial baseline threshold. During runtime operations, an online calibration routine continuously updates the threshold as described previously.
+
+These features and labels are processed by the prediction layer implemented as an isolated module. The module evaluates the model and executes the decision framework outlined in Algorithm \ref{alg:conformal_mode_prediction}. During runtime operations, the online calibration routine continuously updates the threshold using a fixed learning rate of $\gamma = 0.005$, adopting a baseline value from \cite{Angelopoulus-NeuralInformationProcessing-2023}. Before, an offline batch calibration phase is executed over a dataset collected over five minutes of traffic to bring the initial threshold directly into the appropriate operational range, from which point the learning rate is assumed to be sufficient for ongoing updates.
 
 \subsection{State Machine Application}
 \begin{figure}[t!]
@@ -118,14 +117,48 @@ Because the evaluation assesses the viability of an adaptive consensus protocol,
 
 Traffic generation is therefore driven by local events at the clients. To create windows of opportunity for Fast Paxos, the baseline traffic between events is set to zero \gls{RPS}. When a local event triggers at a node, the client injects a rapid burst of 50 peak \gls{RPS}. This simulates a sudden influx of client activity that normalizes along an exponential decay curve with a rate of 0.5. Burst timing is unpredictable: intervals between events are sampled from a normal distribution with a 30-second mean and a 15-second standard deviation. A jitter factor of 0.5 applies randomized variance to the peak height of each burst to further simulate organic traffic.
 
-Each geographic server is driven by a single, independent client process sending requests. This setup does not impact collision rates, as collisions inherently occur across the network between different servers rather than locally. Because each of the nodes generates localized bursts independently, the aggregate system load dynamically fluctuates. Figure \ref{fig:workload-pattern} depicts a sample of this workload pattern, showing both the request trace for individual servers and the overall aggregate load.
+Each geographic server is driven by a single, independent client process sending requests. This setup does not impact collision rates, as collisions inherently occur across the network between different servers rather than locally. Because each of the nodes generates localized bursts independently, the aggregate system load dynamically fluctuates. Figure \ref{fig:workload-pattern} depicts a sample of this workload pattern, showing both the request trace for individual servers and the overall aggregate load. All evaluation runs are executed for a total duration of ten minutes, preceded by a one-minute warm-up period and potential batch calibration routines.
 
 
-\section{Score Function Validity}
+\section{Score Function Efficacy}
 \label{sec:score_function_validity}
+
+\begin{figure*}[t!]
+\centering
+\includegraphics[width=\linewidth]{figures/score_function_validity_0.1.pdf}
+\caption{Heuristic score path selection of different nodes depending on their own load and other servers' load under a static threshold of $0.1$.}
+\label{fig:score_function_validity_0.1}
+\end{figure*}
+
+\begin{figure*}[t!]
+\centering
+\includegraphics[width=\linewidth]{figures/score_function_validity_0.5.pdf}
+\caption{Heuristic score path selection of different nodes depending on their own load and other servers' load under a static threshold of $0.5$.}
+\label{fig:score_function_validity_0.5}
+\end{figure*}
+
+The objective of this experiment is to demonstrate that the heuristic function derived in Section \ref{sec:heuristic_score} acts as a responsive signal for fast-path viability under dynamic workload conditions, establishing a practical basis for risk control. To isolate the heuristic, the system operates using a static decision threshold. A node attempts a fast-path broadcast if and only if the calculated score $\pi(\vec{x})$ strictly exceeds $1 - \alpha$, where $\alpha$ represents the target risk level. We evaluate this using two static settings: $\alpha = 0.1$, requiring a $90\%$ estimated success probability to choose the fast path, and $\alpha = 0.5$, requiring a $50\%$ estimated success probability. To simplify data collection and presentation, leader-side retrying of failed append attempts is disabled.
+
+Figures \ref{fig:score_function_validity_0.1} and \ref{fig:score_function_validity_0.5} illustrate the operating mode transitions against active network traffic over a 200-second window for adaptive nodes. Under the conservative threshold ($\alpha = 0.1$), the fast path is selected only when the load of other nodes is very low. This minimizes collisions while reacting quickly to traffic changes, indicating that the score function can successfully identify optimal moments to initiate fast paths.
+
+When the required success rate is decreased to $50\%$ ($\alpha = 0.5$), nodes attempt the fast path significantly more often, falling back to the regular path only during substantial load spikes from other nodes. This behavioral shift demonstrates that the score function captures a continuous probability gradient rather than acting as a simple binary switch.
+
+Analysis of the raw data further validates this gradient. The local fast-path error rate ranges between $0.5\%$ and $2\%$ for the more conservative configuration ($\alpha = 0.1$), compared to $5\%$ and $13\%$ under the relaxed setting ($\alpha = 0.5$). This confirms that adjusting the decision threshold modulates the actual risk in the expected manner, proving that the proposed risk control mechanisms are built on a solid predictive foundation.
+
 
 \section{Risk Guarantee Validity}
 \label{sec:risk_guarantee_validity}
+
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=\linewidth]{figures/risk_guarantee_validity.pdf}
+    \caption{Comparison of the target fast-path error rate and the actual observed fast-path error rate across nodes in the US and European clusters.} 
+    \label{fig:risk_guarantee_validity}
+\end{figure*}
+
+Figure \ref{fig:risk_guarantee_validity} evaluates the effectiveness of Conformal Consensus in tracking the fast-path failure rate across multiple risk-level settings. This tracking behavior is successful, which is clearly noticeable and consistent across the evaluated nodes in both the European and US clusters. The results verify that the online calibration routine functions as intended.
+
+In certain cases, the actual error rate falls significantly below the target threshold. For instance, at the London node (\texttt{europe-west2}), the actual error rate plateaus and remains strictly below the target limit for risk levels of 0.4 and 0.5. This occurs because the fast-path utilization at these nodes has already reached 100\%. Once the system exclusively selects the fast path, the failure rate is determined entirely by the baseline network collision rate and cannot mathematically increase further, regardless of higher target risk allowances.
 
 \section{Latency Study}
 \label{sec:latency_study}
@@ -137,6 +170,12 @@ Each geographic server is driven by a single, independent client process sending
     \label{fig:latency_comparison_europe}
 \end{figure*}
 
+\begin{figure*}[t!]
+    \includegraphics[width=\linewidth]{figures/latency_comparison_us.pdf}
+    \caption{End-to-end latency comparison for the (simulated) US cluster setup between Regular Paxos, Fast Paxos, and Conformal Consensus with various risk levels.} 
+    \label{fig:latency_comparison_us}
+\end{figure*}
+
 We analyze the end-to-end request latencies of Conformal Consensus under different risk levels compared to static Regular Paxos and Fast Paxos baselines. Figures \ref{fig:latency_comparison_europe} and \ref{fig:latency_comparison_us} display the mean, median, and tail latencies (P10, P90, P95, P99) for both regions under the bursty workload pattern described in Section \ref{sec:experimental_setup}.
 
 In the European cluster experiment, Regular Paxos maintains a flat latency profile across all percentiles (P10--P99), demonstrating strong resilience to workload contention. In contrast, static Fast Paxos achieves lower P10 latency for followers but suffers substantial latency inflation at higher percentiles (P90, P95, and P99), producing the widest overall latency spread. This can also be seen at the leader node (\texttt{europe-west3}). Because high-percentile penalties heavily impact the average, static Fast Paxos reduces mean latency only when the geographic fast-path advantage is substantial, as seen at the Stockholm node (\texttt{europe-north2}). Where fast-path benefits are marginal, its mean latency regresses relative to Regular Paxos.
@@ -144,12 +183,6 @@ In the European cluster experiment, Regular Paxos maintains a flat latency profi
 Conformal Consensus dampens these extreme tail latencies. At a conservative risk level ($\alpha = 0.01$), for instance, latency inflation is restricted strictly to the P99 tail and remains unobservable at P90 and P95. Simultaneously, the adaptive mechanism preserves the low P10 latency of Fast Paxos, successfully capturing and increasing mean latency improvements on nodes with large fast-path advantages. However, where fast-path gains are minimal, residual slow-path fallbacks at high percentiles still cause a slight regression in mean latency compared to pure Regular Paxos.
 
 Finally, the target risk level $\alpha$ establishes a direct trade-off between stability and latency reduction. Lowering $\alpha$ systematically increases tail dampening and tightens the overall latency spread toward Regular Paxos, though this added stability proportionally diminishes potential mean latency gains.
-
-\begin{figure*}[t!]
-    \includegraphics[width=\linewidth]{figures/latency_comparison_us.pdf}
-    \caption{End-to-end latency comparison for the (simulated) US cluster setup between Regular Paxos, Fast Paxos, and Conformal Consensus with various risk levels.} 
-    \label{fig:latency_comparison_us}
-\end{figure*}
 
 To mitigate the unpredictable cloud network variance observed in the US cluster setupc, all nodes were deployed within a single geographic zone (\texttt{us-west4-c}) for the latency experiment, with the regional latency profile injected application-side. Under these conditions, the Regular and Fast Paxos baselines exhibit the same general performance trends observed in the European cluster.
 
@@ -177,3 +210,30 @@ Figure~\ref{fig:append_performance} shows the average local execution time per a
 \end{figure*}
 
 The second potential source of overhead is batch calibration, which runs a binary root-finding algorithm to establish an initial threshold $\widehat{\lambda}$. As shown in Figure~\ref{fig:calibration_overhead}, execution time scales linearly with dataset size. For a dataset of 3,000 samples (collected over 15 minutes under described workload patterns), the algorithm computes the threshold in approximately $15\,\text{ms}$. Batch calibration is entirely optional and serves primarily to establish a reliable baseline threshold prior to running online calibration. Because data collection can occur during regular operations, the root-finding routine can execute asynchronously, and the computational load is this low, batch calibration introduces no runtime disruption to the main consensus path.
+
+
+\section{Discussion}
+
+\subsection{Fast Path Viability}
+
+\subsection{The Power of Formal Guarantees}
+
+\subsection{Practical Implications}
+Ultimately, modern protocols like Omnipaxos \cite{Ng-OmniPaxos-2023} are: 
+\begin{itemize}
+    \item less complex to reason about
+    \item have better failure tolerance
+    \item are simpler to extend
+    \item work well/more dependable in all kinds of scenarios 
+    \item potential latency benefits of fast-path is usually not that high in practice \cite{Junqueira-ClassicVsFastPaxos-2007}
+    \item a lot of performance can be gained by optimizing the cluster to the problem (cluster setup, number of nodes, leader placement and discovery, reconfiguration timing, network batching, storage configuration, caching \cite{Ng-UniCache-2023}, flexible quorums \cite{Howard-FlexiblePaxos-2016}
+\end{itemize}
+
+However, under highly specific circumstances, a hybrid protocol could become viable since gains in end-to-end latency are at least possible:
+\begin{itemize}
+    \item Cluster has to be very stable (static cluster setup, stable across-node latencies, few node failures)
+    \item Nodes, where the fast-path is inherently faster
+    \item Periods of low contention where the fast-path can succeed
+    \item a deployment where the most important thing is to decrease end-to-end latency and where across node message passing is the main bottleneck to improving latency
+\end{itemize}
+Whether the employing of the Conformal Risk Control/ Rolling Risk Control layer in the way it was designed aids the practical usability can not be determined based on the analysis. It can be said, however, that there is no big computational overhead in using it and it is generally able to provide bounds on the long-term empirical fast-path failure rate, which provides a simple interface/knob to turn for more stability or more exploitation around an existing heuristic -> if fully fledged protocol can be designed, there is a high chance that it matches or outperforms Fast Paxos in the cases where it would be used (there is no real drawback in using this instead of Fast Paxos)

@@ -358,7 +358,7 @@ nopostdot]{glossaries}
 \renewcommand{\lstlistlistingname}{Listings}
 
 % number each listing within the chapter
-\numberwithin{listing}{chapter}
+\numberwithin{algorithm}{chapter}
 
 \usepackage{subfiles}
 
@@ -580,12 +580,10 @@ We would like to thank xxxx for having yyyy.
  }
 %\glsaddall
 %\printglossaries[type=\acronymtype, title={List of acronyms}]
-\printglossary[style=mylong, type=\acronymtype, title={List of acronyms and abbreviations}]
+\printglossary[style=mylong, type=\acronymtype, title={List of Acronyms and Abbreviations}]
 %\printglossary[type=\acronymtype, title={List of acronyms and abbreviations}]
 
 %\printnoidxglossary[style=mylong, title={List of acronyms and abbreviations}]
-\engExpl{The list of acronyms and abbreviations should be in alphabetical order based on the spelling of the acronym or abbreviation.
-}
 
 % if the nomenclature option was specified, then include the nomenclature page(s)
 \ifnomenclature
@@ -623,15 +621,24 @@ We would like to thank xxxx for having yyyy.
 \input{chapters/Analysis}
 
 \cleardoublepage
-\chapter{Discussion}
-\label{ch:discussion}
-\input{chapters/Discussion}
-
-\cleardoublepage
 \chapter{Conclusions}
 \label{ch:conclusionsAndFutureWork}
 \input{chapters/Conclusion}
 
+\cleardoublepage
+\renewcommand{\bibname}{References}
+
+\iftoggle{biblatex}{
+    %\typeout{Biblatex current language is \currentlang}
+    \printbibliography[heading=bibintoc]
+}{
+    \phantomsection  % make it include a hyperref - see https://tex.stackexchange.com/a/98995
+    \addcontentsline{toc}{chapter}{References}
+    \bibliography{references}
+}
+
+
+\warningExpl{If you do not have an appendix, do not include the \textbackslash cleardoublepage command below; otherwise, the last page number in the metadata will be one too large.}
 
 \cleardoublepage
 \appendix

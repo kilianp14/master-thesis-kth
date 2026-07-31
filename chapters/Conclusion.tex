@@ -1,10 +1,6 @@
-\sweExpl{Slutsats och framtida arbete}
-
-\generalExpl{Add text to introduce the subsections of this chapter.}
 
 \section{Conclusions}
 \label{sec:conclusions}
-\sweExpl{Slutsatser}
 \engExpl{Describe the conclusions (reflect on the whole introduction given in Chapter 1).}
 
 
@@ -23,71 +19,28 @@ Om du skulle göra detta igen, vad skulle du ha gjort annorlunda?}
 
 \section{Limitations}
 \label{sec:limitations}
-\sweExpl{Begränsande faktorer\\Vad gjorde du som begränsade dina ansträngningar? Vilka är begränsningarna i dina resultat?}
 \engExpl{What did you find that limited your efforts? What are the limitations of your results?}
 
-- Exploratory
+- Exploratory -> Fundamentally unclear whether a safe and lively version hybrid protocol with log syncing is even achievable
 
 - Struggle with cloud reproducability hindering progress -> final analysis not as exhaustive as could have been
 
 - Only considered if fast-path successful not if faster -> likely the main methological limitation on practicability study ->  guarantees on  end-to-end latency could be more impactful since less prior network layout study is necessary
 
-- No stable storage -> Assumption was that this is not the dominating factor for end-to-end latency in global scenarios but there could be disk I/O overhead for the more complex adaptive version
+- No stable storage -> Assumption was that this is not the dominating factor for end-to-end latency in global scenarios but there could be disk I/O overhead for the more complex adaptive version which needs to be considered
 
-- Fixed learning rate of 0.005 for adaptive experiments -> basically just first value stumbled upon in literature \cite{Angelopoulus-NeuralInformationProcessing-2023} -> no study was made regarding its impact (unclear whether there is one)
+- Fixed learning rate of 0.005 for adaptive experiments -> basically just first value stumbled upon in literature \cite{Angelopoulus-NeuralInformationProcessing-2023} -> no study was made regarding its impact (unclear whether there is one) -> batch calibration used as a way to push threshold in the right range from where a low learning rate is acceptable
 
 \section{Future work}
 \label{sec:futureWork}
 
-\sweExpl{Vad du har kvar ogjort?\\Vad är nästa självklara saker som ska göras?\\Vad tips kan du ge till nästa person som kommer att följa upp på ditt arbete?}
 \engExpl{Describe valid future work that you or someone else could or should do.\\
 Consider: What you have left undone? What are the next obvious things to be done? What hints can you give to the next person who is going to follow up on your work?}
 
-
-
-Due to the breadth of the problem, only some of the initial goals have been
-met. In these section we will focus on some of the remaining issues that
-should be addressed in future work. ...
-
-\subsection{What has been left undone?}
-\label{what-has-been-left-undone}
-
-The prototype does not address the third requirment, \ie a yearly unavailability of less than 3 minutes; this remains an open problem. ...
-
-\subsubsection{Cost analysis}
-\generalExpl{Example of a missing component}
-The current prototype works, but the performance from a cost perspective makes this an impractical solution. Future work must reduce the cost of this solution; to do so, a cost analysis needs to first be done. ...
-
-\subsubsection{Security}
-\generalExpl{Example of a missing component}
-A future research effort is needed to address the security holes that results from using a self-signed certificate. Page filling text mass. Page filling text mass. ...
-
-
-\subsection{Next obvious things to be done}
-
-In particular, the author of this thesis wishes to point out xxxxxx remains as a problem to be solved. Solving this problem is the next thing that should be done. ...
-
-
-
-
-\noindent\rule{\textwidth}{0.4mm}
-\engExpl{In the references, let Zotero or other tool fill this in for you. I suggest an extended version of the IEEE style, to include URLs, DOIs, ISBNs, etc., to make it easier for your reader to find them. This will make life easier for your opponents and examiner. \\IEEE Editorial Style Manual: \url{https://www.ieee.org/content/dam/ieee-org/ieee/web/org/conferences/style_references_manual.pdf}}
-\sweExpl{Låt Zotero eller annat verktyg fylla i det här för dig. Jag föreslår en utökad version av IEEE stil - att inkludera webbadresser, DOI, ISBN osv. - för att göra det lättare för läsaren att hitta dem. Detta kommer att göra livet lättare för dina opponenter och examinator.}
-
-\cleardoublepage
-% Print the bibliography (and make it appear in the table of contents)
-\renewcommand{\bibname}{References}
-
-
-\iftoggle{biblatex}{
-    %\typeout{Biblatex current language is \currentlang}
-    \printbibliography[heading=bibintoc]
-}{
-    \phantomsection  % make it include a hyperref - see https://tex.stackexchange.com/a/98995
-    \addcontentsline{toc}{chapter}{References}
-    \bibliography{references}
-}
-
-
-
-\warningExpl{If you do not have an appendix, do not include the \textbackslash cleardoublepage command below; otherwise, the last page number in the metadata will be one too large.}
+\begin{itemize}
+    \item Fully specify the hybrid protocol with safety and liveness proves to assess whether the approach actually works
+    \item Find a way to give guarantees on actual end-to-end latency instead of success since a success does not always mean faster execution -> network latency changes might not impact success when contention is low, but make fast-path execution slower in comparison
+    \item Determine a heuristic based on math instead of empirical data seems possible and logical -> worth exploring
+    \item Try to integrate the approach into Nezha \cite{Geng-NezhaConsensus-2022}, which makes fast-path more viable
+    \item => this work can give guidance on how to approach the problem and how to analyse it
+\end{itemize}
