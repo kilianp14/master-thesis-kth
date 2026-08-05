@@ -184,7 +184,7 @@ Conformal Consensus dampens these extreme tail latencies. At a conservative risk
 
 Finally, the target risk level $\alpha$ establishes a direct trade-off between stability and latency reduction. Lowering $\alpha$ systematically increases tail dampening and tightens the overall latency spread toward Regular Paxos, though this added stability proportionally diminishes potential mean latency gains.
 
-To mitigate the unpredictable cloud network variance observed in the US cluster setupc, all nodes were deployed within a single geographic zone (\texttt{us-west4-c}) for the latency experiment, with the regional latency profile injected application-side. Under these conditions, the Regular and Fast Paxos baselines exhibit the same general performance trends observed in the European cluster.
+To mitigate the unpredictable cloud network variance observed in the US cluster setup, all nodes were deployed within a single geographic zone (\texttt{us-west4-c}) for the latency experiment, with the regional latency profile injected on the application side. Under these conditions, the Regular and Fast Paxos baselines exhibit the same general performance trends observed in the European cluster.
 
 As discussed in Section \ref{sect:node_setup}, the Conformal Consensus configuration continuously routes \texttt{us-west1}, \texttt{us-west2}, and the leader (\texttt{us-west4}) through the regular path. The latencies for these nodes perfectly mirror the Regular Paxos baseline across all percentiles through the added stability. For the actively adapting nodes, higher theoretical fast-path gains result in a noticeable reduction in mean latency, making Conformal Consensus outperform both static baselines in this specific setup.
 
@@ -200,7 +200,7 @@ Conformal Consensus can introduce overhead in two primary areas: per-request mod
     \label{fig:append_performance}
 \end{figure*}
 
-Figure~\ref{fig:append_performance} shows the average local execution time per append attempt on a follower across operating modes. Regular Paxos requires under $0.002\,\text{ms}$ because the follower only forwards incoming requests to the leader. Fast Paxos increases this due to proposal broadcasting among peers. Adding \gls{CRC}, which includes evaluating the heuristic score, generating the prediction set, and processing potential shadow proposals during offline calibration, incurs less than $0.01\,\text{ms}$ of combined compute overhead per request. Given that end-to-end network latencies in both cluster topologies are on the order of tens of milliseconds (Section~\ref{sec:experimental_setup}), this local compute overhead is negligible and has no practical impact on request latency.
+Figure~\ref{fig:append_performance} shows the average local execution time per append attempt on a follower across operating modes. Regular Paxos requires less than $0.002\,\text{ms}$ because the follower only forwards incoming requests to the leader. Fast Paxos increases this due to proposal broadcasting among peers. Adding \gls{CRC}, which includes evaluating the heuristic score, generating the prediction set, and processing potential shadow proposals during offline calibration, incurs less than $0.01\,\text{ms}$ of combined compute overhead per request. Given that end-to-end network latencies in both cluster topologies are on the order of tens of milliseconds (Section~\ref{sec:experimental_setup}), this local compute overhead is negligible and has no practical impact on request latency.
 
 \begin{figure*}[t]
     \centering
@@ -210,30 +210,3 @@ Figure~\ref{fig:append_performance} shows the average local execution time per a
 \end{figure*}
 
 The second potential source of overhead is batch calibration, which runs a binary root-finding algorithm to establish an initial threshold $\widehat{\lambda}$. As shown in Figure~\ref{fig:calibration_overhead}, execution time scales linearly with dataset size. For a dataset of 3,000 samples (collected over 15 minutes under described workload patterns), the algorithm computes the threshold in approximately $15\,\text{ms}$. Batch calibration is entirely optional and serves primarily to establish a reliable baseline threshold prior to running online calibration. Because data collection can occur during regular operations, the root-finding routine can execute asynchronously, and the computational load is this low, batch calibration introduces no runtime disruption to the main consensus path.
-
-
-\section{Discussion}
-
-\subsection{Fast Path Viability}
-
-\subsection{The Power of Formal Guarantees}
-
-\subsection{Practical Implications}
-Ultimately, modern protocols like Omnipaxos \cite{Ng-OmniPaxos-2023} are: 
-\begin{itemize}
-    \item less complex to reason about
-    \item have better failure tolerance
-    \item are simpler to extend
-    \item work well/more dependable in all kinds of scenarios 
-    \item potential latency benefits of fast-path is usually not that high in practice \cite{Junqueira-ClassicVsFastPaxos-2007}
-    \item a lot of performance can be gained by optimizing the cluster to the problem (cluster setup, number of nodes, leader placement and discovery, reconfiguration timing, network batching, storage configuration, caching \cite{Ng-UniCache-2023}, flexible quorums \cite{Howard-FlexiblePaxos-2016}
-\end{itemize}
-
-However, under highly specific circumstances, a hybrid protocol could become viable since gains in end-to-end latency are at least possible:
-\begin{itemize}
-    \item Cluster has to be very stable (static cluster setup, stable across-node latencies, few node failures)
-    \item Nodes, where the fast-path is inherently faster
-    \item Periods of low contention where the fast-path can succeed
-    \item a deployment where the most important thing is to decrease end-to-end latency and where across node message passing is the main bottleneck to improving latency
-\end{itemize}
-Whether the employing of the Conformal Risk Control/ Rolling Risk Control layer in the way it was designed aids the practical usability can not be determined based on the analysis. It can be said, however, that there is no big computational overhead in using it and it is generally able to provide bounds on the long-term empirical fast-path failure rate, which provides a simple interface/knob to turn for more stability or more exploitation around an existing heuristic -> if fully fledged protocol can be designed, there is a high chance that it matches or outperforms Fast Paxos in the cases where it would be used (there is no real drawback in using this instead of Fast Paxos)
