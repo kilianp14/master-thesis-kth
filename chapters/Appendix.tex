@@ -11,12 +11,16 @@ Summing inequalities (\ref{eq:proof_majority}) and (\ref{eq:proof_fast}) and sub
 \begin{equation}
     Q_F + 2R \ge Q_M + Q_F \implies 2R \ge Q_M
 \end{equation}
-Substituting $R = n - Q_F$ into the expression yields:
+Substituting $R = n - Q_F$ into the expression yields the following:
 \begin{equation}
     2(n - Q_F) \ge Q_M \implies 2n \ge Q_M + 2Q_F
 \end{equation}
-By applying the definitions of the quorum thresholds ($Q_M \ge \frac{n+1}{2}$ and $Q_F \ge \frac{3n}{4}$), we obtain:
+By applying the definitions of the quorum thresholds ($Q_M \ge \frac{n+1}{2}$ and $Q_F \ge \frac{3n}{4}$), we obtain the following:
 \begin{equation}
     2n \ge \frac{n+1}{2} + 2\left(\frac{3n}{4}\right) \implies 2n \ge 2n + \frac{1}{2} \implies 0 \ge \frac{1}{2}
 \end{equation}
 This yields a clear contradiction. Thus, given $Q_F$ total responses, it is mathematically impossible for both value $A$ to retain a path to a standard majority quorum and value $B$ to retain a path to a fast quorum. Consequently, the leader can always unambiguously determine that at least one of the protocol paths has failed to achieve its quorum, allowing for a safe slow-path resolution.
+
+
+\chapter{Declaration of AI Use}
+The author declares that generative artificial intelligence was utilized exclusively for language polishing and stylistic enhancement throughout the drafting process. This support was strictly limited to refining grammar, phrasing, and overall readability. All fundamental research, technical design, data analysis, and conclusions remain entirely the author's own original work, who takes full responsibility for the content and integrity of this thesis.

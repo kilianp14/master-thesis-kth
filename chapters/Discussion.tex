@@ -1,15 +1,17 @@
+This chapter attempts to synthesize the findings from the analysis to assess the broader implications of the results and the practicability of the proposed design. We first evaluate the effectiveness of risk control in providing formal behavioral bounds in Section \ref{sec:power_of_formal_guarantees}, followed by an analysis of the fundamental constraints that limit fast-path execution in Section \ref{sec:fast_path_viability}. Building on these observations, Section \ref{sec:practicality_of_conformal_consensus} assesses the practical viability of the conformal consensus approach compared to established architectures. Finally, we detail the theoretical and methodological limitations of the current prototype in Section \ref{sec:limitations} and outline essential directions for future work in Section \ref{sec:future_work}.
+
+
 \section{The Power of Formal Guarantees}
+\label{sec:power_of_formal_guarantees}
+The empirical evaluation confirms that Rolling Risk Control can effectively regulate fast-path routing with sub-millisecond overhead. By dynamically tracking the target risk and error rates across varying geographic clusters, the online calibration routine demonstrates that statistical formal methods can reliably bound adaptive protocol behavior without becoming a computational bottleneck. Specifically, the analysis confirms that the target risk parameter can provide a simple, effective interface for managing the trade-off between optimistic execution and system stability. Because the conformal wrapper guarantees the error rate regardless of the underlying model's accuracy, developers are free to employ anything from simple, locally observable heuristics to complex machine learning models without compromising the formal boundaries.
 
-The evaluation confirms that the Rolling Risk Control online calibration routine consistently tracks the target risk and fast-path error rate across varying nodes and geographic clusters. This demonstrates that statistical formal methods can reliably bound adaptive protocol behavior even under dynamic network conditions.
-
-In our use case, the analytical score function requires only a small set of locally observable metrics to compute, making its overhead negligible. The prediction layer avoids becoming a computational bottleneck that offsets the fast-path latency savings, demonstrating that online risk calibration can be integrated into distributed protocols, where latency reduction is the main objective.
-
-The latency evaluations show that tightening the target risk dampens high-percentile latency inflation while reducing the low-percentile latency gains. This confirms that the target risk parameter provides a simple, effective interface for managing the trade-off between optimistic execution and system stability.
+While this thesis evaluates \gls{CRC} specifically in the context of consensus fast paths, the underlying methodology is applicable to a much broader class of distributed algorithms. Beyond consensus routing, this template for online risk calibration could be applied to several areas of distributed systems that rely on uncertain runtime decisions. Some consensus-relevant examples could include message batching, leader migration or complete cluster reconfiguration, quorum selection, or speculative execution on the application side.
 
 Overall, these empirical results demonstrate that conformal methods, specifically Rolling Risk Control, can effectively regulate distributed routing decisions when wrapped around lightweight heuristics. This work offers a template for integrating formal guarantees into distributed protocols, showing that they are highly accessible, simple to integrate, and therefore practical for regulating distributed systems.
 
 
 \section{Fast Path Viability}
+\label{sec:fast_path_viability}
 
 The theoretical latency reduction offered by the fast path was shown to be modest from the outset. In practice, the requirement for a larger fast quorum counteracts much of this benefit, particularly when the leader is strategically positioned relative to the rest of the cluster. This observation aligns with existing literature questioning the practical end-to-end performance gains of fast-path consensus over classic variants \cite{Junqueira-ClassicVsFastPaxos-2007}.
 
@@ -21,6 +23,8 @@ Ultimately, the optimism of fast-path execution for replicated logs is fragile, 
 
 
 \section{Practicality of Conformal Consensus}
+\label{sec:practicality_of_conformal_consensus}
+
 Modern, fully fledged consensus protocols like OmniPaxos \cite{Ng-OmniPaxos-2023} offer a highly dependable, extensible, and failure-tolerant foundation that is strictly superior under sustained, heavy traffic. Furthermore, significant performance improvements can already be extracted from these classic architectures through system-level optimizations, such as flexible phase quorums \cite{Howard-FlexiblePaxos-2016}, caching \cite{Ng-UniCache-2023}, and strategic leader placement and general cluster setup optimization.
 
 The analysis demonstrates, however, that slight end-to-end latency gains of a hybrid protocol materialize under highly idealized conditions. Practical viability strictly demands a highly stable cluster topology with minimal node failures, workloads characterized by periods of low contention where fast paths can succeed, and specific geographic configurations where fast-path routing holds a distinct physical advantage. Additionally, deployment can only be imagined when the goal is to decrease end-to-end latency and the across-node message passing is the primary bottleneck. This casts severe doubt as to the practicality of the hybrid protocol presented. If a complete hybrid protocol can be designed, there is still a high chance that it can generally match or outperform Fast Paxos throughout.
@@ -29,28 +33,14 @@ Whether employing the \gls{CRC}/Rolling Risk Control layer in the way it was des
 
 \section{Limitations}
 \label{sec:limitations}
-\engExpl{What did you find that limited your efforts? What are the limitations of your results?}
 
-- Exploratory -> Fundamentally unclear whether a safe and lively version hybrid protocol with log syncing is even achievable
+First and foremost, the proposed hybrid consensus protocol is strictly exploratory and incomplete. It currently lacks formal safety and liveness proofs, and it remains fundamentally unverified whether a fully safe and lively specification of this design is theoretically achievable. Methodologically, the predictor evaluated whether a fast-path execution can succeed, rather than determining if it will be faster than the standard execution path. Under conditions of low contention, network latency variations may allow a fast path to succeed without delivering any net performance benefit over the standard consensus flow. Formal guarantees based on end-to-end latency likely provide more insight, although it remains unclear if this is implementable.
 
-- Struggle with cloud reproduceability hindering progress -> final analysis not as exhaustive as could have been
+Furthermore, several implementation decisions and environmental constraints affected the depth of the analysis. The adaptive mechanism relied on a fixed learning rate of $0.005$, adopted from \cite{Angelopoulus-NeuralInformationProcessing-2023}. Because no dedicated hyperparameter study was conducted, the system relied on batch calibration to shift the threshold into an operational range from where a small learning rate was assumed to be sufficient. This leaves the true sensitivity of the learning rate unexplored. From a system perspective, the prototype operates entirely in memory and omits the disk I/O required for durable logging and recovery. While disk overhead is likely not the dominant latency factor in the distributed setups studied, the computational demands of the adaptive variant could introduce unmeasured storage bottlenecks. Finally, unpredictable network jitter in the public cloud environment introduced notable latency variance within and across test runs, which severely hindered progress in the evaluation.
 
-- Only considered if fast-path successful not if faster -> likely the main methodological limitation on practicability study ->  guarantees on  end-to-end latency could be more impactful since less prior network layout study is necessary
+\section{Future Work}
+\label{sec:future_work}
 
-- No stable storage -> Assumption was that this is not the dominating factor for end-to-end latency in global scenarios but there could be disk I/O overhead for the more complex adaptive version which needs to be considered
+The primary theoretical priority is to fully formalize the hybrid consensus protocol. This involves developing rigorous safety and liveness proofs, specifying explicit requirements for safe leader election, and defining a formal log synchronization phase during leader transitions. From a methodological standpoint, future evaluations could investigate  transitioning from predicting fast-path success to providing concrete guarantees on total end-to-end latency. Ensuring that the fast path is triggered only when it yields a real latency reduction would eliminate the need for extensive prior network topology mapping. The success heuristic could still be a valuable part in achieving this.
 
-- Fixed learning rate of 0.005 for adaptive experiments -> basically just first value stumbled upon in literature \cite{Angelopoulus-NeuralInformationProcessing-2023} -> no study was made regarding its impact (unclear whether there is one) -> batch calibration used as a way to push threshold in the right range from where a low learning rate is acceptable
-
-\section{Future work}
-\label{sec:futureWork}
-
-\engExpl{Describe valid future work that you or someone else could or should do.\\
-Consider: What you have left undone? What are the next obvious things to be done? What hints can you give to the next person who is going to follow up on your work?}
-
-\begin{itemize}
-    \item Fully specify the hybrid protocol with safety and liveness proves to assess whether the approach actually works
-    \item Find a way to give guarantees on actual end-to-end latency instead of success since a success does not always mean faster execution -> network latency changes might not impact success when contention is low, but make fast-path execution slower in comparison
-    \item Determine a heuristic based on math instead of empirical data seems possible and logical -> worth exploring
-    \item Try to integrate the approach into Nezha \cite{Geng-NezhaConsensus-2022}, which makes fast-path more viable
-    \item => this work can give guidance on how to approach the problem and how to analyse it
-\end{itemize}
+From a practical infrastructure standpoint, future implementations should incorporate durable logging to stable storage. This will allow researchers to evaluate how the hybrid mechanism performs under realistic I/O constraints. Finally, integrating this adaptive risk-controlled framework into established consensus architectures, such as Nezha \cite{Geng-NezhaConsensus-2022}, represents a promising direction. Combining adaptive prediction with a protocol already optimized for fast-path execution could directly address the primary applicability bottlenecks observed in this study.

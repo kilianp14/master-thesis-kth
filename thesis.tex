@@ -231,9 +231,8 @@ nopostdot]{glossaries}
 % Enter the English and Swedish keywords here for use in the PDF metadata _and_ for later use
 % following the respective abstract.
 % Try to put the words in the same order in both languages to facilitate matching. For example:
-% TODO:
-\EnglishKeywords{KeywordA, KeywordB, KeywordC}
-\SwedishKeywords{NyckelordA, NyckelordB, NyckelordC}
+\EnglishKeywords{State Machine Replication, Consensus, Paxos, Fast Paxos, Conformal Risk Control}
+\SwedishKeywords{Tillståndsmaskinsreplikering, Konsensus, Paxos, Fast Paxos, Konform riskkontroll}
 
 %%%%% For the oral presentation
 %% Add this information once your examiner has scheduled your oral presentation
@@ -247,8 +246,7 @@ nopostdot]{glossaries}
 % When there are multiple opponents, separate their names with '\&'
 % Opponent's information
 %\opponentsNames{A. B. Normal \& A. X. E. Normalè}
-% TODO:
-\opponentsNames{XXX}
+\opponentsNames{D. Bakalis}
 
 % It is possible to have a cover illustration
 %\coverIllustration{figures/image1.png}
@@ -456,23 +454,9 @@ Note that one can include percentages, such as: 51\% or \SI{51}{\percent}.
 
 \subsection*{Keywords}
 \begin{scontents}[store-env=keywords,print-env=true]
-% If you set the EnglishKeywords earlier, you can retrieve them with:
-\InsertKeywords{english}
-% If you did not set the EnglishKeywords earlier then simply enter the keywords here:
-% comma separate keywords, such as: Canvas Learning Management System, Docker containers, Performance tuning
+    \InsertKeywords{english}
 \end{scontents}
-\engExpl{\textbf{Choosing good keywords can help others to locate your paper, thesis, dissertation, \ldots and related work.}}
-Choose the most specific keyword from those used in your domain, see for example: the ACM Computing Classification System ({\small \url{https://www.acm.org/publications/computing-classification-system/how-to-use})},
-the IEEE Taxonomy ({\small \url{https://www.ieee.org/publications/services/thesaurus-thank-you.html}}), PhySH (Physics Subject Headings)\linebreak[4] ({\small \url{https://physh.aps.org/}}), \ldots or keyword selection tools such as the  National Library of Medicine's Medical Subject Headings (MeSH)  ({\small \url{https://www.nlm.nih.gov/mesh/authors.html}}) or Google's Keyword Tool ({\small \url{https://keywordtool.io/}})\\
 
-\textbf{Formatting the keywords}:
-\begin{itemize}
-  \item The first letter of a keyword should be set with a capital letter and proper names should be capitalized as usual.
-  \item Spell out acronyms and abbreviations.
-  \item Avoid "stop words" - as they generally carry little or no information.
-  \item List your keywords separated by commas (``,'').
-\end{itemize}    
-Since you should have both English and Swedish keywords - you might think of ordering the keywords in corresponding order (\ie, so that the n\textsuperscript{th} word in each list correspond) - this makes it easier to mechanically find matching keywords.
 \end{abstract}
 \cleardoublepage
 \babelpolyLangStart{swedish}
@@ -495,17 +479,14 @@ or Swedish abstract and English summary need not be literal translations of each
 \generalExpl{Enter your Swedish abstract or summary here!}
 
 \end{scontents}
+
 \subsection*{Nyckelord}
 \begin{scontents}[store-env=keywords,print-env=true]
-% SwedishKeywords were set earlier, hence we can use alternative 2
-\InsertKeywords{swedish}
+    \InsertKeywords{swedish}
 \end{scontents}
-\sweExpl{Nyckelord som beskriver innehållet i uppsatsen eller rapporten}
 \end{abstract}
 \cleardoublepage
 \babelpolyLangStop{swedish}
-% Note that the \cleardoublepage has to be before the 
-% \babelpolyLangStop - otherwise the running headers will not be in the correct language
 
 
 \engExpl{If you add the class option \texttt{includeExtraAbstracts} in your \texttt{docuemntclass}, then you can enable abstracts/summaries in a number of languages. Include those versions of abstracts that you need.}
