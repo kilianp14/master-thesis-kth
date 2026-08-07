@@ -6,12 +6,16 @@
 ger
 \end{scontents}
 \begin{scontents}[store-env=abstracts,print-env=true]
-Zusammenfassung in Deutsch.
+    \textit{Zustandsmaschinenreplikation (SMR)} ist eine zentrale Technik in verteilten Systemen und bildet die Grundlage für kritische Dienste wie stark konsistente verteilte Datenbanken. Sie basiert grundlegend auf total geordneten, replizierten Logs, die durch Konsensalgorithmen bereitgestellt werden. Obwohl schnelle Ausführungspfade in Konsensalgorithmen wie \textit{Fast Paxos} unter günstigen Bedingungen einen Kommunikationsschritt einsparen können, sind sie von Natur aus optimistisch. Wenn mehrere Proposals gleichzeitig eingebracht werden, treten Kollisionen auf, die teure Wiederherstellungsmechanismen auslösen können. Dadurch kann die Ende-zu-Ende-Latenz sogar schlechter ausfallen als bei konservativeren Protokollen.
+    
+    Diese Arbeit führt \textit{Conformal Consensus} als ein exploratives Hybridprotokoll ein, das verteilten Konsens mit statistischer Unsicherheitsquantifizierung verbindet. Das Protokoll ermöglicht es einzelnen Instanzen, dynamisch und unabhängig zwischen einem konservativen und einem schnellen Ausführungspfad zu wählen, indem lokal beobachtbare Netzwerkmetriken wie Latenzen und Proposal-Raten ausgewertet werden. Gleichzeitig kalibriert ein konformer Wrapper die Entscheidungsschwellen so, dass die langfristige empirische Fehlerrate des schnellen Pfads mathematisch auf ein vom Benutzer vorgegebenes Ziel begrenzt bleibt.
+    
+    Experimentelle Ergebnisse aus kontrollierten verteilten Umgebungen zeigen, dass der konforme Mechanismus die Ziel-Fehlerrate erfolgreich nachverfolgt und dabei nur vernachlässigbaren Rechenaufwand verursacht. Obwohl unter günstigen Arbeitslasten mit geringer Konkurrenz kleine Verbesserungen der Ende-zu-Ende-Latenz beobachtet werden können, ist die praktische Eignung eines solchen Hybridprotokolls für den produktiven Einsatz aufgrund inhärenter Probleme hinsichtlich der Nutzbarkeit schneller Pfade für replizierte Logs eingeschränkt. Insgesamt untersucht diese Arbeit die Anwendung statistischer Risikokontrolle auf verteilte Protokolle und zeigt, dass konforme Methoden erfolgreich dazu eingesetzt werden können, protokollbezogene dynamische Entscheidungen in volatilen Netzwerkumgebungen zu steuern.
 \end{scontents}
 
 \keywordHeading{Schlüsselwörter}
 \begin{scontents}[store-env=keywords,print-env=true]
-5-6 Schlüsselwörter
+Zustandsmaschinenreplikation, Konsens, Paxos, Fast Paxos, Konforme Risikokontrolle
 \end{scontents}
 \end{abstract}
 \cleardoublepage

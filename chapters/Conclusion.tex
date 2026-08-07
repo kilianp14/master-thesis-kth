@@ -1,25 +1,7 @@
+This thesis investigated whether adaptive regulation of the fast path devised for Fast Paxos can improve the performance of replicated logs while retaining the abstraction of a totally ordered log. To explore this idea, this thesis presents Conformal Consensus, which combines an exploratory hybrid consensus protocol with decentralized mode switching, a lightweight heuristic for estimating fast-path success, and an online conformal risk control mechanism for regulating fast-path decisions according to a target error rate.
 
-\engExpl{Describe the conclusions (reflect on the whole introduction given in Chapter 1).}
+The conducted experiments allow answering the posed research questions outlined in Section \ref{sec:research_questions}. First, the results indicate that Rolling Risk Control can successfully regulate the fast-path error rate around a simple success estimation heuristic in the explored hybrid protocol. Despite relying only on locally observable metrics, the adaptive regulator was able to maintain the desired risk level over time within the evaluated distributed environments.
 
+Second, the evaluation shows that adaptive path selection can reduce mean end-to-end latency compared to both Regular Sequence Paxos and the implemented Fast Paxos variant under the assumptions considered in this work. However, these improvements were relatively small and were observed primarily under stable and highly favorable operating conditions, including a deliberately engineered workload with bursty, low-contention phases that created opportunities for successful fast-path execution. Consequently, the results should be interpreted as evidence that fast-path regulation can be beneficial under highly suitable conditions rather than as a general improvement over existing consensus protocols.
 
-  
-\engExpl{Discuss the positive effects and the drawbacks.\\
-Describe the evaluation of the results of the degree project.\\
-Did you meet your goals?\\
-What insights have you gained?\\
-What suggestions can you give to others working in this area?\\
-If you had it to do again, what would you have done differently?}
-
-\sweExpl{Uppfyllde du dina mål?\\
-Vilka insikter har du fått?\\
-Vilka förslag kan du ge till andra som arbetar inom detta område?
-Om du skulle göra detta igen, vad skulle du ha gjort annorlunda?}
-
-
-This thesis successfully explored the scalability and throughput bottlenecks of distributed logs by aiming to mitigate the performance degradation of fast-path consensus during collision-heavy scenarios
-
-The conceptualization and design of the "Conformal Consensus" architecture established a new mechanism for managing optimistic fast-path trade-offs.
-
-The latency reductions observed during testing were highly dependent on a specifically engineered, bursty, and low-contention workload designed to create artificial "windows of opportunity" for the fast path.
-
-Ultimately, while the viability of Conformal Consensus in production environments is at least questionable, this research provides a mathematically sound exploratory framework that further explores the application of conformal methods to distributed data management.
+Overall, this work suggests that conformal methods can be applied beyond traditional prediction tasks to regulate protocol-level decisions in distributed systems. While the practical viability of the Conformal Consensus in production environments is at least questionable due to limited applicability of the traditional fast path, the presented design and evaluation indicate that combining statistical guarantees of conformal methods with distributed data management (and specifically consensus algorithms) is a feasible research direction that merits further study.

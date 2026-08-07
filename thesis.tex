@@ -64,7 +64,7 @@ english,                 % the language of the body of the document: english or 
 bibtex,                  % the bibliographic processor to use: biblatex or bibtex
 %nomenclature,           % add the option nomenclature
 %digitaloutput,          % optimize for digital output (this changes the color palette)
-%includeExtraAbstracts, % uncomment to allow abstracts in languages beyond English & Swedish
+includeExtraAbstracts,
 ]{kththesis}
 
 % if pdflatex \usepackage[utf8]{inputenc}
@@ -237,7 +237,7 @@ nopostdot]{glossaries}
 %%%%% For the oral presentation
 %% Add this information once your examiner has scheduled your oral presentation
 % TODO:
-\presentationDateAndTimeISO{2022-03-15 13:00}
+\presentationDateAndTimeISO{2026-08-18 09:30}
 \presentationLanguage{eng}  % generally: eng or swe
 \presentationRoom{via Zoom https://kth-se.zoom.us/j/ddddddddddd}
 \presentationAddress{Isafjordsgatan 22 (Kistagången 16)}
@@ -257,6 +257,7 @@ nopostdot]{glossaries}
 % The TRITA number for a thesis consists of two parts: a series (unique to each school)
 % and the number in the series, which is formatted as the year followed by a colon and
 % then a unique series number for the thesis - starting with 1 each year.
+% TODO:
 \trita{TRITA -- XXX-EX}{2025:0000}
 
 % Put the title, author, and keyword information into the PDF meta information
@@ -392,65 +393,23 @@ nopostdot]{glossaries}
 \clearpage\thispagestyle{empty}\mbox{} % empty back of front cover
 \titlepage
 
-% If you do not want to have a bookinfo page, comment out the line saying \bookinfopage and add a \cleardoublepage
-% If you want a bookinfo page: you will get a copyright notice, unless you have used the doclicense package in which case you will get a Creative Commons license. To include the doclicense package, uncomment the configuration of this package above and configure it with your choice of license.
 \bookinfopage
 
-% Frontmatter includes the abstracts and table-of-contents
 \frontmatter
 \setcounter{page}{1}
 \begin{abstract}
-% The first abstract should be in the language of the thesis.
-% Abstract fungerar på svenska också.
-  \markboth{\abstractname}{}
+\markboth{\abstractname}{}
 \begin{scontents}[store-env=lang]
 eng
 \end{scontents}
-%%% The contents of the abstract (between the begin and end of scontents) will be saved in LaTeX format
-%%% and output on the page(s) at the end of the thesis with information for DiVA facilitating the correct
-%%% entry of the meta data for your thesis.
-%%% These page(s) will be removed before the thesis is inserted into DiVA.
-\engExpl{All theses at KTH are \textbf{required} to have an abstract in both \textit{English} and \textit{Swedish}.}
-
-\engExpl{Exchange students may want to include one or more abstracts in the language(s) used in their home institutions to avoid the need to write another thesis when returning to their home institution.}
-
-\generalExpl{Keep in mind that most of your potential readers are only going to read your \texttt{title} and \texttt{abstract}. This is why the abstract must give them enough information so that they can decide if this document is relevant to them or not. Otherwise, the likely default choice is to ignore the rest of your document.\\
-An abstract should stand on its own, \ie no citations, cross-references to the body of the document, acronyms must be spelled out, \ldots .\\Write this early and revise as necessary. This will help keep you focused on what you are trying to do.}
 
 \begin{scontents}[store-env=abstracts,print-env=true]
-\generalExpl{Enter your abstract here!}
-An abstract is (typically) about 250 and 350 words (1/2 A4-page) with the following components:
-% key parts of the abstract
-\begin{itemize}
-  \item What is the topic area? (optional) Introduces the subject area for the project.
-  \item Short problem statement
-  \item Why was this problem worth a Bachelor's/Master’s thesis project? (\ie, why is the problem both significant and of a suitable degree of difficulty for a Bachelor's/Master’s thesis project? Why has no one else solved it yet?)
-  \item How did you solve the problem? What was your method/insight?
-  \item Results/Conclusions/Consequences/Impact: What are your key results/\linebreak[4]conclusions? What will others do based on your results? What can be done now that you have finished - that could not be done before your thesis project was completed?
-\end{itemize}
+    \textit{State Machine Replication (SMR)} is a core technique in distributed systems, forming the basis for critical services like strongly consistent distributed databases. It fundamentally builds upon totally ordered, replicated logs provided by \textit{consensus} algorithms. While fast-path consensus algorithms like \textit{Fast Paxos} eliminate a communication delay under favorable conditions, they are inherently optimistic. When multiple proposals are submitted concurrently, collisions occur, triggering expensive recovery mechanisms that can degrade end-to-end performance below that of conservative protocols.
 
+    This thesis introduces \textit{Conformal Consensus} as an exploratory hybrid protocol that bridges distributed consensus with statistical uncertainty quantification. The protocol allows individual nodes to dynamically and independently choose between a conservative and a fast execution path by evaluating locally observable network metrics, such as latencies and proposal rates, whereas a conformal wrapper calibrates decision thresholds such that the long-term empirical rate of fast-path errors remains mathematically bounded to a user-specified target.
+
+    Experimental results from controlled distributed deployments show that the conformal mechanism successfully tracks the target error rate with negligible compute overhead. While small improvements in end-to-end latency can be observed under favorable, low-contention workloads, the practicality of such a hybrid protocol for production deployment is limited due to inherent fast-path viability problems for replicated logs. Ultimately, this work provides an exploration into applying statistical risk control to distributed protocols, highlighting that conformal methods can successfully govern protocol-level trade-offs in volatile network environments.
 \end{scontents}
-\engExpl{The following are some notes about what can be included (in terms of LaTeX) in your abstract.}
-Choice of typeface with \textbackslash textit, \textbackslash textbf, and \textbackslash texttt:  \textit{x}, \textbf{x}, and \texttt{x}.
-
-Text superscripts and subscripts with \textbackslash textsubscript and \textbackslash textsuperscript: A\textsubscript{x} and A\textsuperscript{x}.
-
-Some symbols that you might find useful are available, such as: \textbackslash textregistered, \textbackslash texttrademark, and \textbackslash textcopyright. For example, 
-the copyright symbol: \textbackslash textcopyright Maguire 2022 results in \textcopyright Maguire 2022. Additionally, here are some examples of text superscripts (which can be combined with some symbols): \textbackslash textsuperscript\{99m\}Tc, A\textbackslash textsuperscript\{*\}, A\textbackslash textsuperscript\{\textbackslash textregistered\}, and A\textbackslash texttrademark resulting in \textsuperscript{99m}Tc, A\textsuperscript{*}, A\textsuperscript{\textregistered}, and A\texttrademark. Two examples of subscripts are: H\textbackslash textsubscript\{2\}O and CO\textbackslash textsubscript\{2\} which produce  H\textsubscript{2}O and CO\textsubscript{2}.
-
-You can use simple environments with begin and end: itemize and enumerate and within these use instances of \textbackslash item.
-
-The following commands can be used: \textbackslash eg, \textbackslash Eg, \textbackslash ie, \textbackslash Ie, \textbackslash etc, and \textbackslash etal: \eg, \Eg, \ie, \Ie, \etc, and \etal.
-
-The following commands for numbering with lowercase Roman numerals: \textbackslash first, \textbackslash Second, \textbackslash third, \textbackslash fourth, \textbackslash fifth, \textbackslash sixth, \textbackslash seventh, and \textbackslash eighth: \first, \Second, \third, \fourth, \fifth, \sixth, \seventh, and \eighth. Note that the second case is set with a capital 'S' to avoid conflicts with the use of second as a unit in the \texttt{siunitx} package.
-
-Equations using \textbackslash( xxxx \textbackslash) or \textbackslash[ xxxx \textbackslash] can be used in the abstract. For example: \( (C_5O_2H_8)_n \)
-or \[ \int_{a}^{b} x^2 \,dx \]
-Note that you \textbf{cannot} use an equation between dollar signs.
-
-
-Even LaTeX comments can be handled by using a backslash to quote the percent symbol, for example: \% comment.
-Note that one can include percentages, such as: 51\% or \SI{51}{\percent}.
 
 \subsection*{Keywords}
 \begin{scontents}[store-env=keywords,print-env=true]
@@ -465,19 +424,13 @@ Note that one can include percentages, such as: 51\% or \SI{51}{\percent}.
 \begin{scontents}[store-env=lang]
 swe
 \end{scontents}
-\warningExpl{Inside the following scontents environment, you cannot use a \textbackslash include{filename} as the command rather than the file contents will end up in the for DiVA information. Additionally, you should not use a straight double quote character in the abstracts or keywords, use two single quote characters instead.}
-\sweExpl{Alla avhandlingar vid KTH \textbf{måste ha} ett abstrakt på både \textit{engelska} och \textit{svenska}.\\
-Om du skriver din avhandling på svenska ska detta göras först (och placera det som det första abstraktet) - och du bör revidera det vid behov.}
 
-\engExpl{If you are writing your thesis in English, you can leave this until the draft version that goes to your opponent for the written opposition. In this way, you can provide the English and Swedish abstract/summary information that can be used in the announcement for your oral presentation.\\If you are writing your thesis in English, then this section can be a summary targeted at a more general reader. However, if you are writing your thesis in Swedish, then the reverse is true – your abstract should be for your target audience, while an English summary can be written targeted at a more general audience.\\This means that the English abstract and Swedish sammnfattning  
-or Swedish abstract and English summary need not be literal translations of each other.}
-
-\warningExpl{Do not use the \textbackslash glspl\{\} command in an abstract that is not in English, as my programs do not know how to generate plurals in other languages. Instead, you will need to spell these terms out or give the proper plural form. In fact, it is a good idea not to use the glossary commands at all in an abstract/summary in a language other than the language used in the \texttt{acronyms.tex file} - since the glossary package does \textbf{not} support use of more than one language.}
-
-\engExpl{The abstract in the language used for the thesis should be the first abstract, while the Summary/Sammanfattning in the other language can follow}
 \begin{scontents}[store-env=abstracts,print-env=true]
-\generalExpl{Enter your Swedish abstract or summary here!}
+    \textit{Tillståndsmaskinsreplikering (SMR)} är en central teknik inom distribuerade system och utgör grunden för kritiska tjänster såsom starkt konsistenta distribuerade databaser. Den bygger i grunden på totalt ordnade, replikerade loggar som tillhandahålls av konsensusalgoritmer. Även om konsensusalgoritmer med snabbspår, såsom \textit{Fast Paxos}, eliminerar ett kommunikationssteg under gynnsamma förhållanden, är de till sin natur optimistiska. När flera proposals skickas in samtidigt uppstår kollisioner, vilket utlöser kostsamma återhämtningsmekanismer som kan försämra end-to-end-latensen till en nivå som är sämre än för mer konservativa protokoll.
 
+    Denna avhandling introducerar \textit{Conformal Consensus} som ett utforskande hybridprotokoll som överbryggar distribuerad konsensus och statistisk osäkerhetskvantifiering. Protokollet gör det möjligt för enskilda noder att dynamiskt och självständigt välja mellan en konservativ och en snabb exekveringsväg genom att utvärdera lokalt observerbara nätverksmått, såsom latenser och proposal-frekvenser. Samtidigt kalibrerar en konformal wrapper beslutsgränserna så att den långsiktiga empiriska andelen fel i snabbspåret förblir matematiskt begränsad till ett användarspecificerat mål.
+    
+    Experimentella resultat från kontrollerade distribuerade miljöer visar att den konforma mekanismen framgångsrikt följer den specificerade felfrekvensen med försumbar beräkningsmässig overhead. Även om små förbättringar i end-to-end-latens kan observeras under gynnsamma arbetsbelastningar med låg konfliktnivå, begränsas den praktiska användbarheten av ett sådant hybridprotokoll för produktionsanvändning av inneboende problem med snabbspårets praktiska användbarhet för replikerade loggar. Sammantaget utgör detta arbete en utforskning av hur statistisk riskkontroll kan tillämpas på distribuerade protokoll och visar att konforma metoder framgångsrikt kan styra avvägningar på protokollnivå i föränderliga nätverksmiljöer.
 \end{scontents}
 
 \subsection*{Nyckelord}
@@ -488,56 +441,14 @@ or Swedish abstract and English summary need not be literal translations of each
 \cleardoublepage
 \babelpolyLangStop{swedish}
 
-
-\engExpl{If you add the class option \texttt{includeExtraAbstracts} in your \texttt{docuemntclass}, then you can enable abstracts/summaries in a number of languages. Include those versions of abstracts that you need.}
-\generalExpl{If you are an exchange student, use the relevant language or languages for abstracts for your home university, as this will often avoid the need for writing another thesis for your home university.}
-\generalExpl{If you are fluent in other languages, feel free to add the abstracts in one or more of them.}
-
-\engExpl{The set of languages that can be easily included are based on those languages that were used in theses at KTH in the period 2018-2019, along with several others that have been used in theses since.}
-\warningExpl{Note that you may need to augment the set of languages used in \texttt{polyglossia} or
-\texttt{babel} (see the file \texttt{kththesis.cls}). If you add a new language, when specifying the language for the abstract, use the three-letter ISO 639-2 Code – specifically the "B" (bibliographic) variant of these codes (note that this is the same language code used in DiVA).}
-
 \cleardoublepage
 \iftoggle{includeExtraAbstracts}{
-% To include abstracts in languages other than English and Swedish:
-%  1. Ensure 'includeExtraAbstracts' is an active option in \documentclass.
-%  2. Uncomment the relevant '\input' line(s) below.
-%  3. Edit the content within the corresponding file in the 'Additional_Abstracts/' folder.
-% Include only the abstracts that you want and fill them in as appropriate
-% The template will automatically include the information that you entered
-
-% --- Include German abstract ---
-%\input{Additional_Abstracts/abstract_german}
-
-}{} %% End the iiftoggle{includeExtraAbstracts}
+\input{Additional_Abstracts/abstract_german}
+}{}
 
 \section*{Acknowledgments}
 \markboth{Acknowledgments}{}
-\sweExpl{Författarnas tack}
-
-\engExpl{It is nice to acknowledge the people that have helped you. It is
-  also necessary to acknowledge any special permissions that you have gotten –
-  for example, getting permission from the copyright owner to reproduce a
-  figure. In this case, you should acknowledge them and this permission here
-  and in the figure’s caption. \\
-  Note: If you do \textbf{not} have the copyright owner’s permission, then you \textbf{cannot} use any copyrighted figures/tables/\ldots . Unless stated otherwise all figures/tables/\ldots are generally copyrighted.
-}
-\sweExpl{I detta kapitel kan du ev nämna något om
-  din bakgrund om det påverkar rapporten på något sätt. Har du t ex inte
-  möjlighet att skriva perfekt svenska för att du är nyanländ till landet kan
-  det vara på sin plats att nämna detta här. OBS, detta får dock inte vara en
-  ursäkt för att lämna in en rapport med undermåligt språk, undermålig grammatik och
-  stavning (t ex får fel som en automatisk stavningskontroll och
-  grammatikkontroll kan upptäcka inte förekomma)\\
-En dualism som måste hanteras i hela rapporten och projektet
-}
-
-\engExpl{To ensure academic transparency, you must report whether and how generative AI has been used in your examinable work.  This includes any new content, including, but not limited text, images, tables, or code.}
-\sweExpl{För att säkerställa akademisk transparens måste du rapportera om och hur generativ AI har använts i ditt examinerbara arbete. Detta inkluderar allt nytt innehåll, inklusive, men inte begränsat till, text, bilder, tabeller eller kod.}
-
-I would like to thank xxxx for having yyyy. Or in the case of two authors:\\
-We would like to thank xxxx for having yyyy.
-
+I would like to express my gratitude to my supervisors, Sonia Horchidan and Harald Ng, for their guidance, support, and the sheer endless enthusiasm they showed throughout this work. Their contributions to this project cannot be overstated. I would also like to thank Paris Carbone for serving as the examiner of this thesis and for reigniting my interest in distributed systems.
 \acknowlegmentssignature
 
 \fancypagestyle{plain}{}
