@@ -8,22 +8,22 @@ Fast-path algorithms are, however, inherently optimistic. They assume a lack of 
 
 An alternative, underexplored approach is to retain the totally ordered log as the core abstraction while regulating access to the fast path based on current conditions \cite{Junqueira-ClassicVsFastPaxos-2007}. A system could gate fast-path attempts using a heuristic or predictive model, falling back to a conservative execution path when the risk of a conflict is high. Such a regulator must make decisions under uncertainty: allowing too many collisions increases overhead, while being overly conservative sacrifices potential latency improvements. \textit{Conformal methods} \cite{Shafer-ConformalPrediction-2008, Angelopoulus-ConformalPrediction-2023, Angelopoulus-ConformalRiskControl-2025} have emerged as a statistical framework for augmenting arbitrary predictive mechanisms with strict mathematical guarantees. While operating without assumptions about the underlying data distribution, conformal approaches calibrate decision thresholds based on observed outcomes and can regulate decision risk.
 
-This thesis explores the usability of a hybrid consensus protocol that integrates decentralized path selection with conformal methods. In this \textit{Conformal Consensus} design, individual followers independently evaluate local network conditions to dynamically decide between using an optimistic fast path or the conservative route, while a conformal wrapper attempts to bound fast-path error rates.
+This thesis explores the usability of a hybrid consensus protocol that integrates decentralized path selection with conformal methods. In this \textit{Conformal Consensus} design, individual followers independently evaluate local network conditions to dynamically decide between using an optimistic fast path or the conservative route, while a conformal wrapper attempts to control fast-path error rates.
 
 \section{Research Questions}
 \label{sec:research_questions}
 Given the goal of bridging statistical risk control with distributed consensus, this work is guided by two research questions:
 
 \begin{enumerate}[label=\textbf{\Roman*.}]
-    \item \textit{How can conformal methods be applied to regulate fast-path attempts in a replicated log abstraction while bounding the error rate?}
-    \item \textit{To what extent does this approach reduce end-to-end latency compared to traditional, non-adaptive consensus baselines within distributed environments?}
+    \item \textit{How can conformal methods be applied to regulate fast-path attempts in a replicated log abstraction while tracking a user-defined target for the error rate?}
+    \item \textit{To what extent can this approach reduce end-to-end latency compared to traditional, non-adaptive consensus baselines within distributed environments?}
 \end{enumerate}
 
 
 \section{Challenges}
 To answer these questions, the work must overcome several challenges, which define the primary objectives and contributions of this study:
 \begin{enumerate}
-    \item Exploring the design of a "hybrid" consensus protocol for replicated logs where different nodes can independently and dynamically switch between fast and regular modes.
+    \item Exploring the design of a "hybrid" consensus protocol for replicated logs where different nodes can independently and dynamically switch between fast and conservative operating modes.
     \item Identifying which locally observable metrics have predictive capabilities of fast-path success and designing a practical heuristic.
     \item Employing an online calibration method that can track a target rate of fast path mistakes.
     \item Demonstrating through geo-replicated deployment if the adaptive methodology can improve end-to-end latency compared to baselines.
