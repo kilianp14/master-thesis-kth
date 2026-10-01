@@ -1,122 +1,54 @@
-%%
-%% forked from https://gits-15.sys.kth.se/giampi/kthlatex kthlatex-0.2rc4 on 2020-02-13
-%% expanded upon by Gerald Q. Maguire Jr.
-%% This template has been adapted by Anders Sjögren to the University
-%% Engineering Program in Computer Science at KTH ICT. This adaptation was
-%% translation of English headings into Swedish with the addition of Swedish.
-%% Many thanks to others who have provided constructive input regarding the template.
-
-% Make it possible to conditionally depend on the TeX engine used
 \RequirePackage{ifxetex}
 \RequirePackage{ifluatex}
+
 \newif\ifxeorlua
 \ifxetex\xeorluatrue\fi
 \ifluatex\xeorluatrue\fi
 
 \ifxeorlua
-% The following is to ensure that the PDF uses a recent version rather than the typical PDF 1-5
-%  This same version of PDF should be set as an option for hyperef
-
-\RequirePackage{expl3}
-\RequirePackage{etoolbox}
-
-
-\ExplSyntaxOn
-%pdf_version_gset:n{2.0}
-%\pdf_version_gset:n{1.5}
-
-%% Alternatively, if you have a LaTeX newer than June 2022, you can use the following. However, then you have to remove the pdfversion from hyperef. It also breaks hyperxmp. So perhaps it is too early to try using it!
-%\DocumentMetadata
-%{
-%% testphase = phase-I, % tagging without paragraph tagging
-% testphase = phase-II % tagging with paragraph tagging and other new stuff.
-%pdfversion = 2.0 % pdfversion must be set here.
-%}
-
-% Optionally, you can set the uncompress flag to make it easier to examine the PDF
-%\pdf_uncompress: % to check the pdf
-\ExplSyntaxOff
+    \RequirePackage{expl3}
+    \RequirePackage{etoolbox}
 \else
-\RequirePackage{expl3}
-\ExplSyntaxOn
-%\pdf_version_gset:n{2.0}
-\pdf_version_gset:n{1.5}
-\ExplSyntaxOff
+    \RequirePackage{expl3}
+    \ExplSyntaxOn
+    \pdf_version_gset:n{1.5}
+    \ExplSyntaxOff
 \fi
 
-%% Define a pair of commands to disable and reenable specific packages - see https://tex.stackexchange.com/questions/39415/unload-a-latex-package
 \makeatletter
 \newcommand{\disablepackage}[2]{%
-  \disable@package@load{#1}{#2}%
+    \disable@package@load{#1}{#2}%
 }
 \newcommand{\reenablepackage}[1]{%
-  \reenable@package@load{#1}%
+    \reenable@package@load{#1}%
 }
 \makeatother
-%% To avoid the warning: "Package transparent Warning: Loading aborted, because pdfTeX is not running in PDF mode."
+
 \ifxeorlua
-\disablepackage{transparent}{}
+    \disablepackage{transparent}{}
 \fi
 
-%% The template is designed to handle a thesis in English or Swedish
 \documentclass[
-english,                 % the language of the body of the document: english or swedish       (note this must be in lower case)
-bibtex,                  % the bibliographic processor to use: biblatex or bibtex
-%nomenclature,           % add the option nomenclature
-%digitaloutput,          % optimize for digital output (this changes the color palette)
-includeExtraAbstracts,
+    english,
+    bibtex,
+    includeExtraAbstracts,
 ]{kththesis}
 
-% if pdflatex \usepackage[utf8]{inputenc}
+\newcommand*{\generalExpl}[1]{\todo[inline]{#1}}
+\newcommand*{\engExpl}[1]{\todo[inline, backgroundcolor=kth-lightgreen40]{#1}}
+\newcommand*{\sweExpl}[1]{\todo[inline, backgroundcolor=kth-lightblue40]{#1}}
+\newcommand*{\warningExpl}[1]{\todo[inline, backgroundcolor=kth-lightred40]{#1}}
 
-%% Conventions for todo notes:
-% Informational
-%% \generalExpl{Comments/directions/... in English}
-\newcommand*{\generalExpl}[1]{\todo[inline]{#1}}                
-
-% Language-specific information (currently in English or Swedish)
-\newcommand*{\engExpl}[1]{\todo[inline, backgroundcolor=kth-lightgreen40]{#1}} %% \engExpl{English descriptions about formatting}
-\newcommand*{\sweExpl}[1]{\todo[inline, backgroundcolor=kth-lightblue40]{#1}}  %% % \sweExpl{Text på svenska}
-
-% warnings
-\newcommand*{\warningExpl}[1]{\todo[inline, backgroundcolor=kth-lightred40]{#1}} %% \warningExpl{warnings}
-
-% Uncomment to hide specific comments, to hide **all** ToDos add `final` to
-% document class
-% \renewcommand\warningExpl[1]{}
-% \renewcommand\generalExpl[1]{}
-% \renewcommand\engExpl[1]{}
-% For example uncommenting the following line hides the Swedish language explanations
-% \renewcommand\sweExpl[1]{}
-
-
-% \usepackage[style=numeric,sorting=none,backend=biber]{biblatex}
 \iftoggle{biblatex}{
-    %\usepackage[language=english,bibstyle=authoryear,citestyle=authoryear, maxbibnames=99]{biblatex}
-    % Alternatively you might use another style, such as IEEE and use citestyle=numeric-comp  to put multiple citations in a single pair of square brackets
     \usepackage[style=ieee,citestyle=numeric-comp]{biblatex}
     \addbibresource{references.bib}
-    %\DeclareLanguageMapping{norsk}{norwegian}
 }{
-    % The line(s) below are for BibTeX
     \bibliographystyle{bibstyle/myIEEEtran}
-    %\bibliographystyle{apalike}
 }
 
-
-% include a variety of packages that are useful
 \input{lib/includes}
 \input{lib/kthcolors}
-
-%\glsdisablehyper
-%\makeglossaries
-%\makenoidxglossaries
-%\input{lib/acronyms}                %load the acronyms file
-
-\input{lib/defines}  % load some additional definitions to make writing more consistent
-
-% The following is needed in conjunction with generating the DiVA data with abstracts and keywords using the scontents package and a modified listings environment
-%\usepackage{listings}   %  already included
+\input{lib/defines}
 
 \makeatletter
 \let\verbatimsc\@undefined
@@ -124,177 +56,148 @@ includeExtraAbstracts,
 \lst@AddToHook{Init}{\hyphenpenalty=50\relax}
 \makeatother
 
-
 \lstnewenvironment{verbatimsc}
-    {
-    \lstset{%
+{
+    \lstset{
         basicstyle=\ttfamily\tiny,
         backgroundcolor=\color{white},
-        %basicstyle=\tiny,
-        %columns=fullflexible,
         columns=[l]fixed,
         language=[LaTeX]TeX,
-        %numbers=left,
-        %numberstyle=\tiny\color{gray},
         keywordstyle=\color{red},
-        breaklines=true,                 % sets automatic line breaking
-        breakatwhitespace=true,          % sets if automatic breaks should only happen at whitespace
-        %keepspaces=false,
+        breaklines=true,
+        breakatwhitespace=true,
         breakindent=0em,
-        %fancyvrb=true,
-        frame=none,                     % turn off any box
-        postbreak={}                    % turn off any hook arrow for continuation lines
+        frame=none,
+        postbreak={}
     }
 }{}
 
-%% Add some more keywords to bring out the structure more
 \lstdefinestyle{[LaTeX]TeX}{
-morekeywords={begin, todo, textbf, textit, texttt}
+    morekeywords={begin, todo, textbf, textit, texttt}
 }
 
-%% definition of new command for bytefield package
 \newcommand{\colorbitbox}[3]{%
-	\rlap{\bitbox{#2}{\color{#1}\rule{\width}{\height}}}%
-	\bitbox{#2}{#3}}
+    \rlap{\bitbox{#2}{\color{#1}\rule{\width}{\height}}}%
+    \bitbox{#2}{#3}%
+}
 
+\newcolumntype{L}[1]{%
+    >{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}p{#1}%
+}
 
-
-
-% define a left aligned table cell that is ragged right
-\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}p{#1}}
-
-% Because backref is not compatible with biblatex
 \iftoggle{biblatex}{
     \usepackage[plainpages=false]{hyperref}
 }{
     \usepackage[
-    backref=page,
-    pagebackref=false,
-    plainpages=false,
-                            % PDF related options
-    unicode=true,           % Unicode encoded PDF strings
-    bookmarks=true,         % generate bookmarks in PDF files
-    bookmarksopen=false,    % Do not automatically open the bookmarks in the PDF reading program
-    pdfpagemode=UseNone,    % None, UseOutlines, UseThumbs, or FullScreen
-    destlabel,              % better naming of destinations
-    pdfencoding=auto,       % for unicode in 
+        backref=page,
+        pagebackref=false,
+        plainpages=false,
+        unicode=true,
+        bookmarks=true,
+        bookmarksopen=false,
+        pdfpagemode=UseNone,
+        destlabel,
+        pdfencoding=auto,
     ]{hyperref}
-   %% Removed use of backref package as it is incompatible with using attachfile
 }
 
-\usepackage[all]{hypcap}	%% prevents an issue related to hyperref and caption linking
+\usepackage[all]{hypcap}
 
-%% Acronyms
-% note that nonumberlist - removes the cross references to the pages where the acronym appears
-% note that super will set the descriptions text aligned
-% note that nomain - does not produce a main glossary, thus only acronyms will be in the glossary
-% note that nopostdot - will prevent there being a period at the end of each entry
-\usepackage[acronym, style=super, section=section, nonumberlist, nomain,
-nopostdot]{glossaries}
+\usepackage[
+    acronym,
+    style=super,
+    section=section,
+    nonumberlist,
+    nomain,
+    nopostdot
+]{glossaries}
+
 \setlength{\glsdescwidth}{0.75\textwidth}
+
 \usepackage[]{glossaries-extra}
-\ifinswedish
-    %\usepackage{glossaries-swedish}
-\fi
 
-%% For use with the README_notes
-% Define a new type of glossary so that the acronyms defined in the README_notes document can be distinct from those in the thesis template
-% the tlg, tld, and dn will be the file extensions used for this glossary
 \newglossary[tlg]{readme}{tld}{tdn}{README acronyms}
-
 
 \input{lib/includes-after-hyperref}
 
-%\glsdisablehyper
 \makeglossaries
-%\makenoidxglossaries
 
-% The following bit of ugliness is because of the problems PDFLaTeX has handling a non-breaking hyphen
-% unless it is converted to UTF-8 encoding.
-% If you do not use such characters in your acronyms, this could be simplified to just include the acronyms file.
 \ifxeorlua
-\input{lib/acronyms}                %load the acronyms file
+    \input{lib/acronyms}
 \else
-\input{lib/acronyms-for-pdflatex}
+    \input{lib/acronyms-for-pdflatex}
 \fi
 
-% place holders for languages lacking .lbx files
 \input{lib/placeHolder_lbx_files}
 
-% insert the configuration information with author(s), examiner, supervisor(s), ...
-\input{custom_configuration}
+\date{September 2, 2026}
 
-% read in the plain text definitions, if they exist
-\IfFileExists{custom_configuration_plaintext.tex}{\input{custom_configuration_plaintext.tex}}{}
+\title{Optimistic Consensus under Conformal Risk Control}
+\alttitle{Optimistisk konsensus med konform riskkontroll}
 
+\courseCycle{2}
+\courseCredits{30.0}
+\programcode{TSEDM}
+\subjectArea{Computer Science and Engineering}
 
-% Enter the English and Swedish keywords here for use in the PDF metadata _and_ for later use
-% following the respective abstract.
-% Try to put the words in the same order in both languages to facilitate matching. For example:
-\EnglishKeywords{State Machine Replication, Consensus, Paxos, Fast Paxos, Conformal Risk Control}
-\SwedishKeywords{Tillståndsmaskinsreplikering, Konsensus, Paxos, Fast Paxos, Konform riskkontroll}
+\authorsLastname{Kilian}
+\authorsFirstname{Paul Michael}
 
-%%%%% For the oral presentation
-%% Add this information once your examiner has scheduled your oral presentation
-\presentationDateAndTimeISO{2026-08-18 09:00}
-\presentationLanguage{eng}  % generally: eng or swe
-\presentationRoom{via Zoom https://kth-se.zoom.us/j/8109602961}
-\presentationAddress{Lindstedtsvägen 28}
-\presentationCity{Stockholm}
+\supervisorAsLastname{Horchidan}
+\supervisorAsFirstname{Sonia}
 
-% When there are multiple opponents, separate their names with '\&'
-% Opponent's information
-%\opponentsNames{A. B. Normal \& A. X. E. Normalè}
-\opponentsNames{D. Bakalis}
+\supervisorBsLastname{Ng}
+\supervisorBsFirstname{Harald}
 
-% It is possible to have a cover illustration
-%\coverIllustration{figures/image1.png}
-% if so, the author might acknowledge this or give the copyright information for it with:
-%\coverIllustrationCredit{A. B. Normal}
+\examinersLastname{Carbone}
+\examinersFirstname{Paris}
 
-% Once a thesis is approved by the examiner, add the TRITA number
-% The TRITA number for a thesis consists of two parts: a series (unique to each school)
-% and the number in the series, which is formatted as the year followed by a colon and
-% then a unique series number for the thesis - starting with 1 each year.
-% TODO:
-\trita{TRITA -- XXX-EX}{2025:0000}
+\EnglishKeywords{
+    State Machine Replication,
+    Consensus,
+    Paxos,
+    Fast Paxos,
+    Conformal Risk Control
+}
 
-% Put the title, author, and keyword information into the PDF meta information
+\SwedishKeywords{
+    Tillståndsmaskinsreplikering,
+    Konsensus,
+    Paxos,
+    Fast Paxos,
+    Konform riskkontroll
+}
+
 \input{lib/pdf_related_includes}
 
-
-% the custom colors and the commands are defined in defines.tex    
 \hypersetup{
-	colorlinks  = true,
-	breaklinks  = true,
-	linkcolor   = \linkscolor,
-	urlcolor    = \urlscolor,
-	citecolor   = \refscolor,
-	anchorcolor = black
+    colorlinks=true,
+    breaklinks=true,
+    linkcolor=\linkscolor,
+    urlcolor=\urlscolor,
+    citecolor=\refscolor,
+    anchorcolor=black
 }
 
 \ifnomenclature
-% The following lines make the page numbers and equations hyperlinks in the Nomenclature list
-\renewcommand*{\pagedeclaration}[1]{\unskip, \dotfill\hyperlink{page.#1}{page\nobreakspace#1}}
-% The following does not work correctly, as the name of the cross-reference is incorrect
-%\renewcommand*{\eqdeclaration}[1]{, see equation\nobreakspace(\hyperlink{equation.#1}{#1})}
+    \renewcommand*{\pagedeclaration}[1]{%
+        \unskip, \dotfill\hyperlink{page.#1}{page\nobreakspace#1}%
+    }
 
-% You can also change the page heading for the nomenclature
-\renewcommand{\nomname}{List of Symbols Used}
+    \renewcommand{\nomname}{List of Symbols Used}
 
-% You can even add customization text before the list
-\renewcommand{\nompreamble}{The following symbols will be later used within the body of the thesis.}
-\makenomenclature
+    \renewcommand{\nompreamble}{
+        The following symbols will be used throughout the thesis.
+    }
+
+    \makenomenclature
 \fi
 
-%
-% The commands below are to configure JSON listings
-% 
-% format for JSON listings
-\colorlet{punct}{red!60!black}
 \definecolor{delim}{RGB}{20,105,176}
-\definecolor{numb}{RGB}{106, 109, 32}
-\definecolor{string}{RGB}{0, 0, 0}
+\definecolor{numb}{RGB}{106,109,32}
+\definecolor{string}{RGB}{0,0,0}
+
+\colorlet{punct}{red!60!black}
 
 \lstdefinelanguage{json}{
     numbers=none,
@@ -331,165 +234,158 @@ nopostdot]{glossaries}
       {’}{{\char13}}1,
 }
 
-\lstdefinelanguage{XML}
-{
-  basicstyle=\ttfamily\color{blue}\bfseries\small,
-  morestring=[b]",
-  morestring=[s]{>}{<},
-  morecomment=[s]{<?}{?>},
-  stringstyle=\color{black},
-  identifierstyle=\color{blue},
-  keywordstyle=\color{cyan},
-  breaklines=true,
-  postbreak=\raisebox{0ex}[0ex][0ex]{\ensuremath{\color{gray}\hookrightarrow\space}},
-  breakatwhitespace=true,
-  morekeywords={xmlns,version,type}% list your attributes here
+\lstdefinelanguage{XML}{
+    basicstyle=\ttfamily\color{blue}\bfseries\small,
+    morestring=[b]",
+    morestring=[s]{>}{<},
+    morecomment=[s]{<?}{?>},
+    stringstyle=\color{black},
+    identifierstyle=\color{blue},
+    keywordstyle=\color{cyan},
+    breaklines=true,
+    postbreak=\raisebox{0ex}[0ex][0ex]{\ensuremath{\color{gray}\hookrightarrow\space}},
+    breakatwhitespace=true,
+    morekeywords={xmlns,version,type}
 }
 
-% If you use both listing and lstlisting environments - the following makes them both use the same counter and the same formatting in the List of Listings
 \makeatletter
 \AtBeginDocument{\let\c@listing\c@lstlisting}
 \AtBeginDocument{\let\l@listing\l@lstlisting}
 \makeatother
 
-% Change the heading for the "List of Listings" to simply "Listings"
 \renewcommand{\lstlistlistingname}{Listings}
 
-% number each listing within the chapter
 \numberwithin{algorithm}{chapter}
 
 \usepackage{subfiles}
 
-% To have Creative Commons (CC) license and logos use the doclicense package
-% Note that the lowercase version of the license has to be used in the modifier
-% i.e., one of by, by-nc, by-nd, by-nc-nd, by-sa, by-nc-sa, zero.
-% For background see:
-% https://www.kb.se/samverkan-och-utveckling/oppen-tillgang-och-bibsamkonsortiet/open-access-and-bibsam-consortium/open-access/creative-commons-faq-for-researchers.html
-% https://kib.ki.se/en/publish-analyse/publish-your-article-open-access/open-licence-your-publication-cc
-\begin{comment}
-\usepackage[
-    type={CC},
-    %modifier={by-nc-nd},
-    %version={4.0},
-    modifier={by-nc},
-    imagemodifier={-eu-88x31},  % to get Euro symbol rather than Dollar sign
-    hyphenation={RaggedRight},
-    version={4.0},
-    %modifier={zero},
-    %version={1.0},
-]{doclicense}
-\end{comment}
-\listfiles
-
 \begin{document}
-%\selectlanguage{swedish}
-%
+
 \selectlanguage{english}
 
-%%% Set the numbering for the title page to a numbering series not in the preface or body
 \pagenumbering{alph}
-\kthcover
-\clearpage\thispagestyle{empty}\mbox{} % empty back of front cover
-\titlepage
 
+\kthcover
+
+\clearpage
+\thispagestyle{empty}
+\mbox{}
+
+\titlepage
 \bookinfopage
 
 \frontmatter
 \setcounter{page}{1}
-\begin{abstract}
-\markboth{\abstractname}{}
-\begin{scontents}[store-env=lang]
-eng
-\end{scontents}
 
-\begin{scontents}[store-env=abstracts,print-env=true]
-    \textit{State Machine Replication (SMR)} is a core technique in distributed systems, forming the basis for critical services like strongly consistent distributed databases. It fundamentally builds upon totally ordered, replicated logs provided by \textit{consensus} algorithms. While fast-path consensus algorithms like \textit{Fast Paxos} eliminate a communication delay under favorable conditions, they are inherently optimistic. When multiple proposals are submitted concurrently, collisions occur, triggering expensive recovery mechanisms that can degrade end-to-end performance below that of conservative protocols.
-
-    This thesis introduces \textit{Conformal Consensus} as an exploratory hybrid protocol that bridges distributed consensus with statistical uncertainty quantification. The protocol allows individual nodes to dynamically and independently choose between a conservative and a fast execution path by evaluating locally observable network metrics, such as latencies and proposal rates, whereas a conformal wrapper calibrates decision thresholds such that the long-term empirical rate of fast-path errors remains mathematically bounded to a user-specified target.
-
-    Experimental results from controlled distributed deployments show that the conformal mechanism successfully tracks the target error rate with negligible compute overhead. While small improvements in end-to-end latency can be observed under favorable, low-contention workloads, the practicality of such a hybrid protocol for production deployment is limited due to inherent fast-path viability problems for replicated logs. Ultimately, this work provides an exploration into applying statistical risk control to distributed protocols, highlighting that conformal methods can successfully govern protocol-level trade-offs in volatile network environments.
-\end{scontents}
-
-\subsection*{Keywords}
-\begin{scontents}[store-env=keywords,print-env=true]
-    \InsertKeywords{english}
-\end{scontents}
-
-\end{abstract}
-\cleardoublepage
-\babelpolyLangStart{swedish}
 \begin{abstract}
     \markboth{\abstractname}{}
-\begin{scontents}[store-env=lang]
-swe
-\end{scontents}
 
-\begin{scontents}[store-env=abstracts,print-env=true]
-    \textit{Tillståndsmaskinsreplikering (SMR)} är en central teknik inom distribuerade system och utgör grunden för kritiska tjänster såsom starkt konsistenta distribuerade databaser. Den bygger i grunden på totalt ordnade, replikerade loggar som tillhandahålls av konsensusalgoritmer. Även om konsensusalgoritmer med snabbspår, såsom \textit{Fast Paxos}, eliminerar ett kommunikationssteg under gynnsamma förhållanden, är de till sin natur optimistiska. När flera proposals skickas in samtidigt uppstår kollisioner, vilket utlöser kostsamma återhämtningsmekanismer som kan försämra end-to-end-latensen till en nivå som är sämre än för mer konservativa protokoll.
+    \begin{scontents}[store-env=lang]
+        eng
+    \end{scontents}
 
-    Denna avhandling introducerar \textit{Conformal Consensus} som ett utforskande hybridprotokoll som överbryggar distribuerad konsensus och statistisk osäkerhetskvantifiering. Protokollet gör det möjligt för enskilda noder att dynamiskt och självständigt välja mellan en konservativ och en snabb exekveringsväg genom att utvärdera lokalt observerbara nätverksmått, såsom latenser och proposal-frekvenser. Samtidigt kalibrerar en konformal wrapper beslutsgränserna så att den långsiktiga empiriska andelen fel i snabbspåret förblir matematiskt begränsad till ett användarspecificerat mål.
-    
-    Experimentella resultat från kontrollerade distribuerade miljöer visar att den konforma mekanismen framgångsrikt följer den specificerade felfrekvensen med försumbar beräkningsmässig overhead. Även om små förbättringar i end-to-end-latens kan observeras under gynnsamma arbetsbelastningar med låg konfliktnivå, begränsas den praktiska användbarheten av ett sådant hybridprotokoll för produktionsanvändning av inneboende problem med snabbspårets praktiska användbarhet för replikerade loggar. Sammantaget utgör detta arbete en utforskning av hur statistisk riskkontroll kan tillämpas på distribuerade protokoll och visar att konforma metoder framgångsrikt kan styra avvägningar på protokollnivå i föränderliga nätverksmiljöer.
-\end{scontents}
+    \begin{scontents}[store-env=abstracts,print-env=true]
+        \textit{State Machine Replication (SMR)} is a core technique in distributed systems, forming the basis for critical services like strongly consistent distributed databases. It fundamentally builds upon totally ordered, replicated logs provided by \textit{consensus} algorithms. While fast-path consensus algorithms like \textit{Fast Paxos} eliminate a communication delay under favorable conditions, they are inherently optimistic. When multiple proposals are submitted concurrently, collisions occur, triggering expensive recovery mechanisms that can degrade end-to-end performance below that of conservative protocols.
 
-\subsection*{Nyckelord}
-\begin{scontents}[store-env=keywords,print-env=true]
-    \InsertKeywords{swedish}
-\end{scontents}
+        This thesis introduces \textit{Conformal Consensus} as an exploratory hybrid protocol that bridges distributed consensus with statistical uncertainty quantification. The protocol allows individual nodes to dynamically and independently choose between a conservative and a fast execution path by evaluating locally observable network metrics, such as latencies and proposal rates, whereas a conformal wrapper calibrates decision thresholds such that the long-term empirical rate of fast-path errors remains mathematically bounded to a user-specified target.
+
+        Experimental results from controlled distributed deployments show that the conformal mechanism successfully tracks the target error rate with negligible compute overhead. While small improvements in end-to-end latency can be observed under favorable, low-contention workloads, the practicality of such a hybrid protocol for production deployment is limited due to inherent fast-path viability problems for replicated logs. Ultimately, this work provides an exploration into applying statistical risk control to distributed protocols, highlighting that conformal methods can successfully govern protocol-level trade-offs in volatile network environments.
+    \end{scontents}
+
+    \subsection*{Keywords}
+
+    \begin{scontents}[store-env=keywords,print-env=true]
+        \InsertKeywords{english}
+    \end{scontents}
 \end{abstract}
+
 \cleardoublepage
+
+\babelpolyLangStart{swedish}
+
+\begin{abstract}
+    \markboth{\abstractname}{}
+
+    \begin{scontents}[store-env=lang]
+        swe
+    \end{scontents}
+
+    \begin{scontents}[store-env=abstracts,print-env=true]
+        \textit{Tillståndsmaskinsreplikering (SMR)} är en central teknik inom distribuerade system och utgör grunden för kritiska tjänster såsom starkt konsistenta distribuerade databaser. Den bygger i grunden på totalt ordnade, replikerade loggar som tillhandahålls av konsensusalgoritmer. Även om konsensusalgoritmer med snabbspår, såsom \textit{Fast Paxos}, eliminerar ett kommunikationssteg under gynnsamma förhållanden, är de till sin natur optimistiska. När flera proposals skickas in samtidigt uppstår kollisioner, vilket utlöser kostsamma återhämtningsmekanismer som kan försämra end-to-end-latensen till en nivå som är sämre än för mer konservativa protokoll.
+
+        Denna avhandling introducerar \textit{Conformal Consensus} som ett utforskande hybridprotokoll som överbryggar distribuerad konsensus och statistisk osäkerhetskvantifiering. Protokollet gör det möjligt för enskilda noder att dynamiskt och självständigt välja mellan en konservativ och en snabb exekveringsväg genom att utvärdera lokalt observerbara nätverksmått, såsom latenser och proposal-frekvenser. Samtidigt kalibrerar en konformal wrapper beslutsgränserna så att den långsiktiga empiriska andelen fel i snabbspåret förblir matematiskt begränsad till ett användarspecificerat mål.
+
+        Experimentella resultat från kontrollerade distribuerade miljöer visar att den konforma mekanismen framgångsrikt följer den specificerade felfrekvensen med försumbar beräkningsmässig overhead. Även om små förbättringar i end-to-end-latens kan observeras under gynnsamma arbetsbelastningar med låg konfliktnivå, begränsas den praktiska användbarheten av ett sådant hybridprotokoll för produktionsanvändning av inneboende problem med snabbspårets praktiska användbarhet för replikerade loggar. Sammantaget utgör detta arbete en utforskning av hur statistisk riskkontroll kan tillämpas på distribuerade protokoll och visar att konforma metoder framgångsrikt kan styra avvägningar på protokollnivå i föränderliga nätverksmiljöer.
+    \end{scontents}
+
+    \subsection*{Nyckelord}
+
+    \begin{scontents}[store-env=keywords,print-env=true]
+        \InsertKeywords{swedish}
+    \end{scontents}
+\end{abstract}
+
+\cleardoublepage
+
 \babelpolyLangStop{swedish}
 
 \cleardoublepage
+
 \iftoggle{includeExtraAbstracts}{
-\input{Additional_Abstracts/abstract_german}
+    \input{Additional_Abstracts/abstract_german}
 }{}
 
 \section*{Acknowledgments}
 \markboth{Acknowledgments}{}
+
 I would like to express my gratitude to my supervisors, Sonia Horchidan and Harald Ng, for their guidance, support, and the sheer endless enthusiasm they showed throughout this process. Their contributions to this project cannot be overstated. I would also like to thank Paris Carbone for serving as the examiner of this thesis and for reigniting my interest in distributed systems.
+
 \acknowlegmentssignature
 
 \fancypagestyle{plain}{}
-\renewcommand{\chaptermark}[1]{ \markboth{#1}{}} 
+\renewcommand{\chaptermark}[1]{\markboth{#1}{}}
+
 \tableofcontents
-  \markboth{\contentsname}{}
 
 \cleardoublepage
 \listoffigures
+
 \cleardoublepage
 \listoftables
+
 \cleardoublepage
 \listofalgorithms
+
 \cleardoublepage
-% Align the text expansion of the glossary entries
-\newglossarystyle{mylong}{%
-  \setglossarystyle{long}%
-  \renewenvironment{theglossary}%
-     {\begin{longtable}[l]{@{}p{\dimexpr 2cm-\tabcolsep}p{0.8\hsize}}}% <-- change the value here
-     {\end{longtable}}%
- }
-%\glsaddall
-%\printglossaries[type=\acronymtype, title={List of acronyms}]
-\printglossary[style=mylong, type=\acronymtype, title={List of Acronyms and Abbreviations}]
-%\printglossary[type=\acronymtype, title={List of acronyms and abbreviations}]
 
-%\printnoidxglossary[style=mylong, title={List of acronyms and abbreviations}]
+\newglossarystyle{mylong}{
+    \setglossarystyle{long}
+    \renewenvironment{theglossary}{
+        \begin{longtable}[l]{@{}p{\dimexpr 2cm-\tabcolsep}p{0.8\hsize}}
+    }{
+        \end{longtable}
+    }
+}
 
-% if the nomenclature option was specified, then include the nomenclature page(s)
+\printglossary[
+    style=mylong,
+    type=\acronymtype,
+    title={List of Acronyms and Abbreviations}
+]
+
 \ifnomenclature
     \cleardoublepage
-    % Output the nomenclature list
     \printnomenclature
 \fi
 
-%% The following label is essential to know the page number of the last page of the preface
-%% It is used to compute the data for the "For DIVA" pages
 \label{pg:lastPageofPreface}
-% Mainmatter is where the actual contents of the thesis goes
+
 \mainmatter
+
 \glsresetall
+
 \renewcommand{\chaptermark}[1]{\markboth{#1}{}}
+
 \selectlanguage{english}
 
 \chapter{Introduction}
@@ -522,58 +418,35 @@ I would like to express my gratitude to my supervisors, Sonia Horchidan and Hara
 \input{chapters/Conclusion}
 
 \cleardoublepage
+
 \renewcommand{\bibname}{References}
 
 \iftoggle{biblatex}{
-    %\typeout{Biblatex current language is \currentlang}
     \printbibliography[heading=bibintoc]
 }{
-    \phantomsection  % make it include a hyperref - see https://tex.stackexchange.com/a/98995
+    \phantomsection
     \addcontentsline{toc}{chapter}{References}
     \bibliography{references}
 }
 
-
-
 \cleardoublepage
+
 \appendix
-\renewcommand{\chaptermark}[1]{\markboth{Appendix \thechapter\relax:\thinspace\relax#1}{}}
+
+\renewcommand{\chaptermark}[1]{%
+    \markboth{Appendix \thechapter\relax:\thinspace\relax#1}{}%
+}
+
 \input{chapters/Appendix}
 
-%% The following label is necessary for computing the last page number of the body of the report to include in the "For DIVA" information
 \label{pg:lastPageofMainmatter}
 
 \cleardoublepage
-\clearpage\thispagestyle{empty}\mbox{} % empty page with backcover on the other side
+\clearpage
+\thispagestyle{empty}
+\mbox{}
+
 \kthbackcover
-\fancyhead{}  % Do not use header on this extra page or pages
-\section*{€€€€ For DIVA €€€€}
-\lstset{numbers=none} %% remove any list line numbering
-\divainfo{pg:lastPageofPreface}{pg:lastPageofMainmatter}
-
-% If there is an acronyms.tex file,
-% add it to the end of the For DIVA information
-% so that it can be used with the abstracts
-% Note that the option "nolol" stops it from being listed in the List of Listings
-
-% The following bit of ugliness is because of the problems PDFLaTeX has handling a non-breaking hyphen
-% unless it is converted to UTF-8 encoding.
-% If you do not use such characters in your acronyms, this could be simplified.
-\ifxeorlua
-\IfFileExists{lib/acronyms.tex}{
-\section*{acronyms.tex}
-\lstinputlisting[language={[LaTeX]TeX}, nolol, basicstyle=\ttfamily\color{black},
-commentstyle=\color{black}, backgroundcolor=\color{white}]{lib/acronyms.tex}
-}
-{}
-\else
-\IfFileExists{lib/acronyms-for-pdflatex.tex}{
-\section*{acronyms.tex}
-\lstinputlisting[language={[LaTeX]TeX}, nolol, basicstyle=\ttfamily\color{black},
-commentstyle=\color{black}, backgroundcolor=\color{white}]{lib/acronyms-for-pdflatex.tex}
-}
-{}
-\fi
-
+\fancyhead{}
 
 \end{document}
