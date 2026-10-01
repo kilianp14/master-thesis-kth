@@ -114,7 +114,7 @@
 \input{./kth/kth-commands}
 
 % get all of the information about the school codes and program codes
-\input{lib/schools_and_programs.ins}
+\input{kth/schools_and_programs.ins}
 
 \newcommand{\MONTH}{%
   \ifinswedish

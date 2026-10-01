@@ -1,21 +1,12 @@
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Packages %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% The following is for use with the KTH cover when not using XeLaTeX or LuaLaTeX
 \ifxeorlua\relax
 \else
 \usepackage[scaled]{helvet}
 \fi
 
-%% The following are needed for generating the DiVA page(s)
-\usepackage[force-eol=true]{scontents}              %% Needed to save lang, abstract, and keywords
-\usepackage{pgffor}                 %% includes the foreach loop
+\usepackage[force-eol=true]{scontents}
+\usepackage{pgffor}
+\usepackage{xurl}
 
-%% Basic packages
-
-%% Links
-\usepackage{xurl}                %% Support for breaking URLs
-
-%% Colorize
-%\usepackage{color}
 \PassOptionsToPackage{dvipsnames, svgnames, table}{xcolor}
 \usepackage{xcolor}
 
@@ -24,138 +15,86 @@
 \usepackage{xspace}
 \usepackage{braket}
 
-% to support units and decimal aligned columns in tables
 \usepackage[locale=US]{siunitx}
 
 \usepackage{balance}
 \usepackage{stmaryrd}
 \usepackage{booktabs}
-\usepackage{graphicx}	        %% Support for images
-\usepackage{multirow}	        %% Support for multirow columns in tables
-\usepackage{tabularx}		    %% For simple table stretching
+\usepackage{graphicx}
+\usepackage{multirow}
+\usepackage{tabularx}
 \usepackage{mathtools}
 \usepackage{algorithm} 
-%\usepackage{algorithmic}  
-% note that according to https://www.overleaf.com/learn/latex/Algorithms one can only have one of algpseudocode OR algcompatible OR algorithmic OR algorithm2e packages
-% algpseudocodex seems to be based on algpseudocode but has new features - the package option for noEnd must have a capital "E"
 
 \usepackage{amsmath}
-%\usepackage[linesnumbered,ruled,vlined,algo2e]{algorithm2e}
-% can't use both algpseudocode and algorithmic packages
 \usepackage{algpseudocode}
-%\usepackage{subfig}  %% cannot use both subcaption and subfig packages
 \usepackage{subcaption}
 \usepackage{optidef}
-\usepackage{float}		        %% Support for more flexible floating box positioning
+\usepackage{float}
 \usepackage{pifont}
 
-%% some additional useful packages
-% to enable rotated figures
-\usepackage{rotating}	    	%% For text rotating
-\usepackage{array}		        %% For table wrapping
-\usepackage{mdwlist}            %% various list-related commands
-\usepackage{setspace}           %% For fine-grained control over line spacing
+\usepackage{rotating}
+\usepackage{array}
+\usepackage{mdwlist}
+\usepackage{setspace}
+
+\usepackage{enumitem}
 
 
-\usepackage{enumitem}           %% to allow changes to the margins of descriptions
+\usepackage{listings}
+\usepackage{bytefield}
 
 
-%% If you are going to include source code (or code snippets) you can use minted in a listings environment
-\usepackage{listings}		    %% For source code listing
-                                %% For source code highlighting
-%\usepackage[chapter, cache=false]{minted}   %% If you use minted make sure to use the chapter options to do numbering in the chapter
-%%\usemintedstyle{borland}
-
-\usepackage{bytefield}          %% For packet drawings
-
-
-\setlength {\marginparwidth }{2cm} %leave some extra space for todo notes
-% The obeyFinal option means that todonotes will be disables when "final" is added as an option for the documentclass
+\setlength {\marginparwidth }{2cm}
 \usepackage[obeyFinal]{todonotes}
-\usepackage{notoccite} % do not number captions based on their appearance in the TOC
+\usepackage{notoccite}
 
 
-% Footnotes
 \usepackage{perpage}
-\usepackage[perpage,symbol]{footmisc} %% use symbols to ``number'' footnotes and reset which symbol is used first on each page
-%% Removed option "para" to place each footnote on a separate line. This avoids bad stretching of URLs in footnotes.
+\usepackage[perpage,symbol]{footmisc}
 
 
-%% Various useful packages
-%%----------------------------------------------------------------------------
-%%   pcap2tex stuff
-%%----------------------------------------------------------------------------
 \usepackage{tikz}
 \usepackage{colortbl}
 \usetikzlibrary{arrows,decorations.pathmorphing,backgrounds,fit,positioning, decorations.pathreplacing, calc,shapes, patterns}
-\usepackage{pgfmath}	% --math engine
+\usepackage{pgfmath}
 \newcommand\bmmax{2}
-\usepackage{bm} % bold math
-
-
-%% Managing titles
-% \usepackage[outermarks]{titlesec}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%\captionsetup[subfloat]{listofformat=parens}
-
-% to include PDF pages
-%\usepackage{pdfpages}
+\usepackage{bm}
 
 \usepackage{fvextra}
-\usepackage{csquotes}               %% Recommended by biblatex
-% to provide a float barrier use:
+\usepackage{csquotes}
 \usepackage{placeins}
 
-\usepackage{comment}  %% Provides a comment environment
-\usepackage{refcount}   %% to be able to get an expandable \getpagerefnumber
+\usepackage{comment}
+\usepackage{refcount}
 
-% for experiments with new cover
 \usepackage{eso-pic}
 \usepackage[absolute,overlay]{textpos}
 
-% when the package is used, it draws boxes on the page showing the text, footnote, header, and margin regions of the page
-%\usepackage{showframe}  
-%\usepackage{printlen} % defines the printlength command to print out values of latex variable
-
-\usepackage{xparse}  % to use for commands with optional arguments
+\usepackage{xparse}
 
 \ifnomenclature
-\usepackage[nocfg]{nomencl}  %% include refpage, refeq, to have page number and equation number for each nomenclature
+\usepackage[nocfg]{nomencl}
 \fi
 
-\usepackage{longtable}  % For multipage tables
-\usepackage{lscape}     % For landscape pages
-\usepackage{needspace}  % to specify needed space, for example to keep listing heading with the listing
-\usepackage{metalogo}   % for \XeLaTeX and \LuaLaTeX logos
+\usepackage{longtable}
+\usepackage{lscape}
+\usepackage{needspace}
+\usepackage{metalogo}
 
 
-% To be able to have conditional text #2 that will be included IFF a label is defined, else #3
 \newcommand{\iflabelexists}[3]{\ifcsundef{r@#1}{#3}{#2}}
 
 
-% to allow more than 16 files to be open at once
-% Package morewrites Warning: The morewrites package is unnecessary in LuaTeX.
 \ifluatex\empty
 \else
 \usepackage{morewrites}
 \fi
 
-%%% The lines below are for use with the pgfplots examples
 \usepackage{svg}
 \usepackage{pgfplots}
 \usepackage{pgfplotstable}
 \pgfplotsset{compat=1.12}
- 
-
- 
-%https://tex.stackexchange.com/questions/554732/bar-plot-does-not-use-defined-color-cycle-list
-%\pgfplotscreateplotcyclelist{mycolors}{
-%    {blue,fill=blue!30!white,mark=none},
-%    {green,fill=green!30!white,mark=none},
-%    {brown!60!black,fill=brown!30!white,mark=none},
-%    {black,fill=gray,mark=none}
-%}
-
     \tikzset{
         hatch distance/.store in=\hatchdistance,
         hatch distance=10pt,
@@ -176,16 +115,7 @@
         \pgfusepath{stroke}
     }
 \makeatother
-%\usetikzlibrary{patterns, patterns.meta}
-%\usetikzlibrary{decorations.pathreplacing}
-% high contrast colors: https://venngage.com/tools/accessible-color-palette-generator
 
-%#1d138a, #ffffff
-%#3829bc, #ffffff
-%#c44601, #ffffff
-%#008e4a, #000000
-%#026526, #ffffff
-%https://latex-tutorial.com/color-latex/
 \definecolor{color1bg}{HTML}{1954a6}
 \colorlet{color1bgFill}{color1bg!30!white}
 \colorlet{color1bgDarkFill}{color1bg!90!white}
@@ -208,7 +138,6 @@
 
 \pgfplotscreateplotcyclelist{rustcolors}{
   {color1bg,mark=none, pattern=
-  %{flexible hatch}
   {crosshatch}
   ,pattern color=color1bg},
   {color2bg,mark=none, pattern={vertical lines}, pattern color=color2bg},{color3bg,mark=none, pattern={horizontal lines}, pattern color=color3bg},{color4bg,mark=none, pattern={north east lines}, pattern color=color4bg},{color5bg,fill=color5bg,mark=none},
@@ -220,20 +149,13 @@
 
 \usepackage{makecell}
 
-%\usepackage[table]{xcolor}
-
 \usepackage{pgf-pie}
 
 \usetikzlibrary{arrows.meta, positioning, calc, fit, backgrounds, decorations.pathreplacing}
 \usepackage{fontawesome5}
-\usepackage[chapter]{minted} % to use minuted for some listings
+\usepackage[chapter]{minted}
 
-\usepackage[useregional]{datetime2} % This package makes it easy to have dates and times adjusted to the language being used.
+\usepackage[useregional]{datetime2}
 
-%%% The lines below are for setting text that includes Japanese
-\ifluatex
-\usepackage{luatexja-fontspec}
-\setmainjfont{IPAexMincho} % A high quality Japanese font preinstalled in TeX Live
-\fi
 
 \usepackage{ltxcmds}
