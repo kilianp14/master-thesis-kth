@@ -149,9 +149,3 @@
   \fi
 \fi
 }
-
-
-
-% Input the sanity checks to be done at the end of the document
-\input{kth/kth-sanity-checks}
-\endinput

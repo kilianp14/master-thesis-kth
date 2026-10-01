@@ -30,80 +30,10 @@
 
 \documentclass[english,bibtex]{kththesis}
 
-\iftoggle{biblatex}{
-    \usepackage[style=ieee,citestyle=numeric-comp]{biblatex}
-    \addbibresource{references.bib}
-}{
-    \bibliographystyle{myIEEEtran}
-}
+\bibliographystyle{myIEEEtran}
 
 \input{lib/includes}
 \input{lib/defines}
-
-\makeatletter
-\let\verbatimsc\@undefined
-\let\endverbatimsc\@undefined
-\lst@AddToHook{Init}{\hyphenpenalty=50\relax}
-\makeatother
-
-\lstnewenvironment{verbatimsc}
-{
-    \lstset{
-        basicstyle=\ttfamily\tiny,
-        backgroundcolor=\color{white},
-        columns=[l]fixed,
-        language=[LaTeX]TeX,
-        keywordstyle=\color{red},
-        breaklines=true,
-        breakatwhitespace=true,
-        breakindent=0em,
-        frame=none,
-        postbreak={}
-    }
-}{}
-
-\lstdefinestyle{[LaTeX]TeX}{
-    morekeywords={begin, todo, textbf, textit, texttt}
-}
-
-\newcommand{\colorbitbox}[3]{%
-    \rlap{\bitbox{#2}{\color{#1}\rule{\width}{\height}}}%
-    \bitbox{#2}{#3}%
-}
-
-\newcolumntype{L}[1]{%
-    >{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}p{#1}%
-}
-
-\iftoggle{biblatex}{
-    \usepackage[plainpages=false]{hyperref}
-}{
-    \usepackage[
-        backref=page,
-        pagebackref=false,
-        plainpages=false,
-        unicode=true,
-        bookmarks=true,
-        bookmarksopen=false,
-        pdfpagemode=UseNone,
-        destlabel,
-        pdfencoding=auto,
-    ]{hyperref}
-}
-
-\usepackage[all]{hypcap}
-
-\usepackage[
-    acronym,
-    style=super,
-    section=section,
-    nonumberlist,
-    nomain,
-    nopostdot
-]{glossaries-extra}
-
-\setlength{\glsdescwidth}{0.75\textwidth}
-
 \input{lib/includes-after-hyperref}
 
 \makeglossaries
@@ -156,20 +86,6 @@
     citecolor=\refscolor,
     anchorcolor=black
 }
-
-\ifnomenclature
-    \renewcommand*{\pagedeclaration}[1]{%
-        \unskip, \dotfill\hyperlink{page.#1}{page\nobreakspace#1}%
-    }
-
-    \renewcommand{\nomname}{List of Symbols Used}
-
-    \renewcommand{\nompreamble}{
-        The following symbols will be used throughout the thesis.
-    }
-
-    \makenomenclature
-\fi
 
 \definecolor{delim}{RGB}{20,105,176}
 \definecolor{numb}{RGB}{106,109,32}
